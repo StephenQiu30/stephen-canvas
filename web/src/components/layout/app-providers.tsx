@@ -1,8 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
 import { useTranslation } from "react-i18next";
@@ -19,19 +18,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
     const theme = useThemeStore((state) => state.theme);
     const dark = theme === "dark";
     const locale = i18n.resolvedLanguage as AppLocale;
-    const [queryClient] = useState(
-        () =>
-            new QueryClient({
-                defaultOptions: {
-                    queries: {
-                        staleTime: 30_000,
-                        retry: false,
-                        refetchOnWindowFocus: false,
-                    },
-                },
-            }),
-    );
-
     useEffect(() => {
         document.documentElement.classList.toggle("dark", dark);
         document.documentElement.style.colorScheme = theme;
@@ -45,12 +31,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }, [locale, t]);
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-                <AppFeedbackProvider>
-                    <ClientRootInit>{children}</ClientRootInit>
-                </AppFeedbackProvider>
-            </TooltipProvider>
-        </QueryClientProvider>
+        <TooltipProvider>
+            <AppFeedbackProvider>
+                <ClientRootInit>{children}</ClientRootInit>
+            </AppFeedbackProvider>
+        </TooltipProvider>
     );
 }
