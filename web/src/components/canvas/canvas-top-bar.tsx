@@ -3,7 +3,7 @@ import { Bot, Download, Home, Images, Menu, PanelLeftClose, PanelLeftOpen, Plus,
 import { Button, Dropdown, Modal, Tooltip } from "@/components/ui/app-primitives";
 import { useTranslation } from "react-i18next";
 
-import { UserStatusActions } from "@/components/layout/user-status-actions";
+import { AppToolbarActions } from "@/components/layout/app-toolbar-actions";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { useCanvasSidePanelStore } from "@/stores/use-canvas-side-panel-store";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -137,7 +137,7 @@ export function CanvasTopBar({
                 </div>
 
                 <div className="pointer-events-auto flex items-center gap-1.5">
-                    <UserStatusActions variant="canvas" onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
+                    <AppToolbarActions variant="canvas" onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
                     <span className="h-6 w-px" style={{ background: theme.toolbar.border }} />
                     <Button
                         type="text"

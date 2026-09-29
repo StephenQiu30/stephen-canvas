@@ -1,23 +1,23 @@
 "use client";
 
-import { Bot, Menu } from "lucide-react";
+import { Bot } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button, Tooltip } from "@/components/ui/app-primitives";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
 
 import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { AppConfigModal } from "@/components/layout/app-config-modal";
-import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
-import { UserStatusActions } from "@/components/layout/user-status-actions";
+import { MobileNavSheet } from "@/components/layout/mobile-nav-sheet";
+import { AppToolbarActions } from "@/components/layout/app-toolbar-actions";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useAgentStore } from "@/stores/use-agent-store";
 
 export function AppHeader() {
     const { t } = useTranslation();
     const pathname = usePathname();
-    const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const autoConnectRef = useRef(false);
     const agentToken = useAgentStore((state) => state.token);
     const agentEnabled = useAgentStore((state) => state.enabled);
@@ -53,15 +53,7 @@ export function AppHeader() {
                                 <span className="text-base font-medium">{t("meta.title")}</span>
                             </Link>
 
-                            <button
-                                type="button"
-                                className="ml-3 inline-flex size-8 shrink-0 items-center justify-center text-muted-foreground transition hover:text-foreground md:hidden"
-                                onClick={() => setMobileNavOpen(true)}
-                                aria-label={t("topNav.openMenu")}
-                                title={t("topNav.menu")}
-                            >
-                                <Menu className="size-5" />
-                            </button>
+                            <MobileNavSheet activeToolSlug={activeToolSlug} />
 
                             <nav className="hide-scrollbar ml-8 hidden h-16 min-w-0 items-center gap-7 overflow-x-auto md:flex">
                                 {navigationTools.map((tool) => {
@@ -71,6 +63,7 @@ export function AppHeader() {
                                         <Link
                                             key={tool.slug}
                                             href={`/${tool.slug}`}
+                                            aria-current={active ? "page" : undefined}
                                             className={cn(
                                                 "relative flex h-16 shrink-0 items-center gap-2 text-sm leading-6 transition after:absolute after:inset-x-0 after:bottom-0 after:h-px",
                                                 active
@@ -87,16 +80,20 @@ export function AppHeader() {
                         </div>
 
                         <div className="my-auto flex h-9 min-w-0 items-center justify-end gap-2 justify-self-end whitespace-nowrap">
-                            <Tooltip title={t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")}>
-                                <Button type="text" shape="circle" className="!h-8 !w-8 !min-w-8" icon={<Bot className="size-4" />} onClick={togglePanel} aria-label={t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")} />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={togglePanel} aria-pressed={panelOpen} aria-label={t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")}>
+                                        <Bot />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")}</TooltipContent>
                             </Tooltip>
-                            <UserStatusActions />
+                            <AppToolbarActions />
                         </div>
                     </div>
                 </header>
             ) : null}
 
-            <MobileNavDrawer open={mobileNavOpen} activeToolSlug={activeToolSlug} onClose={() => setMobileNavOpen(false)} />
             <AppConfigModal />
         </>
     );

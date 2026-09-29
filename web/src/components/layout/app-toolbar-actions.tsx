@@ -1,5 +1,7 @@
+"use client";
+
 import type { CSSProperties } from "react";
-import { Tooltip } from "@/components/ui/app-primitives";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Keyboard, Moon, Puzzle, Settings2, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -7,29 +9,23 @@ import { useTranslation } from "react-i18next";
 import { GitHubLink } from "@/components/layout/github-link";
 import { VersionReleaseModal } from "@/components/layout/version-release-modal";
 import { changeAppLocale, type AppLocale } from "@/i18n";
-import { cn } from "@/lib/utils";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { useConfigStore } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 
-type UserStatusActionsProps = {
-    showConfig?: boolean;
+type AppToolbarActionsProps = {
     variant?: "default" | "canvas";
     onOpenShortcuts?: () => void;
     onOpenPlugins?: () => void;
 };
 
-export function UserStatusActions({ showConfig = true, variant = "default", onOpenShortcuts, onOpenPlugins }: UserStatusActionsProps) {
+export function AppToolbarActions({ variant = "default", onOpenShortcuts, onOpenPlugins }: AppToolbarActionsProps) {
     const { i18n, t } = useTranslation();
     const theme = useThemeStore((state) => state.theme);
     const setTheme = useThemeStore((state) => state.setTheme);
     const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
     const canvasTheme = canvasThemes[theme];
-    const naturalIconClass = "inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-brand-body transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10 [&_svg]:size-4";
     const iconStyle: CSSProperties | undefined = variant === "canvas" ? { color: canvasTheme.node.text } : undefined;
-    const versionStyle = iconStyle;
-    const gitHubClassName = "size-7 text-base";
-    const gitHubStyle = iconStyle;
     const locale = i18n.resolvedLanguage as AppLocale;
     const nextLocale = locale === "zh-CN" ? "en-US" : "zh-CN";
     const languageLabel = t("topNav.switchLanguage", { language: t(nextLocale === "zh-CN" ? "locale.zhCN" : "locale.enUS") });
@@ -37,25 +33,28 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
     return (
         <div className="inline-flex shrink-0 items-center gap-1">
             {onOpenPlugins ? (
-                <button type="button" className={naturalIconClass} style={iconStyle} onClick={onOpenPlugins} aria-label={t("topNav.plugins")} title={t("topNav.plugins")}>
-                    <Puzzle className="size-4" />
-                </button>
+                <Button type="button" variant="ghost" size="icon-sm" style={iconStyle} onClick={onOpenPlugins} aria-label={t("topNav.plugins")} title={t("topNav.plugins")}>
+                    <Puzzle />
+                </Button>
             ) : null}
-            {showConfig ? (
-                <button type="button" className={naturalIconClass} style={iconStyle} onClick={() => openConfigDialog(false)} aria-label={t("navigation.config")} title={t("navigation.config")}>
-                    <Settings2 className="size-4" />
-                </button>
+            {variant === "canvas" ? (
+                <Button type="button" variant="ghost" size="icon-sm" style={iconStyle} onClick={() => openConfigDialog(false)} aria-label={t("navigation.config")} title={t("navigation.config")}>
+                    <Settings2 />
+                </Button>
             ) : null}
-            <Tooltip title={languageLabel} mouseEnterDelay={0.2}>
-                <button type="button" className={`${naturalIconClass} text-[11px] font-semibold tracking-tight`} style={iconStyle} onClick={() => void changeAppLocale(nextLocale)} aria-label={languageLabel}>
-                    {locale === "zh-CN" ? "中" : "EN"}
-                </button>
+            <Tooltip delayDuration={200}>
+                <TooltipTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon-sm" style={iconStyle} onClick={() => void changeAppLocale(nextLocale)} aria-label={languageLabel}>
+                        {locale === "zh-CN" ? "中" : "EN"}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>{languageLabel}</TooltipContent>
             </Tooltip>
             <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                className={cn(naturalIconClass, "transition-none active:translate-y-0")}
+                className="transition-none active:translate-y-0"
                 style={iconStyle}
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 aria-label={t(theme === "dark" ? "topNav.lightTheme" : "topNav.darkTheme")}
@@ -63,12 +62,12 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
             >
                 {theme === "dark" ? <Sun /> : <Moon />}
             </Button>
-            <VersionReleaseModal style={versionStyle} />
-            <GitHubLink className={cn("bg-transparent hover:bg-transparent dark:hover:bg-transparent", gitHubClassName)} style={gitHubStyle} />
+            {variant === "canvas" ? <VersionReleaseModal style={iconStyle} /> : null}
+            <GitHubLink style={iconStyle} />
             {onOpenShortcuts ? (
-                <button type="button" className={naturalIconClass} style={iconStyle} onClick={onOpenShortcuts} aria-label={t("topNav.shortcuts")} title={t("topNav.shortcuts")}>
-                    <Keyboard className="size-4" />
-                </button>
+                <Button type="button" variant="ghost" size="icon-sm" style={iconStyle} onClick={onOpenShortcuts} aria-label={t("topNav.shortcuts")} title={t("topNav.shortcuts")}>
+                    <Keyboard />
+                </Button>
             ) : null}
         </div>
     );
