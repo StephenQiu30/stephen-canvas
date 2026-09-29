@@ -1,107 +1,139 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Compass, Focus, HelpCircle } from "lucide-react";
-import type { ReactNode } from "react";
+import { CANVAS_MAX_SCALE, CANVAS_MIN_SCALE } from "@/lib/canvas/canvas-viewport";
+import { Compass, Focus, Magnet, Minus, Plus, Workflow } from "lucide-react";
 import { useState } from "react";
 
-import { canvasThemes } from "@/lib/canvas-theme";
-import { useThemeStore } from "@/stores/use-theme-store";
-
-type CanvasZoomControlsProps = {
+export function CanvasZoomControls({
+    scale,
+    onScaleChange,
+    onFit,
+    isMiniMapOpen,
+    onToggleMiniMap,
+    showConnections,
+    onToggleConnections,
+    snapToGrid,
+    onToggleSnap,
+}: {
     scale: number;
     onScaleChange: (scale: number) => void;
-    onReset: () => void;
+    onFit: () => void;
     isMiniMapOpen: boolean;
     onToggleMiniMap: () => void;
-};
-
-export function CanvasZoomControls({ scale, onScaleChange, onReset, isMiniMapOpen, onToggleMiniMap }: CanvasZoomControlsProps) {
-    const [shortcutsOpen, setShortcutsOpen] = useState(false);
-    const colorTheme = useThemeStore((state) => state.theme);
-    const theme = canvasThemes[colorTheme];
-    const dockStyle = { background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.toolbar.item, boxShadow: colorTheme === "dark" ? "0 18px 45px rgba(0,0,0,.32)" : "0 16px 40px rgba(28,25,23,.12)" };
-    const activeStyle = { background: theme.toolbar.activeBg, color: theme.toolbar.activeText };
-
+    showConnections: boolean;
+    onToggleConnections: () => void;
+    snapToGrid: boolean;
+    onToggleSnap: () => void;
+}) {
+    const [zoomOpen, setZoomOpen] = useState(false);
+    const [draft, setDraft] = useState<string | null>(null);
+    const percent = Math.round(scale * 100);
+    const applyZoom = () => {
+        const value = Number(draft);
+        if (draft?.trim() && Number.isFinite(value)) onScaleChange(value / 100);
+        setDraft(null);
+    };
     return (
-        <div className="absolute bottom-5 left-5 z-50" onMouseDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
-            <div className="flex h-14 items-center gap-1 rounded-xl border px-2 shadow-lg backdrop-blur" style={dockStyle}>
-                <Tooltip>
+        <div data-canvas-no-zoom className="absolute bottom-4 left-4 z-50 flex h-10 items-center gap-1 @max-[1000px]/canvas:bottom-20" aria-label="画布视图控制">
+            {[
+                { label: "适合屏幕", icon: Focus, onClick: onFit },
+                { label: "小地图", icon: Compass, onClick: onToggleMiniMap, pressed: isMiniMapOpen },
+                { label: "显示连线", icon: Workflow, onClick: onToggleConnections, pressed: showConnections },
+                { label: "网格吸附", icon: Magnet, onClick: onToggleSnap, pressed: snapToGrid },
+            ].map(({ label, icon: Icon, onClick, pressed }) => (
+                <Tooltip key={label}>
                     <TooltipTrigger asChild>
-                        <Button
-                            style={isMiniMapOpen ? activeStyle : { color: theme.toolbar.item }}
-                            onClick={onToggleMiniMap}
-                            aria-label={isMiniMapOpen ? "关闭小地图" : "打开小地图"}
-                            type={"button"}
-                            variant={"ghost"}
-                            size="icon"
-                            className={"!h-8 !w-8 !min-w-8 !p-0"}
-                        >
-                            {<Compass data-icon="inline-start" />}
+                        <Button variant="ghost" size="icon-sm" onClick={onClick} aria-label={label} aria-pressed={pressed} className="aria-pressed:bg-accent">
+                            <Icon />
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="top">{isMiniMapOpen ? "关闭小地图" : "打开小地图"}</TooltipContent>
+                    <TooltipContent side="top">{label}</TooltipContent>
                 </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button style={{ color: theme.toolbar.item }} onClick={onReset} aria-label={"重置视图"} type={"button"} variant={"ghost"} size="icon" className={"!h-8 !w-8 !min-w-8 !p-0"}>
-                            {<Focus data-icon="inline-start" />}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">{"重置视图"}</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Slider min={5} max={500} step={1} value={[Math.round(scale * 100)]} className="w-24" onValueChange={([value]) => onScaleChange(value / 100)} aria-label="放大/缩小画布" />
-                    </TooltipTrigger>
-                    <TooltipContent side="top">{"放大/缩小画布"}</TooltipContent>
-                </Tooltip>
-                <span className="w-10 text-right text-xs tabular-nums" style={{ color: theme.node.muted }}>
-                    {Math.round(scale * 100)}%
-                </span>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button style={shortcutsOpen ? activeStyle : { color: theme.toolbar.item }} onClick={() => setShortcutsOpen(true)} aria-label={"快捷键"} type={"button"} variant={"ghost"} size="icon" className={"!h-8 !w-8 !min-w-8 !p-0"}>
-                            {<HelpCircle data-icon="inline-start" />}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">{"快捷键"}</TooltipContent>
-                </Tooltip>
-            </div>
-            <Dialog
-                open={shortcutsOpen}
+            ))}
+            <Popover
+                open={zoomOpen}
                 onOpenChange={(open) => {
-                    if (!open) (() => setShortcutsOpen(false))();
+                    setZoomOpen(open);
+                    setDraft(null);
                 }}
             >
-                <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"}>
-                    <DialogHeader>
-                        <DialogTitle>{"快捷键"}</DialogTitle>
-                    </DialogHeader>
-                    <div>
-                        <div className="flex flex-col gap-3 border-t pt-4 text-sm" style={{ borderColor: theme.node.stroke }}>
-                            <Shortcut label={`Ctrl / Space + ${"拖动"}`} value={"临时切换选择 / 移动"} />
-                            <Shortcut label={"滚轮"} value={"缩放画布"} />
-                            <Shortcut label={"拖动"} value={"框选多个节点"} />
-                            <Shortcut label={`Shift / Cmd + ${"点击"}`} value={"追加选择节点"} />
-                            <Shortcut label="Ctrl / Cmd + C / V" value={"复制 / 粘贴节点"} />
-                            <Shortcut label="Ctrl / Cmd + G" value={"将选中节点打组"} />
-                            <Shortcut label="Ctrl / Cmd + Shift + G" value={"解散选中的组"} />
-                            <Shortcut label="Delete / Backspace" value={"删除选中"} />
+                <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="min-w-16 tabular-nums" aria-label={`缩放选项，当前 ${percent}%`}>
+                        {percent}%
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent side="top" align="start" className="w-60" data-canvas-no-zoom>
+                    <Field>
+                        <FieldLabel htmlFor="canvas-zoom-percent">缩放比例</FieldLabel>
+                        <InputGroup>
+                            <InputGroupInput
+                                id="canvas-zoom-percent"
+                                type="number"
+                                min={CANVAS_MIN_SCALE * 100}
+                                max={CANVAS_MAX_SCALE * 100}
+                                value={draft ?? percent}
+                                onChange={(event) => setDraft(event.target.value)}
+                                onBlur={applyZoom}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                        applyZoom();
+                                        setZoomOpen(false);
+                                    }
+                                }}
+                            />
+                            <InputGroupAddon align="inline-end">%</InputGroupAddon>
+                        </InputGroup>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon-sm" aria-label="缩小" onClick={() => onScaleChange(scale / 1.1)}>
+                                <Minus />
+                            </Button>
+                            <Slider
+                                min={CANVAS_MIN_SCALE * 100}
+                                max={CANVAS_MAX_SCALE * 100}
+                                value={[percent]}
+                                step={1}
+                                aria-label="缩放比例"
+                                onValueChange={([value]) => {
+                                    setDraft(null);
+                                    onScaleChange(value / 100);
+                                }}
+                            />
+                            <Button variant="ghost" size="icon-sm" aria-label="放大" onClick={() => onScaleChange(scale * 1.1)}>
+                                <Plus />
+                            </Button>
                         </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </div>
-    );
-}
-
-function Shortcut({ label, value }: { label: ReactNode; value: string }) {
-    return (
-        <div className="flex items-center justify-between gap-4">
-            <span className="text-base font-medium">{label}</span>
-            <span className="opacity-60">{value}</span>
+                    </Field>
+                    <Separator className="my-2" />
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-between"
+                        onClick={() => {
+                            onFit();
+                            setZoomOpen(false);
+                        }}
+                    >
+                        适合屏幕<span className="text-muted-foreground">⌘ / Ctrl 0</span>
+                    </Button>
+                    {[0.5, 1, 2].map((value) => (
+                        <Button
+                            key={value}
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                                onScaleChange(value);
+                                setZoomOpen(false);
+                            }}
+                        >
+                            {value * 100}%
+                        </Button>
+                    ))}
+                </PopoverContent>
+            </Popover>
         </div>
     );
 }

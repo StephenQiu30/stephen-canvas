@@ -87,7 +87,7 @@ export function Minimap({ nodes, viewport, viewportSize, onViewportChange }: { n
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect) return;
 
-        const world = toWorld(event.clientX - rect.left, event.clientY - rect.top);
+        const world = toWorld(((event.clientX - rect.left) * width) / rect.width, ((event.clientY - rect.top) * height) / rect.height);
         onViewportChange({
             x: viewportSize.width / 2 - world.x * viewport.k,
             y: viewportSize.height / 2 - world.y * viewport.k,
@@ -96,9 +96,13 @@ export function Minimap({ nodes, viewport, viewportSize, onViewportChange }: { n
     };
 
     return (
-        <div className="absolute bottom-24 left-6 z-50 overflow-hidden rounded-lg border shadow-2xl backdrop-blur-sm" style={{ width, height, background: theme.toolbar.panel, borderColor: theme.toolbar.border }}>
+        <div
+            className="absolute bottom-16 left-4 z-50 @max-[1000px]/canvas:bottom-32 overflow-hidden rounded-lg border shadow-2xl backdrop-blur-sm"
+            style={{ width: width + 2, height: height + 2, background: theme.toolbar.panel, borderColor: theme.toolbar.border }}
+        >
             <div
                 ref={containerRef}
+                aria-label="画布小地图"
                 className="relative h-full w-full cursor-crosshair"
                 onPointerDown={(event) => {
                     event.preventDefault();
@@ -110,7 +114,8 @@ export function Minimap({ nodes, viewport, viewportSize, onViewportChange }: { n
                     if (isDragging) updateViewportFromEvent(event);
                 }}
                 onPointerUp={() => setIsDragging(false)}
-                onPointerLeave={() => setIsDragging(false)}
+                onPointerCancel={() => setIsDragging(false)}
+                onLostPointerCapture={() => setIsDragging(false)}
             >
                 {nodes.map((node) => {
                     const pos = toMinimap(node.position.x, node.position.y);

@@ -35,6 +35,7 @@ export function ConnectionPath({
                 d={pathD}
                 stroke="transparent"
                 strokeWidth="16"
+                vectorEffect="non-scaling-stroke"
                 fill="none"
                 style={{ cursor: "pointer", pointerEvents: "stroke" }}
                 onClick={(event) => {
@@ -51,6 +52,7 @@ export function ConnectionPath({
                 d={pathD}
                 stroke={active ? theme.node.activeStroke : theme.node.muted}
                 strokeWidth={active ? 3 : 2}
+                vectorEffect="non-scaling-stroke"
                 strokeOpacity={active ? 1 : 0.82}
                 fill="none"
                 style={{ filter: active ? `drop-shadow(0 0 8px ${theme.node.activeStroke}66)` : undefined, pointerEvents: "none" }}
@@ -71,8 +73,8 @@ export function ActiveConnectionPath({ node, handle, mouseWorld, target }: { nod
     const snappedStartY = handle.handleType === "target" && target ? target.position.y + target.height / 2 : startY;
     const snappedEndX = handle.handleType === "source" && target ? target.position.x : endX;
     const snappedEndY = handle.handleType === "source" && target ? target.position.y + target.height / 2 : endY;
-    const distance = Math.abs(snappedEndX - snappedStartX);
-    const pathD = `M ${snappedStartX} ${snappedStartY} C ${snappedStartX + distance * 0.5} ${snappedStartY}, ${snappedEndX - distance * 0.5} ${snappedEndY}, ${snappedEndX} ${snappedEndY}`;
+    const curvature = Math.max(Math.abs(snappedEndX - snappedStartX) * 0.5, 50);
+    const pathD = `M ${snappedStartX} ${snappedStartY} C ${snappedStartX + curvature} ${snappedStartY}, ${snappedEndX - curvature} ${snappedEndY}, ${snappedEndX} ${snappedEndY}`;
 
-    return <path d={pathD} stroke={theme.node.activeStroke} strokeWidth="2" fill="none" strokeDasharray="5,5" />;
+    return <path d={pathD} stroke={theme.node.activeStroke} strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" strokeDasharray="5,5" />;
 }

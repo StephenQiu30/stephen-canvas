@@ -13,6 +13,7 @@ const basePath = process.env.NEXT_BASE_PATH?.replace(/\/$/, "") || "";
 
 const nextConfig: NextConfig = {
     output: "standalone",
+    devIndicators: false,
     basePath: basePath || undefined,
     poweredByHeader: false,
     images: { unoptimized: true },

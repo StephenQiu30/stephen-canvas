@@ -1,6 +1,5 @@
 "use client";
 
-import { VersionReleaseModal } from "@/components/layout/version-release-modal";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { navigationTools } from "@/constant/navigation-tools";
@@ -80,10 +79,6 @@ export function AppSidebar() {
                     <br />
                     让创作在画布上发生。
                 </p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>版本更新</span>
-                    <VersionReleaseModal />
-                </div>
             </SidebarFooter>
         </Sidebar>
     );

@@ -2,14 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-import { Bot, Download, Home, Images, Menu, PanelLeftClose, PanelLeftOpen, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
+import { Download, Home, Images, Menu, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { AppToolbarActions } from "@/components/layout/app-toolbar-actions";
 import { canvasThemes } from "@/lib/canvas-theme";
-import { useCanvasSidePanelStore } from "@/stores/use-canvas-side-panel-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 
 export function CanvasTopBar({
@@ -61,8 +59,7 @@ export function CanvasTopBar({
     const theme = canvasThemes[colorTheme];
     const titleRef = useRef<HTMLDivElement>(null);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
-    const sidePanelOpen = useCanvasSidePanelStore((state) => state.panelOpen);
-    const toggleSidePanel = useCanvasSidePanelStore((state) => state.togglePanel);
+    const titleCancelledRef = useRef(false);
 
     useEffect(() => {
         if (!isTitleEditing) return;
@@ -75,23 +72,8 @@ export function CanvasTopBar({
 
     return (
         <>
-            <div className="pointer-events-none absolute left-0 right-0 top-0 z-50 flex h-16 items-center justify-between pl-1 pr-4">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-50 flex h-16 items-center justify-between gap-2 px-4">
                 <div className="pointer-events-auto flex min-w-0 items-center gap-2">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                type="button"
-                                onClick={toggleSidePanel}
-                                aria-label={sidePanelOpen ? "收起面板" : "展开面板"}
-                                className="grid size-7 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
-                                style={{ color: theme.node.text }}
-                            >
-                                {sidePanelOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">{sidePanelOpen ? "收起面板" : "展开面板"}</TooltipContent>
-                    </Tooltip>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" type="button" className="grid size-7 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10" style={{ color: theme.node.text }} aria-label={"打开画布菜单"}>
@@ -180,35 +162,42 @@ export function CanvasTopBar({
                                 autoFocus
                                 value={titleDraft}
                                 onChange={(event) => onTitleDraftChange(event.target.value)}
-                                onBlur={onFinishTitleEditing}
+                                aria-label="项目名称"
+                                onBlur={() => {
+                                    if (!titleCancelledRef.current) onFinishTitleEditing();
+                                }}
                                 onKeyDown={(event) => {
                                     if (event.key === "Enter") onFinishTitleEditing();
-                                    if (event.key === "Escape") onCancelTitleEditing();
+                                    if (event.key === "Escape") {
+                                        titleCancelledRef.current = true;
+                                        onCancelTitleEditing();
+                                    }
                                 }}
-                                className="max-w-[280px] bg-transparent p-0 text-left text-lg font-semibold tracking-normal outline-none"
+                                className="w-40 @min-[760px]/canvas:w-64"
                                 style={{ color: theme.node.text }}
                             />
                         ) : (
                             <Button
                                 variant="ghost"
                                 type="button"
-                                className="max-w-[280px] truncate border-b border-dashed border-transparent text-left text-lg font-semibold tracking-normal transition hover:border-current"
-                                onDoubleClick={onStartTitleEditing}
-                                title={"双击修改画布名称"}
+                                className="max-w-32 truncate @min-[760px]/canvas:max-w-64"
+                                onClick={() => {
+                                    titleCancelledRef.current = false;
+                                    onStartTitleEditing();
+                                }}
+                                title="修改画布名称"
                             >
                                 {title}
                             </Button>
                         )}
                     </div>
-                    <CompactAgentStatus status={compactAgentStatus} onClick={onToggleAgent} />
+                    <div className="hidden @min-[1000px]/canvas:block">
+                        <CompactAgentStatus status={compactAgentStatus} onClick={onToggleAgent} />
+                    </div>
                 </div>
 
                 <div className="pointer-events-auto flex items-center gap-1.5">
                     <AppToolbarActions variant="canvas" onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
-                    <span className="h-6 w-px" style={{ background: theme.toolbar.border }} />
-                    <Button style={{ background: agentOpen ? theme.toolbar.activeBg : "transparent", color: theme.node.text }} onClick={onToggleAgent} type={"button"} variant={"ghost"} size="default" className={"!h-10 !rounded-xl !px-3 !font-medium"}>
-                        {<Bot data-icon="inline-start" />}Agent
-                    </Button>
                 </div>
             </div>
             <Dialog
@@ -225,7 +214,8 @@ export function CanvasTopBar({
                         <div className="flex flex-col gap-2 border-t pt-4 text-sm" style={{ borderColor: theme.node.stroke }}>
                             <Shortcut keys={["Ctrl / Space", "拖动"]} value={"临时切换选择 / 移动"} />
                             <Shortcut keys={["滚轮"]} value={"缩放画布"} />
-                            <Shortcut keys={["缩放滑杆"]} value={"精确调整缩放"} />
+                            <Shortcut keys={["Ctrl / Cmd", "0"]} value="适合屏幕" />
+                            <Shortcut keys={["Ctrl / Cmd", "+ / −"]} value="放大 / 缩小画布" />
                             <Shortcut keys={["拖动"]} value={"框选多个节点"} />
                             <Shortcut keys={["Shift / Cmd", "点击"]} value={"追加选择节点"} />
                             <Shortcut keys={["Ctrl / Cmd", "A"]} value={"全选节点"} />
@@ -282,12 +272,7 @@ function Shortcut({ keys, value }: { keys: string[]; value: string }) {
                 {keys.map((key, index) => (
                     <span key={`${key}-${index}`} className="flex items-center gap-1.5">
                         {index ? <span className="text-xs opacity-35">+</span> : null}
-                        <kbd
-                            className="min-w-9 rounded-md border px-2.5 py-1.5 text-center text-xs font-medium leading-none shadow-[inset_0_-1px_0_rgba(0,0,0,.08),0_1px_2px_rgba(0,0,0,.06)]"
-                            style={{ borderColor: "rgba(120,113,108,.28)", background: "linear-gradient(#fff, rgba(245,245,244,.92))", color: "rgb(68,64,60)" }}
-                        >
-                            {key}
-                        </kbd>
+                        <kbd className="min-w-9 rounded-md border bg-muted px-2.5 py-1.5 text-center text-xs font-medium leading-none text-muted-foreground">{key}</kbd>
                     </span>
                 ))}
             </span>

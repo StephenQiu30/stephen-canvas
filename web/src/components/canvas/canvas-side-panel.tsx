@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Check, ChevronRight, Download, Eye, FileText, Image as ImageIcon, ListChecks, Music2, Plus, Search, Settings2, Square, Trash2, Type, Video, X } from "lucide-react";
 import { motion } from "motion/react";
 import { memo, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
@@ -54,6 +57,8 @@ const STATUS_COLOR: Record<string, string> = {
 export function CanvasSidePanel({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, onInsertAsset }: Props) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const [tab, setTab] = useState<PanelTab>("canvas");
+    const isMobile = useIsMobile();
+    const closePanel = useCanvasSidePanelStore((state) => state.closePanel);
     const width = useCanvasSidePanelStore((state) => state.width);
     const panelOpen = useCanvasSidePanelStore((state) => state.panelOpen);
     const panelMounted = useCanvasSidePanelStore((state) => state.panelMounted);
@@ -81,6 +86,52 @@ export function CanvasSidePanel({ nodes, selectedNodeIds, onFocusNode, onPreview
         window.addEventListener("pointerup", onUp);
     };
 
+    const panelContent = (
+        <Tabs value={tab} onValueChange={(value) => setTab(value as PanelTab)} className="flex min-h-0 flex-1 flex-col gap-2">
+            <div className="flex items-center gap-2 px-4 pt-3">
+                <TabsList className="flex-1">
+                    <TabsTrigger value="canvas">画布</TabsTrigger>
+                    <TabsTrigger value="assets">资产</TabsTrigger>
+                </TabsList>
+                {!isMobile ? (
+                    <Button variant="ghost" size="icon-sm" aria-label="收起资产管理" onClick={closePanel}>
+                        <X />
+                    </Button>
+                ) : null}
+            </div>
+            <TabsContent value="canvas" className="min-h-0 flex-1 overflow-hidden">
+                <CanvasNodesTab
+                    nodes={nodes}
+                    selectedNodeIds={selectedNodeIds}
+                    onFocusNode={(id) => {
+                        onFocusNode(id);
+                        if (isMobile) closePanel();
+                    }}
+                    onPreviewNode={onPreviewNode}
+                    theme={theme}
+                />
+            </TabsContent>
+            <TabsContent value="assets" className="min-h-0 flex-1 overflow-hidden">
+                <CanvasAssetsTab onInsert={onInsertAsset} theme={theme} />
+            </TabsContent>
+        </Tabs>
+    );
+    if (isMobile)
+        return (
+            <Sheet
+                open={panelOpen}
+                onOpenChange={(open) => {
+                    if (!open) closePanel();
+                }}
+            >
+                <SheetContent side="left" aria-describedby={undefined} className="gap-0 p-0">
+                    <SheetHeader>
+                        <SheetTitle>资产管理</SheetTitle>
+                    </SheetHeader>
+                    {panelContent}
+                </SheetContent>
+            </Sheet>
+        );
     if (!panelMounted) return null;
 
     return (
@@ -99,25 +150,10 @@ export function CanvasSidePanel({ nodes, selectedNodeIds, onFocusNode, onPreview
                 style={{ width, background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.node.text }}
                 data-canvas-no-zoom
             >
-                <div className="flex items-center gap-5 px-4 pt-3.5">
-                    <TabButton label={"画布"} active={tab === "canvas"} theme={theme} onClick={() => setTab("canvas")} />
-                    <TabButton label={"资产"} active={tab === "assets"} theme={theme} onClick={() => setTab("assets")} />
-                </div>
-                <div className="mt-2 min-h-0 flex-1 overflow-hidden">
-                    {tab === "canvas" ? <CanvasNodesTab nodes={nodes} selectedNodeIds={selectedNodeIds} onFocusNode={onFocusNode} onPreviewNode={onPreviewNode} theme={theme} /> : <CanvasAssetsTab onInsert={onInsertAsset} theme={theme} />}
-                </div>
+                {panelContent}
                 <Button variant="ghost" type="button" className="absolute inset-y-0 right-0 z-40 w-4 translate-x-1/2 cursor-col-resize" onPointerDown={startResize} aria-label={"调整左侧面板宽度"} />
             </motion.aside>
         </motion.div>
-    );
-}
-
-function TabButton({ label, active, theme, onClick }: { label: string; active: boolean; theme: CanvasTheme; onClick: () => void }) {
-    return (
-        <Button variant="ghost" type="button" onClick={onClick} className="relative pb-1.5 text-sm font-semibold transition-opacity" style={{ color: theme.node.text, opacity: active ? 1 : 0.45 }}>
-            {label}
-            {active ? <motion.span layoutId="sidePanelTabIndicator" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full" style={{ background: theme.toolbar.activeText }} transition={{ type: "spring", stiffness: 500, damping: 34 }} /> : null}
-        </Button>
     );
 }
 

@@ -5,7 +5,6 @@ import { Keyboard, Moon, Puzzle, Settings2, Sun } from "lucide-react";
 import type { CSSProperties } from "react";
 
 import { GitHubLink } from "@/components/layout/github-link";
-import { VersionReleaseModal } from "@/components/layout/version-release-modal";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { useConfigStore } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -47,7 +46,6 @@ export function AppToolbarActions({ variant = "default", onOpenShortcuts, onOpen
             >
                 {theme === "dark" ? <Sun /> : <Moon />}
             </Button>
-            {variant === "canvas" ? <VersionReleaseModal style={iconStyle} /> : null}
             <GitHubLink style={iconStyle} />
             {onOpenShortcuts ? (
                 <Button type="button" variant="ghost" size="icon-sm" style={iconStyle} onClick={onOpenShortcuts} aria-label={"快捷键"} title={"快捷键"}>
