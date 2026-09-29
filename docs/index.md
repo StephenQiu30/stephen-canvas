@@ -36,5 +36,6 @@
 
 ## Notes
 
+- The shared UI style guide is in the repository root `DESIGN.md`.
 - Canvas projects and My Assets are primarily stored in the browser. WebDAV can be configured for cross-device synchronization.
 - The AI API key is stored in the browser, which sends requests directly to OpenAI-compatible endpoints.

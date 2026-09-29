@@ -2,6 +2,7 @@
 
 ## Unreleased
 
++ [调整] 全站采用 Vercel Geist 设计规范，以 shadcn/Radix 控件统一页面主题、表单和弹层，并收拢 Next.js Client 边界。
 + [调整] 项目 fork 自 basketikun/infinite-canvas v0.19.0，更名为 Stephen Canvas，仓库、npm 包（@stephenqiu30/*）、Docker 镜像和文档链接切换到 StephenQiu30/stephen-canvas，移除原项目的赞助与推广内容。
 + [调整] 前端整体迁移至 Next.js App Router、shadcn/ui、Radix UI、Tailwind CSS、ESLint 和 Prettier，并改为 Node.js 服务部署。
 + [优化] 移除独立提示词库、第三方来源管理及其入口，保留画布与工作台的提示词输入和生成能力。

@@ -13,6 +13,8 @@ import { Checkbox as UiCheckbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input as UiInput } from "@/components/ui/input";
 import { Popover as UiPopover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress as UiProgress } from "@/components/ui/progress";
 import { Select as UiSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +22,8 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Slider as UiSlider } from "@/components/ui/slider";
 import { Switch as UiSwitch } from "@/components/ui/switch";
 import { Tabs as UiTabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea as UiTextarea } from "@/components/ui/textarea";
+import { ToggleGroup as UiToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip as UiTooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -68,7 +72,7 @@ const InputBase = forwardRef<HTMLInputElement, InputProps>(function Input({ clas
     const controlledValue = value === undefined ? innerValue : String(value ?? "");
     const sizeClass = size === "large" ? "h-10" : size === "small" ? "h-7 text-xs" : "h-8";
     const input = (
-        <input
+        <UiInput
             ref={ref}
             value={value === undefined ? innerValue : value}
             onChange={(event) => {
@@ -76,7 +80,7 @@ const InputBase = forwardRef<HTMLInputElement, InputProps>(function Input({ clas
                 onChange?.(event);
             }}
             className={cn(
-                "w-full min-w-0 rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50",
+                "px-3 text-sm",
                 sizeClass,
                 prefix && "pl-2",
                 suffix && "pr-2",
@@ -122,13 +126,13 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function TextAre
     const displayValue = String(value ?? "");
     return (
         <div className="relative">
-            <textarea
+            <UiTextarea
                 ref={ref}
                 rows={minRows || rows}
                 value={value}
                 onChange={onChange}
                 className={cn(
-                    "w-full min-w-0 rounded-lg border border-input bg-transparent px-3 py-2 text-sm leading-5 outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50",
+                    "min-h-0 px-3 py-2 text-sm leading-5",
                     autoSize && "resize-y",
                     showCount && "pb-6",
                     className,
@@ -172,7 +176,7 @@ export function InputNumber({
     step?: number;
 }) {
     return (
-        <input
+        <UiInput
             {...props}
             type="number"
             min={min}
@@ -180,7 +184,7 @@ export function InputNumber({
             step={step}
             {...(value === undefined ? { defaultValue } : { value: value ?? "" })}
             onChange={(event) => onChange?.(event.target.value === "" ? null : Number(event.target.value))}
-            className={cn("h-8 rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30", className)}
+            className={cn("h-8 px-3 text-sm", className)}
         />
     );
 }
@@ -197,12 +201,17 @@ type SelectProps<T = string | number> = {
     disabled?: boolean;
     placeholder?: string;
     className?: string;
+    id?: string;
     size?: "small" | "middle" | "large";
     mode?: "multiple" | "tags";
     tokenSeparators?: string[];
     allowClear?: boolean;
     variant?: "outlined" | "borderless";
     children?: ReactNode;
+    "aria-invalid"?: boolean;
+    "aria-required"?: boolean;
+    "aria-describedby"?: string;
+    "aria-labelledby"?: string;
 };
 
 function SelectOption({ children }: { value: string; children?: ReactNode }) {
@@ -220,11 +229,16 @@ function SelectBase<T extends string | number = string>({
     disabled,
     placeholder,
     className,
+    id,
     size = "middle",
     mode,
     tokenSeparators = [","],
     allowClear,
     variant,
+    ["aria-invalid"]: ariaInvalid,
+    ["aria-required"]: ariaRequired,
+    ["aria-describedby"]: ariaDescribedBy,
+    ["aria-labelledby"]: ariaLabelledBy,
 }: SelectProps<T>) {
     const [search, setSearch] = useState("");
     const selected = Array.isArray(value) ? value : value == null ? [] : [value];
@@ -239,6 +253,11 @@ function SelectBase<T extends string | number = string>({
                 disabled={disabled}
                 placeholder={placeholder}
                 className={cn(size === "small" && "h-7", className)}
+                id={id}
+                aria-invalid={ariaInvalid}
+                aria-required={ariaRequired}
+                aria-describedby={ariaDescribedBy}
+                aria-labelledby={ariaLabelledBy}
                 onChange={(event) => {
                     const next = event.target.value
                         .split(new RegExp(tokenSeparators.map((separator) => separator.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")))
@@ -267,7 +286,7 @@ function SelectBase<T extends string | number = string>({
             }}
             disabled={disabled}
         >
-            <SelectTrigger className={cn(size === "small" && "h-7 text-xs", variant === "borderless" && "border-transparent bg-transparent shadow-none", className)}>
+            <SelectTrigger id={id} aria-invalid={ariaInvalid} aria-required={ariaRequired} aria-describedby={ariaDescribedBy} aria-labelledby={ariaLabelledBy} className={cn(size === "small" && "h-7 text-xs", variant === "borderless" && "border-transparent bg-transparent shadow-none", className)}>
                 <SelectValue placeholder={selectedOption ? undefined : placeholder}>{selectedOption?.label}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -332,30 +351,33 @@ export function Segmented({
     className?: string;
     [key: string]: any;
 }) {
-    const activeValue = value ?? defaultValue;
+    const [internalValue, setInternalValue] = useState(defaultValue === undefined ? "" : String(defaultValue));
     return (
-        <div role="group" className={cn("inline-flex min-w-0 gap-0.5 rounded-lg bg-muted p-0.5", block && "w-full", size === "small" && "text-xs", className)} {...props}>
+        <UiToggleGroup
+            type="single"
+            variant="outline"
+            size={size === "small" ? "sm" : "default"}
+            spacing={0}
+            value={value === undefined ? internalValue : String(value)}
+            aria-label={props["aria-label"] || "选择一个选项"}
+            className={cn("min-w-0", block && "w-full [&>[data-slot=toggle-group-item]]:flex-1", className)}
+            onValueChange={(next) => {
+                if (next === "") return;
+                if (value === undefined) setInternalValue(next);
+                const selected = options.find((item) => String(typeof item === "object" ? item.value : item) === next);
+                if (selected !== undefined) onChange?.(typeof selected === "object" ? selected.value : selected);
+            }}
+            {...props}
+        >
             {options.map((item) => {
                 const option = typeof item === "object" ? item : { value: item, label: item };
-                const active = option.value === activeValue;
                 return (
-                    <button
-                        key={String(option.value)}
-                        type="button"
-                        disabled={option.disabled}
-                        aria-pressed={active}
-                        onClick={() => onChange?.(option.value)}
-                        className={cn(
-                            "min-w-0 flex-1 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-50",
-                            size === "small" && "px-2 py-1 text-xs",
-                            active && "bg-background text-foreground shadow-sm",
-                        )}
-                    >
+                    <ToggleGroupItem key={String(option.value)} value={String(option.value)} disabled={option.disabled} className="min-w-0 flex-1">
                         {option.label ?? option.value}
-                    </button>
+                    </ToggleGroupItem>
                 );
             })}
-        </div>
+        </UiToggleGroup>
     );
 }
 
@@ -727,22 +749,30 @@ function FormRoot({
                 }}
                 {...props}
             >
-                {children}
+                <FieldGroup className="gap-4">{children}</FieldGroup>
             </form>
         </FormContext.Provider>
     );
 }
 
-function FormItem({ name, label, extra, rules = [], required, children, className, ...props }: ChildrenProps & { name?: string; label?: ReactNode; extra?: ReactNode; rules?: FormRule[]; required?: boolean; [key: string]: any }) {
+function FormItem({ name, label, extra, rules = [], required, children, className, id: providedId, ...props }: ChildrenProps & { name?: string; label?: ReactNode; extra?: ReactNode; rules?: FormRule[]; required?: boolean; id?: string; [key: string]: any }) {
+    const generatedId = React.useId();
+    const id = providedId || generatedId;
     const form = useContext(FormContext);
     const getSnapshot = () => form?.getSnapshot() ?? 0;
     useSyncExternalStore(form?.subscribe || (() => () => {}), getSnapshot, getSnapshot);
     const value = name ? form?.getFieldValue(name) : undefined;
     const error = name ? form?.getErrors(name)[0] : undefined;
     const child = React.Children.only(children) as ReactElement<any>;
-    const control =
-        name && React.isValidElement(child)
-            ? React.cloneElement(child, {
+    const isRequired = required || rules.some((rule) => rule.required);
+    const labelId = label ? `${id}-label` : undefined;
+    const descriptionId = extra ? `${id}-description` : undefined;
+    const errorId = error ? `${id}-error` : undefined;
+    const describedBy = [descriptionId, errorId].filter(Boolean).join(" ") || undefined;
+    const control = React.cloneElement(child, {
+        id,
+        ...(name
+            ? {
                   name,
                   value: value ?? (child.type === Input.TextArea ? "" : undefined),
                   onChange: (eventOrValue: any) => {
@@ -750,9 +780,13 @@ function FormItem({ name, label, extra, rules = [], required, children, classNam
                       form?.setFieldValue(name, nextValue);
                       child.props.onChange?.(eventOrValue);
                   },
-                  "aria-invalid": Boolean(error),
-              })
-            : children;
+              }
+            : {}),
+        "aria-invalid": Boolean(error),
+        "aria-required": isRequired,
+        "aria-describedby": describedBy,
+        "aria-labelledby": labelId,
+    });
     const validate = async () => {
         if (!name || !form) return;
         const current = form.getFieldValue(name);
@@ -781,17 +815,17 @@ function FormItem({ name, label, extra, rules = [], required, children, classNam
     }, [name, form, rules, value]);
 
     return (
-        <div className={cn("min-w-0", label && "flex flex-col gap-1.5", className)} {...props}>
+        <Field id={id} data-invalid={Boolean(error)} className={cn("min-w-0 gap-1.5", className)} {...props}>
             {label ? (
-                <label className="text-sm font-medium text-foreground">
+                <FieldLabel id={labelId} htmlFor={id} className="text-sm font-medium text-foreground">
                     {label}
-                    {required || rules.some((rule) => rule.required) ? <span className="ml-1 text-destructive">*</span> : null}
-                </label>
+                    {isRequired ? <span className="ml-1 text-destructive">*</span> : null}
+                </FieldLabel>
             ) : null}
             {control}
-            {extra ? <div className="text-xs text-muted-foreground">{extra}</div> : null}
-            {error ? <div className="text-xs text-destructive">{error}</div> : null}
-        </div>
+            {extra ? <FieldDescription id={descriptionId} className="text-xs">{extra}</FieldDescription> : null}
+            {error ? <FieldError id={errorId} className="text-xs">{error}</FieldError> : null}
+        </Field>
     );
 }
 

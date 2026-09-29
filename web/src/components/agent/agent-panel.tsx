@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, type PointerEvent as ReactPointerEvent } from "react";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";

@@ -948,7 +948,7 @@ function BatchFrame({ batchCount, batchExpanded, children }: { batchCount: numbe
                     {Array.from({ length: Math.min(batchCount - 1, 3) }).map((_, index) => (
                         <div
                             key={index}
-                            className="absolute rounded-[inherit] border shadow-[0_10px_24px_rgba(68,64,60,.12)] transition-all duration-300 group-hover/batch:translate-x-1"
+                            className="absolute rounded-[inherit] border shadow-card transition-all duration-300 group-hover/batch:translate-x-1"
                             style={{
                                 inset: 0,
                                 background: `linear-gradient(135deg, ${theme.node.panel}, ${theme.node.fill})`,

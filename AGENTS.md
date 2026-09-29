@@ -34,6 +34,7 @@
 - 页面私有 hook 放在对应页面目录下，例如 `admin/assets/use-admin-assets.ts`；只有多个页面真实复用的 hook 才放到外层 `hooks/`。
 - 管理后台页面私有组件放到各自页面目录的 `components/` 下，例如 `admin/assets/components/`、`admin/prompts/components/`；不要为了单页面使用放到 `admin/components/` 共享目录。
 - 全局主题色统一使用 `web/src/app/globals.css` 中的 CSS 变量和 Tailwind 语义类；页面私有组件不要自行维护整套明暗主题分支。
+- 全站视觉规范遵循仓库根目录 `DESIGN.md`；新增或调整页面时优先复用项目内 shadcn/ui 组件及官方 Radix primitives，并使用全局语义 token。
 - 组件优先使用函数组件和现有 hooks，不新增大型状态管理方案。
 - UI 图标优先使用 `lucide-react`。
 - 页面文案保持中文。
