@@ -1,12 +1,12 @@
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Button, Segmented, Switch } from "@/components/ui/app-primitives";
+import { Button as ShadcnButton } from "@/components/ui/button";
 import { CircleDot, Eraser, Grid2x2, Group, Hand, Image as ImageIcon, Info, Moon, MousePointer2, Music2, Palette, Puzzle, Redo2, Settings2, Square, Sun, Trash2, Type, Undo2, Upload, Video } from "lucide-react";
 
 import { canvasThemes, type CanvasBackgroundMode, type CanvasColorTheme, type CanvasTheme } from "@/lib/canvas-theme";
 import { getNodePluginId, listNodeDefinitions, useNodeRegistryVersion } from "@/lib/canvas/node-registry";
 import { useThemeStore } from "@/stores/use-theme-store";
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { useTranslation } from "react-i18next";
 
 export function CanvasToolbar({
@@ -214,11 +214,11 @@ export function CanvasToolbar({
                     <div className="px-1 pb-1.5 text-[11px] font-medium opacity-50">{t("canvas.toolbar.themeMode")}</div>
                     <div className="grid grid-cols-2 gap-1 rounded-lg p-1" style={{ background: theme.toolbar.itemHover }}>
                         <CanvasThemeButton colorTheme={colorTheme} targetTheme="light" onThemeChange={setTheme}>
-                            <Sun className="size-4" />
+                            <Sun data-icon="inline-start" />
                             {t("canvas.toolbar.light")}
                         </CanvasThemeButton>
                         <CanvasThemeButton colorTheme={colorTheme} targetTheme="dark" onThemeChange={setTheme}>
-                            <Moon className="size-4" />
+                            <Moon data-icon="inline-start" />
                             {t("canvas.toolbar.dark")}
                         </CanvasThemeButton>
                     </div>
@@ -329,17 +329,17 @@ function CanvasThemeButton({ colorTheme, targetTheme, onThemeChange, children }:
     const label = targetTheme === "dark" ? t("topNav.darkTheme") : t("topNav.lightTheme");
 
     return (
-        <AnimatedThemeToggler
-            theme={colorTheme}
-            targetTheme={targetTheme}
-            onThemeChange={onThemeChange}
-            className="inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 text-sm transition"
+        <ShadcnButton
+            type="button"
+            variant="ghost"
+            className="h-8 min-w-0 px-2 text-sm transition-none active:translate-y-0 hover:bg-black/5 dark:hover:bg-white/10"
             style={active ? activeStyle : { color: theme.toolbar.item }}
+            onClick={() => onThemeChange(targetTheme)}
             aria-label={label}
             title={label}
         >
             {children}
-        </AnimatedThemeToggler>
+        </ShadcnButton>
     );
 }
 

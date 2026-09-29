@@ -1,9 +1,9 @@
 import type { CSSProperties } from "react";
 import { Tooltip } from "@/components/ui/app-primitives";
-import { Keyboard, Puzzle, Settings2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Keyboard, Moon, Puzzle, Settings2, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { GitHubLink } from "@/components/layout/github-link";
 import { VersionReleaseModal } from "@/components/layout/version-release-modal";
 import { changeAppLocale, type AppLocale } from "@/i18n";
@@ -51,7 +51,18 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
                     {locale === "zh-CN" ? "中" : "EN"}
                 </button>
             </Tooltip>
-            <AnimatedThemeToggler theme={theme} onThemeChange={setTheme} className={naturalIconClass} style={iconStyle} aria-label={t(theme === "dark" ? "topNav.lightTheme" : "topNav.darkTheme")} title={t(theme === "dark" ? "topNav.lightTheme" : "topNav.darkTheme")} />
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className={cn(naturalIconClass, "transition-none active:translate-y-0")}
+                style={iconStyle}
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label={t(theme === "dark" ? "topNav.lightTheme" : "topNav.darkTheme")}
+                title={t(theme === "dark" ? "topNav.lightTheme" : "topNav.darkTheme")}
+            >
+                {theme === "dark" ? <Sun /> : <Moon />}
+            </Button>
             <VersionReleaseModal style={versionStyle} />
             <GitHubLink className={cn("bg-transparent hover:bg-transparent dark:hover:bg-transparent", gitHubClassName)} style={gitHubStyle} />
             {onOpenShortcuts ? (
