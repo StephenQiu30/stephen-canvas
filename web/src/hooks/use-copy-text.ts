@@ -1,13 +1,11 @@
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 
 import copy from "copy-to-clipboard";
-import { useTranslation } from "react-i18next";
 
 export function useCopyText() {
     const { message } = useAppFeedback();
-    const { t } = useTranslation();
 
-    return (value: string, successText = t("common.copied")) => {
+    return (value: string, successText = "已复制") => {
         copy(value);
         message.success(successText);
     };

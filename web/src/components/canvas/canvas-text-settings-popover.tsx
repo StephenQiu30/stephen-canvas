@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Settings2 } from "lucide-react";
 import { Button, InputNumber } from "@/components/ui/app-primitives";
-import { useTranslation } from "react-i18next";
 
 import { reasoningEffortLabel, TextSettingsPanel } from "@/components/text-settings-panel";
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -19,7 +18,6 @@ type CanvasTextSettingsPopoverProps = {
 };
 
 export function CanvasTextSettingsPopover({ config, onConfigChange, count, onCountChange, buttonClassName, placement = "topLeft" }: CanvasTextSettingsPopoverProps) {
-    const { t } = useTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const buttonRef = useRef<HTMLSpanElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
@@ -51,7 +49,7 @@ export function CanvasTextSettingsPopover({ config, onConfigChange, count, onCou
         <>
             <span ref={buttonRef} className="inline-flex min-w-0">
                 <Button size="small" type="text" className={buttonClassName || "!h-8 !max-w-[170px] !justify-start !rounded-full !px-2.5"} style={{ background: theme.node.fill, color: theme.node.text }} icon={<Settings2 className="size-3.5" />} onClick={() => setOpen((current) => !current)}>
-                    <span className="truncate">{t("canvas.controls.reasoning")} · {reasoningEffortLabel(config.reasoningEffort)}{onCountChange ? ` · ${t("canvas.controls.generations", { count })}` : ""}</span>
+                    <span className="truncate">{"推理"} · {reasoningEffortLabel(config.reasoningEffort)}{onCountChange ? ` · ${`${count} 次`}` : ""}</span>
                 </Button>
             </span>
             {panel}
@@ -69,7 +67,6 @@ function TextSettingsPortal({ buttonRect, panelRef, placement, theme, config, co
     onConfigChange: CanvasTextSettingsPopoverProps["onConfigChange"];
     onCountChange?: (count: number) => void;
 }) {
-    const { t } = useTranslation();
     const width = 356;
     const gap = 8;
     const margin = 12;
@@ -95,7 +92,7 @@ function TextSettingsPortal({ buttonRect, panelRef, placement, theme, config, co
             <TextSettingsPanel config={config} onConfigChange={onConfigChange} theme={theme} />
             {onCountChange ? (
                 <div className="mt-4 space-y-2.5">
-                    <div className="text-sm font-medium" style={{ color: theme.node.muted }}>{t("settingsPanels.text.count")}</div>
+                    <div className="text-sm font-medium" style={{ color: theme.node.muted }}>{"生成次数"}</div>
                     <InputNumber className="w-full" min={1} max={15} precision={0} value={count} onChange={(value) => onCountChange(value || 1)} />
                 </div>
             ) : null}

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Group, Ungroup } from "lucide-react";
 import { Tooltip } from "@/components/ui/app-primitives";
-import { useTranslation } from "react-i18next";
 
 import { canvasThemes } from "@/lib/canvas-theme";
 import { nodeBounds } from "@/lib/canvas/canvas-node-geometry";
@@ -27,7 +26,6 @@ export function CanvasSelectionToolbar({
     onGroup: () => void;
     onUngroup: () => void;
 }) {
-    const { t } = useTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     if (nodes.length < 2) return null;
 
@@ -63,8 +61,8 @@ export function CanvasSelectionToolbar({
                     onMouseDown={(event) => event.stopPropagation()}
                     onPointerDown={(event) => event.stopPropagation()}
                 >
-                    {canGroup ? <SelectionAction title={t("canvas.nodeToolbar.groupTitle")} label={t("canvas.nodeToolbar.group")} icon={<Group className="size-4" />} onClick={onGroup} /> : null}
-                    {canUngroup ? <SelectionAction title={t("canvas.nodeToolbar.ungroupTitle")} label={t("canvas.nodeToolbar.ungroup")} icon={<Ungroup className="size-4" />} onClick={onUngroup} /> : null}
+                    {canGroup ? <SelectionAction title={"用组节点包住选中节点"} label={"打组"} icon={<Group className="size-4" />} onClick={onGroup} /> : null}
+                    {canUngroup ? <SelectionAction title={"取消节点分组"} label={"解散组"} icon={<Ungroup className="size-4" />} onClick={onUngroup} /> : null}
                 </div>
             ) : null}
         </>

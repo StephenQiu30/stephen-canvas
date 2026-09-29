@@ -1,5 +1,4 @@
 import { imageReferenceLabel } from "@/lib/image-reference-prompt";
-import i18n from "@/i18n";
 import { getNodeDefinition } from "@/lib/canvas/node-registry";
 import { getDataUrlByteSize, readImageMeta } from "@/lib/image-utils";
 import { imageToDataUrl } from "@/services/image-storage";
@@ -30,10 +29,10 @@ export async function resolveCanvasReferenceImages(references: CanvasResourceRef
     const nodesById = new Map(nodes.map((node) => [node.id, node]));
     return Promise.all(references.filter((reference) => reference.kind === "image").map(async (reference) => {
         const node = nodesById.get(reference.nodeId);
-        if (!node) throw new Error(i18n.t("agent.composer.mentions.resourceMissing", { title: reference.title }));
+        if (!node) throw new Error(`画布素材“${reference.title}”已不存在`);
         const metadata = node.metadata;
         const dataUrl = await imageToDataUrl({ storageKey: metadata?.storageKey, url: reference.previewUrl });
-        if (!dataUrl.startsWith("data:image/")) throw new Error(i18n.t("agent.composer.mentions.imageReadFailed", { title: reference.title }));
+        if (!dataUrl.startsWith("data:image/")) throw new Error(`无法读取画布图片“${reference.title}”`);
         const meta = metadata?.naturalWidth && metadata.naturalHeight
             ? { width: metadata.naturalWidth, height: metadata.naturalHeight, mimeType: metadata.mimeType || dataUrl.match(/^data:([^;]+)/)?.[1] || "image/png" }
             : await readImageMeta(dataUrl);
@@ -122,9 +121,9 @@ function labelResourceNodes(nodes: CanvasNodeData[], active: boolean) {
 
 function labelForKind(kind: CanvasResourceKind, index: number) {
     if (kind === "image") return imageReferenceLabel(index);
-    if (kind === "video") return i18n.t("canvas.configNode.videoReferences") + ` ${index + 1}`;
-    if (kind === "audio") return i18n.t("canvas.configNode.audioReferences") + ` ${index + 1}`;
-    return i18n.t("canvas.composer.resources.text", { index: index + 1 });
+    if (kind === "video") return "参考视频" + ` ${index + 1}`;
+    if (kind === "audio") return "参考音频" + ` ${index + 1}`;
+    return `文本${index + 1}`;
 }
 
 function isResourceNode(node: CanvasNodeData) {

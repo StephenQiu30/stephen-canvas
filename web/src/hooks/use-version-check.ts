@@ -1,7 +1,6 @@
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useTranslation } from "react-i18next";
 import { APP_RELEASES, APP_VERSION } from "@/constant/env";
 import { parseChangelog, type ReleaseInfo } from "@/lib/release";
 
@@ -28,7 +27,6 @@ function isNewerVersion(latestVersion: string, currentVersion: string) {
 }
 
 export function useVersionCheck() {
-    const { t } = useTranslation();
     const currentVersion = APP_VERSION;
     const { message } = useAppFeedback();
     const localReleases = useMemo(readLocalReleases, []);
@@ -56,24 +54,24 @@ export function useVersionCheck() {
             setChecking(true);
             try {
                 const changelogResponse = await fetch(latestChangelogUrl);
-                if (!changelogResponse.ok) throw new Error(t("version.changelogFailed"));
+                if (!changelogResponse.ok) throw new Error("更新日志读取失败");
                 const changelog = await changelogResponse.text();
                 const version = latestReleaseVersion(changelog);
-                if (!version) throw new Error(t("version.readFailed"));
+                if (!version) throw new Error("版本读取失败");
                 setLatestVersion(version);
                 setReleases(parseChangelog(changelog));
-                if (showMessage) message.success(t("version.updated"));
+                if (showMessage) message.success("已获取最新版本信息");
                 return true;
             } catch {
                 setLatestVersion(currentVersion);
                 setReleases(localReleases);
-                if (showMessage) message.error(t("version.updateFailed"));
+                if (showMessage) message.error("获取最新版本信息失败");
                 return false;
             } finally {
                 setChecking(false);
             }
         },
-        [currentVersion, localReleases, message, t],
+        [currentVersion, localReleases, message],
     );
 
     useEffect(() => {

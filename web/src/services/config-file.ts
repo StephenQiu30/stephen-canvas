@@ -1,6 +1,5 @@
 import { saveAs } from "file-saver";
 
-import i18n from "@/i18n";
 import { useConfigStore, type AiConfig, type WebdavSyncConfig } from "@/stores/use-config-store";
 
 type AppConfigFile = {
@@ -22,8 +21,8 @@ export async function importAppConfig(file: File) {
     try {
         data = JSON.parse(await file.text()) as AppConfigFile;
     } catch {
-        throw new Error(i18n.t("config.invalidFile"));
+        throw new Error("配置文件格式不正确");
     }
-    if (data.app !== "stephen-canvas" || data.version !== 1 || !data.config || !data.webdav) throw new Error(i18n.t("config.invalidFile"));
+    if (data.app !== "stephen-canvas" || data.version !== 1 || !data.config || !data.webdav) throw new Error("配置文件格式不正确");
     useConfigStore.setState({ config: data.config, webdav: data.webdav });
 }

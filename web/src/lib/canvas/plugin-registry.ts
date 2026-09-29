@@ -16,7 +16,7 @@ type RawManifest = { plugins?: RawEntry[] };
 // Fetch the official registry and resolve relative entries against its URL for the existing URL installation flow.
 export async function fetchOfficialPlugins(registryUrl: string = PLUGIN_REGISTRY_URL): Promise<OfficialPluginEntry[]> {
     const response = await fetch(registryUrl, { headers: { accept: "application/json" } });
-    if (!response.ok) throw new Error(i18n.t("canvas.pluginErrors.registryFailed", { status: response.status }));
+    if (!response.ok) throw new Error(`获取官方插件列表失败 (HTTP ${response.status})`);
     const data = (await response.json()) as RawManifest;
     const list = Array.isArray(data?.plugins) ? data.plugins : [];
     return list
@@ -47,4 +47,3 @@ function compareSemver(a: string, b: string): number {
 export function hasUpgrade(installedVersion: string, remoteVersion: string): boolean {
     return compareSemver(remoteVersion, installedVersion) > 0;
 }
-import i18n from "@/i18n";

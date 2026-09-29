@@ -1,7 +1,6 @@
 import localforage from "localforage";
 
 import { nanoid } from "nanoid";
-import i18n from "@/i18n";
 import { withLocalProxy } from "@/stores/use-config-store";
 import { createImageThumbnail } from "@/lib/image-thumbnail";
 
@@ -54,7 +53,7 @@ async function storeImage(blob: Blob, options?: ImageReadOptions): Promise<Uploa
     const url = URL.createObjectURL(blob);
     try {
         const meta = await loadImageMeta(url, options);
-        if (!meta) throw new Error(i18n.t("common.imageReadFailed"));
+        if (!meta) throw new Error("读取图片失败");
         throwIfAborted(options?.signal);
         await store.setItem(storageKey, blob);
         throwIfAborted(options?.signal);
@@ -123,7 +122,7 @@ function loadImageMeta(url: string, options?: ImageReadOptions, timeoutMs = IMAG
 }
 
 function namedError(name: string) {
-    const error = new Error(i18n.t("common.imageReadFailed"));
+    const error = new Error("读取图片失败");
     error.name = name;
     return error;
 }
@@ -272,7 +271,7 @@ function blobToDataUrl(blob: Blob) {
     return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ""));
-        reader.onerror = () => reject(new Error(i18n.t("common.imageReadFailed")));
+        reader.onerror = () => reject(new Error("读取图片失败"));
         reader.readAsDataURL(blob);
     });
 }

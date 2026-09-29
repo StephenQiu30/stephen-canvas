@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Empty, Input, Modal, Pagination, Tag } from "@/components/ui/app-primitives";
 import { Search } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 import { getImagePreviewRevision, subscribeImagePreviews } from "@/services/image-storage";
@@ -17,9 +16,8 @@ type Props = {
 };
 
 export function AssetPickerModal({ open, onInsert, onClose }: Props) {
-    const { t } = useTranslation();
     return (
-        <Modal title={t("canvas.assetPicker.title")} open={open} onCancel={onClose} footer={null} width={860} destroyOnHidden styles={{ body: { padding: "0 24px 24px", minHeight: 480 } }}>
+        <Modal title={"选择资产"} open={open} onCancel={onClose} footer={null} width={860} destroyOnHidden styles={{ body: { padding: "0 24px 24px", minHeight: 480 } }}>
             <MyAssetsTab onInsert={onInsert} />
         </Modal>
     );
@@ -30,7 +28,6 @@ const PAGE_SIZE = 8;
 const kindOptions = ["all", "text", "image", "video"];
 
 function PickerCard({ title, kind, cover, onClick }: { title: string; kind: string; cover: string; onClick: () => void }) {
-    const { t } = useTranslation();
     return (
         <button
             type="button"
@@ -45,16 +42,15 @@ function PickerCard({ title, kind, cover, onClick }: { title: string; kind: stri
             <div className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
                     <span className="line-clamp-1 text-xs font-medium text-brand-body ">{title}</span>
-                    <Tag className="m-0 shrink-0 text-[10px]">{t(`assets.kinds.${kind}`)}</Tag>
+                    <Tag className="m-0 shrink-0 text-[10px]">{(({ "text":"文本", "image":"图片", "video":"视频", "audio":"音频" } as Record<string, string>)[String(kind)] || String(kind))}</Tag>
                 </div>
             </div>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-black/55 group-hover:opacity-100">{t("canvas.assetPicker.insert")}</div>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-black/55 group-hover:opacity-100">{"插入"}</div>
         </button>
     );
 }
 
 function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => void }) {
-    const { t } = useTranslation();
     useSyncExternalStore(subscribeImagePreviews, getImagePreviewRevision);
     const assets = useAssetStore((state) => state.assets);
     const [keyword, setKeyword] = useState("");
@@ -91,7 +87,7 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
                     className="w-56"
                     size="small"
                     prefix={<Search className="size-3.5 text-muted-foreground" />}
-                    placeholder={t("canvas.assetPicker.search")}
+                    placeholder={"搜索资产"}
                     value={keyword}
                     allowClear
                     onChange={(e) => {
@@ -110,7 +106,7 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
                                 setKindFilter(option);
                             }}
                         >
-                            {option === "all" ? t("common.all") : t(`assets.kinds.${option}`)}
+                            {option === "all" ? "全部" : (({ "text":"文本", "image":"图片", "video":"视频", "audio":"音频" } as Record<string, string>)[String(option)] || String(option))}
                         </Tag.CheckableTag>
                     ))}
                 </div>
@@ -123,7 +119,7 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
                     ))}
                 </div>
             ) : (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("canvas.assetPicker.empty")} className="py-12" />
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={"没有资产"} className="py-12" />
             )}
 
             {filtered.length > PAGE_SIZE && (

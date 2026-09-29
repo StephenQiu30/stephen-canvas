@@ -4,9 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Tooltip } from "@/components/ui/app-primitives";
 import dayjs from "dayjs";
 import { Bot, History, MessageSquare, PanelRightClose, PlugZap, Plus, Sparkles, Terminal } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
-import i18n from "@/i18n";
 import { readAgentUrlBootstrap } from "@/lib/agent/agent-url-bootstrap";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { upscaleDataUrl } from "@/lib/canvas/canvas-image-data";
@@ -76,7 +74,6 @@ const DEFAULT_AGENT_URL = "http://127.0.0.1:17371";
 const AGENT_PROTOCOL_VERSION = 6;
 const HISTORY_RETRY_DELAYS_MS = [0, 150, 350, 700, 1200];
 const AGENT_REASONING_EFFORTS = new Set<AgentReasoningEffort>(["minimal", "low", "medium", "high", "xhigh", "max", "ultra"]);
-const rt = (key: string, options?: Record<string, unknown>) => i18n.t(`agent.runtime.${key}`, options);
 
 type AgentWorkspace = { workspacePath: string; activeThreadId?: string };
 type AgentThreadsResponse = { ok?: boolean; workspace?: AgentWorkspace; conversation?: AgentConversationState; data?: AgentThreadSummary[] };
@@ -102,30 +99,29 @@ function agentErrorState(error: unknown) {
 function conversationBootstrapView(conversation: AgentConversationState) {
     const mcpStartupStatuses: Record<string, AgentBootstrapStatus> = Object.fromEntries(Object.entries(conversation.mcpStatuses).map(([name, item]) => {
         const view: AgentBootstrapStatus = item.status === "starting"
-            ? { key: `mcp:${name}:starting`, text: rt("mcpStarting", { name }), detail: rt("mcpConnecting"), status: "running" }
+            ? { key: `mcp:${name}:starting`, text: `正在启动 MCP：${name}`, detail: "正在建立工具连接并读取可用工具列表", status: "running" }
             : item.status === "ready"
-                ? { key: `mcp:${name}:ready`, text: rt("mcpReadyNamed", { name }), detail: rt("toolsReady"), status: "ready" }
-                : { key: `mcp:${name}:${item.status}`, text: rt(item.status === "failed" ? "mcpFailedNamed" : "mcpCanceledNamed", { name }), detail: item.error || rt("toolInitFailed"), status: "error" };
+                ? { key: `mcp:${name}:ready`, text: `MCP 已就绪：${name}`, detail: "工具列表加载完成，可以开始对话", status: "ready" }
+                : { key: `mcp:${name}:${item.status}`, text: (item.status === "failed" ? `MCP 启动失败：${name}` : `MCP 启动已取消：${name}`), detail: item.error || "工具服务未能完成初始化", status: "error" };
         return [name, view];
     }));
     const services = Object.values(mcpStartupStatuses);
     const pending = services.filter((item) => item.status === "running").length;
     const bootstrapStatus: AgentBootstrapStatus | null = conversation.status === "idle" || conversation.status === "preparing"
         ? services.length
-            ? { key: "mcp:starting", text: rt("mcpServicesStarting"), detail: pending ? rt("toolServicesPending", { count: pending }) : rt("checkingToolServices"), status: "running" }
-            : { key: "codex:preparing", text: rt("conversationInitializing"), detail: rt("conversationCreating"), status: "running" }
+            ? { key: "mcp:starting", text: "正在启动 MCP 服务", detail: pending ? `还有 ${pending} 个工具服务正在初始化` : "正在确认工具服务状态", status: "running" }
+            : { key: "codex:preparing", text: "正在初始化 Codex 对话", detail: "正在创建会话并启动画布工具服务", status: "running" }
         : conversation.status === "warning"
-            ? { key: "mcp:warning", text: rt("someMcpFailed"), detail: rt("remainingToolsReady"), status: "error" }
+            ? { key: "mcp:warning", text: "部分 MCP 服务初始化失败", detail: "其余工具已就绪，可以开始对话", status: "error" }
             : conversation.status === "failed"
-                ? { key: "codex:prepare_failed", text: rt("conversationInitFailed"), detail: conversation.error || rt("conversationCreateFailed"), status: "error" }
+                ? { key: "codex:prepare_failed", text: "Codex 对话初始化失败", detail: conversation.error || "无法创建 Codex 会话", status: "error" }
                 : conversation.status === "ready"
-                    ? { key: "mcp:ready", text: rt("mcpServicesReady", { count: services.length }), detail: rt("toolsReady"), status: "ready" }
+                    ? { key: "mcp:ready", text: `${services.length} 个 MCP 服务已完成初始化`, detail: "工具列表加载完成，可以开始对话", status: "ready" }
                     : null;
     return { bootstrapStatus, mcpStartupStatuses };
 }
 
 export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?: boolean; headless?: boolean; autoConnect?: boolean }) {
-    const { t } = useTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const { message, modal } = useAppFeedback();
     const [hash, setHash] = useState("");
@@ -319,7 +315,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 liveTurnKeysRef.current.clear();
             }
         } catch (error) {
-            addEventLog(rt("historyReadFailed"), error);
+            addEventLog("读取历史失败", error);
         } finally {
             if (sequence === loadThreadsSequenceRef.current && !threadOperationRef.current) setAgentState({ loadingThreads: false });
         }
@@ -360,7 +356,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             eventQueue = eventQueue.then(async () => {
                 if (isCurrentConnection()) await task();
             }).catch((error) => {
-                if (isCurrentConnection()) addEventLog(rt("conversationSyncFailed"), error);
+                if (isCurrentConnection()) addEventLog("同步会话失败", error);
             });
         };
         const source = new EventSource(`${endpoint}/events?token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`);
@@ -368,13 +364,13 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             if (!isCurrentConnection()) return;
             const hello = parseEventData<AgentHelloEvent>(event);
             if (hello?.protocolVersion !== AGENT_PROTOCOL_VERSION) {
-                const text = rt("agentOutdated");
+                const text = "本地 Agent 版本过旧，请重启 Canvas Agent 后重新连接";
                 protocolRejected = true;
                 source.close();
                 connectedRef.current = false;
-                setAgentState({ enabled: false, connected: false, waiting: false, sending: false, activity: rt("restartRequired"), connectError: text, silentConnect: false, fragmentBootstrap: false, pendingTool: null, pendingApprovals: [] });
+                setAgentState({ enabled: false, connected: false, waiting: false, sending: false, activity: "需要重启 Agent", connectError: text, silentConnect: false, fragmentBootstrap: false, pendingTool: null, pendingApprovals: [] });
                 useAgentSkillStore.getState().reset();
-                addEventLog(rt("versionMismatch"), text, hello);
+                addEventLog("Agent 版本不匹配", text, hello);
                 if (!headless) message.error(text);
                 return;
             }
@@ -395,7 +391,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             connectedRef.current = true;
             setAgentState({
                 connected: true,
-                activity: pendingApprovals.length ? rt("awaitingApproval") : busy ? rt("codexRunning") : rt("connected"),
+                activity: pendingApprovals.length ? "等待权限确认" : busy ? "Codex 正在运行" : "已连接",
                 waiting: busy,
                 sending: false,
                 connectError: "",
@@ -406,7 +402,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 messages,
                 pendingApprovals,
             });
-            if (!headless) message.success(rt("localAgentConnected"));
+            if (!headless) message.success("本地 Agent 已连接");
             void postState(endpoint, token, clientId, canvasContextRef.current?.snapshot || null);
             if (document.visibilityState === "visible" && document.hasFocus()) void activateAgentClient(endpoint, token, clientId);
             if (!busy && !nextThreadId && (!hello?.conversation || hello.conversation.status === "idle")) {
@@ -415,7 +411,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                     .catch((error) => {
                         const state = agentErrorState(error);
                         if (state) applyConversationState(state);
-                        addEventLog(rt("conversationInitFailed"), error);
+                        addEventLog("Codex 对话初始化失败", error);
                     });
             }
         });
@@ -432,7 +428,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 const activeTurnId = busy ? turnId : "";
                 const messages = activeTurnId ? bindPendingTurnMessages(current.messages, current.activeThreadId, activeTurnId) : current.messages;
                 setAgentState({
-                    activity: busy ? rt("codexRunning") : current.activity === rt("processingFailed") ? rt("processingFailed") : rt("completed"),
+                    activity: busy ? "Codex 正在运行" : current.activity === "处理失败" ? "处理失败" : "完成",
                     waiting: busy,
                     sending: false,
                     activeTurnId,
@@ -450,8 +446,8 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             if (!isCurrentConnection()) return;
             const data = parseEventData<AgentPendingApproval>(event);
             if (!data || !isCurrentThreadEvent(data)) return;
-            setAgentState({ pendingApprovals: [...useAgentStore.getState().pendingApprovals.filter((item) => item.requestId !== data.requestId), data], activity: rt("awaitingApproval") });
-            addEventLog(rt("awaitingApproval"), data.reason || data.method, data);
+            setAgentState({ pendingApprovals: [...useAgentStore.getState().pendingApprovals.filter((item) => item.requestId !== data.requestId), data], activity: "等待权限确认" });
+            addEventLog("等待权限确认", data.reason || data.method, data);
         });
         source.addEventListener("codex_approval_resolved", (event) => {
             if (!isCurrentConnection()) return;
@@ -462,7 +458,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             const pendingApprovals = current.pendingApprovals.filter((item) => item.requestId !== data.requestId);
             setAgentState({ pendingApprovals, activity: approvalActivity(pendingApprovals, current.waiting, current.activity) });
             const decision = data.decision || approval?.deciding;
-            if (approval && decision) addEventLog(rt(decision === "accept" || decision === "acceptForSession" ? "approvalGranted" : "approvalCanceled"), approval.reason || approval.method, approval);
+            if (approval && decision) addEventLog((decision === "accept" || decision === "acceptForSession" ? "已批准权限" : "已取消权限"), approval.reason || approval.method, approval);
         });
         source.addEventListener("agent_event", (event) => {
             const data = parseEventData<AgentEventPayload>(event);
@@ -477,26 +473,26 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             const data = parseEventData<AgentBootstrapEvent>(event);
             if (!data?.type) return;
             if (data.type === "codex.preparing") {
-                addEventLog(rt("conversationInitializing"), rt("conversationCreating"), data);
+                addEventLog("正在初始化 Codex 对话", "正在创建会话并启动画布工具服务", data);
                 return;
             }
             if (data.type === "codex.prepare_failed") {
-                addEventLog(rt("conversationInitFailed"), data.error, data);
+                addEventLog("Codex 对话初始化失败", data.error, data);
                 return;
             }
             if (data.type === "mcp.complete") {
-                addEventLog(rt("mcpStatusComplete"), rt("mcpListRead"), data);
+                addEventLog("MCP 状态确认完成", "已读取 Codex 返回的完整工具服务清单", data);
                 return;
             }
             if (!data.name || !data.status) return;
             const label = data.name;
             const status = data.status === "starting"
-                ? { text: rt("mcpStarting", { name: label }), detail: rt("mcpConnecting"), status: "running" as const }
+                ? { text: `正在启动 MCP：${label}`, detail: "正在建立工具连接并读取可用工具列表", status: "running" as const }
                 : data.status === "ready"
-                    ? { text: rt("mcpReadyNamed", { name: label }), detail: rt("toolsReady"), status: "ready" as const }
+                    ? { text: `MCP 已就绪：${label}`, detail: "工具列表加载完成，可以开始对话", status: "ready" as const }
                     : data.status === "failed"
-                        ? { text: rt("mcpFailedNamed", { name: label }), detail: data.error || rt("toolInitFailed"), status: "error" as const }
-                        : { text: rt("mcpCanceledNamed", { name: label }), detail: rt("toolInitCanceled"), status: "error" as const };
+                        ? { text: `MCP 启动失败：${label}`, detail: data.error || "工具服务未能完成初始化", status: "error" as const }
+                        : { text: `MCP 启动已取消：${label}`, detail: "工具服务初始化已取消", status: "error" as const };
             addEventLog(status.text, status.detail, data);
         });
         source.addEventListener("conversation_changed", (event) => {
@@ -534,7 +530,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         source.addEventListener("agent_log", (event) => {
             if (!isCurrentConnection()) return;
             const text = parseEventData<{ text?: unknown }>(event)?.text;
-            addEventLog(rt("log"), text, text);
+            addEventLog("日志", text, text);
         });
         source.addEventListener("skills_changed", (event) => {
             if (!isCurrentConnection()) return;
@@ -554,16 +550,16 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             if (disposed || protocolRejected) return;
             const wasConnected = connectedRef.current;
             const silent = useAgentStore.getState().silentConnect && !wasConnected;
-            const text = rt(wasConnected ? "connectionLostDescription" : "connectionFailedDescription");
+            const text = (wasConnected ? "本地 Agent 连接失败或已断开" : "连接失败，请检查地址和 token");
             if (!errorLoggedRef.current || wasConnected) {
-                addEventLog(rt(wasConnected ? "connectionLost" : "connectionFailed"), text);
+                addEventLog((wasConnected ? "连接断开" : "连接失败"), text);
                 if (!headless && !silent) message.error(text);
             }
             errorLoggedRef.current = true;
             connectedRef.current = false;
             pendingToolRef.current = null;
             setAgentState({
-                activity: rt(wasConnected ? "connectionLost" : "connectionFailed"),
+                activity: (wasConnected ? "连接断开" : "连接失败"),
                 connected: false,
                 waiting: false,
                 sending: false,
@@ -617,7 +613,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             localStorage.setItem("canvas-agent-model", current.model);
             localStorage.setItem("canvas-agent-reasoning-effort", nextEffort);
             setAgentState({ models, model: current.model, reasoningEffort: nextEffort });
-        }).catch((error) => addEventLog(rt("modelListFailed"), error));
+        }).catch((error) => addEventLog("读取模型列表失败", error));
     }, [connected, endpoint, setAgentState, token]);
 
     useEffect(() => {
@@ -644,34 +640,34 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         const canvasReferences = currentState.canvasReferences.filter((item) => canvasNodeIds.has(item.nodeId));
         if (canvasReferences.length !== currentState.canvasReferences.length) {
             setAgentState({ canvasReferences });
-            message.warning(rt(canvasReferences.length ? "someCanvasReferencesMissing" : "canvasReferencesMissing"));
+            message.warning((canvasReferences.length ? "部分引用的画布素材已不存在" : "引用的画布素材已不存在，请重新选择"));
         }
         const requestPrompt = promptWithCanvasReferences(promptWithAttachments(text, files), canvasReferences);
         if (!currentState.connected || !requestPrompt || currentState.sending || currentState.waiting || currentState.loadingThreads || !["ready", "warning"].includes(currentState.conversation.status)) return;
         let referenceImages: AgentAttachment[] = [];
         if (canvasReferences.some((item) => item.kind === "image")) {
-            setAgentState({ sending: true, activity: rt("readingCanvasImages") });
+            setAgentState({ sending: true, activity: "正在读取画布图片" });
             try {
                 referenceImages = await resolveCanvasReferenceImages(canvasReferences, currentState.canvasContext?.snapshot.nodes || []);
             } catch (error) {
-                setAgentState({ sending: false, activity: rt("canvasImageReadFailed") });
-                addMessage({ role: "error", title: rt("canvasImageReadFailed"), text: error instanceof Error ? error.message : rt("canvasImageReadFailed") });
+                setAgentState({ sending: false, activity: "画布图片读取失败" });
+                addMessage({ role: "error", title: "画布图片读取失败", text: error instanceof Error ? error.message : "画布图片读取失败" });
                 return;
             }
         }
         const requestFiles = [...files, ...referenceImages.filter((reference) => !files.some((file) => file.dataUrl === reference.dataUrl))];
         if (requestFiles.length > MAX_ATTACHMENTS) {
-            setAgentState({ sending: false, activity: rt("tooManyImages") });
-            addMessage({ role: "error", title: rt("tooManyImages"), text: rt("imageCountLimit", { count: MAX_ATTACHMENTS }) });
+            setAgentState({ sending: false, activity: "图片数量过多" });
+            addMessage({ role: "error", title: "图片数量过多", text: `上传图片和引用的画布图片合计最多 ${MAX_ATTACHMENTS} 张。` });
             return;
         }
         if (attachmentPayloadBytes(requestFiles) > MAX_ATTACHMENT_PAYLOAD_BYTES) {
-            setAgentState({ sending: false, activity: rt("imageTooLarge") });
-            addMessage({ role: "error", title: rt("imageTooLarge"), text: rt("imagePayloadTooLarge") });
+            setAgentState({ sending: false, activity: "图片过大" });
+            addMessage({ role: "error", title: "图片过大", text: "图片附件超过 30MB，请删减后再发送。" });
             return;
         }
         const messageId = createId();
-        const userText = text || rt(files.length ? "imagesSent" : "canvasReferencesSent", { count: files.length || canvasReferences.length });
+        const userText = text || (files.length ? `发送了 ${files.length || canvasReferences.length} 张图片` : `引用了 ${files.length || canvasReferences.length} 个画布素材`);
         const messageReferences: AgentCanvasReference[] = await Promise.all(canvasReferences.map(async ({ nodeId, label, title, kind, previewUrl, text }) => {
             const image = referenceImages.find((item) => item.id === `canvas:${nodeId}`);
             return { nodeId, label, title, kind, previewUrl: image ? (await createMessageAttachmentMetadata(image)).url : previewUrl, text };
@@ -680,7 +676,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         loadThreadsSequenceRef.current += 1;
         const currentBeforeSend = useAgentStore.getState();
         const requestThreadId = currentBeforeSend.activeThreadId;
-        setAgentState({ prompt: "", attachments: [], canvasReferences: [], activity: rt("sending"), sending: true, loadingThreads: false, activeTurnId: "", messages: currentBeforeSend.messages });
+        setAgentState({ prompt: "", attachments: [], canvasReferences: [], activity: "发送中", sending: true, loadingThreads: false, activeTurnId: "", messages: currentBeforeSend.messages });
         addMessage({ id: messageId, itemId: "synthetic:user", clientMessageId: messageId, threadId: requestThreadId, turnId: "", role: "user", text: userText, attachments: files, canvasReferences: messageReferences, skill: messageSkill });
         let threadId = requestThreadId;
         try {
@@ -690,9 +686,9 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 ...(messageReferences.length ? { canvasReferences: messageReferences } : {}),
                 ...(messageSkill ? { skill: messageSkill } : {}),
             };
-            const modelName = models.find((item) => item.model === model)?.displayName || model || rt("defaultModel");
-            const effortName = reasoningEffort ? i18n.t(`agent.composer.effort.${reasoningEffort}`) : rt("defaultEffort");
-            addEventLog(rt("sendTask"), `${modelName} · ${effortName}${selectedSkill ? ` · Skill ${selectedSkill.name}` : ""}${files.length ? ` · ${rt("attachmentCount", { count: files.length })}` : ""}${canvasReferences.length ? ` · ${rt("canvasReferenceCount", { count: canvasReferences.length })}` : ""} · ${compactText(text) || rt(canvasReferences.length ? "canvasReferencesOnly" : "attachmentsOnly")}`);
+            const modelName = models.find((item) => item.model === model)?.displayName || model || "默认模型";
+            const effortName = reasoningEffort ? (({ "minimal":"最低", "low":"轻度", "medium":"中", "high":"高", "xhigh":"极高", "max":"最高", "ultra":"Ultra" } as Record<string, string>)[String(reasoningEffort)] || String(reasoningEffort)) : "默认强度";
+            addEventLog("发送任务", `${modelName} · ${effortName}${selectedSkill ? ` · Skill ${selectedSkill.name}` : ""}${files.length ? ` · ${`附件 ${files.length}`}` : ""}${canvasReferences.length ? ` · ${`画布素材 ${canvasReferences.length}`}` : ""} · ${compactText(text) || (canvasReferences.length ? "画布素材" : "仅附件")}`);
             const accepted = await fetchAgentJson<AgentTurnResponse>(endpoint, token, "/agent/codex/turn", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
@@ -713,14 +709,14 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 }),
             });
             threadId = accepted.threadId || threadId;
-            if (!threadId) throw new Error(rt("startConversationFailed"));
+            if (!threadId) throw new Error("启动对话失败");
             if (selectedSkill) clearSkillSelection(selectedSkillRevision);
             files.forEach((item) => {
                 URL.revokeObjectURL(item.url);
                 attachmentUrlsRef.current.delete(item.url);
             });
         } catch (error) {
-            const text = error instanceof Error ? error.message : rt("sendFailed");
+            const text = error instanceof Error ? error.message : "发送失败";
             const response = error instanceof AgentApiError ? error.response as { code?: string; state?: AgentConversationState } : undefined;
             if (response?.state) applyConversationState(response.state);
             const stale = response?.code === "CONVERSATION_STALE";
@@ -735,28 +731,28 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             const restoreDraft = state.prompt || state.attachments.length || state.canvasReferences.length ? {} : { prompt, attachments: files, canvasReferences };
             if (ownsCurrentThread) {
                 setAgentState({
-                    activity: rt(stale ? "conversationSynced" : busy ? "codexRunning" : "sendFailed"),
+                    activity: (stale ? "会话已同步" : (busy ? "Codex 正在运行" : "发送失败")),
                     sending: false,
                     messages: removeFailedPending(state.messages),
                     ...restoreDraft,
                 });
-                addMessage({ threadId: state.activeThreadId, turnId: "", role: "error", title: rt(stale ? "conversationSynced" : busy ? "taskStillRunning" : "sendFailed"), text });
+                addMessage({ threadId: state.activeThreadId, turnId: "", role: "error", title: (stale ? "会话已同步" : (busy ? "任务仍在运行" : "发送失败")), text });
             } else {
                 setAgentState({ sending: false, messages: removeFailedPending(state.messages), ...restoreDraft });
             }
-            addEventLog(rt("sendFailed"), error);
+            addEventLog("发送失败", error);
         }
     };
 
     const stopTurn = async () => {
         if (!connected || (!sending && !waiting)) return;
-        setAgentState({ activity: rt("stopping") });
+        setAgentState({ activity: "停止中" });
         try {
             await interruptCodexTurn(endpoint, token, useAgentStore.getState().activeThreadId || undefined);
-            addEventLog(rt("stopTask"), rt("taskStopped"));
+            addEventLog("停止任务", "任务已停止");
         } catch (error) {
-            setAgentState({ activity: rt("stopFailed") });
-            addEventLog(rt("stopFailed"), error);
+            setAgentState({ activity: "停止失败" });
+            addEventLog("停止失败", error);
         }
     };
 
@@ -780,12 +776,12 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                     URL.revokeObjectURL(item.url);
                     attachmentUrlsRef.current.delete(item.url);
                 });
-                addMessage({ role: "error", title: rt("imageTooLarge"), text: rt("imageLimit") });
+                addMessage({ role: "error", title: "图片过大", text: "图片附件最多约 30MB。" });
                 return;
             }
             if (next.length) setAgentState({ attachments: merged });
         } catch (error) {
-            addMessage({ role: "error", title: rt("imageReadFailed"), text: error instanceof Error ? error.message : rt("imageReadFailed") });
+            addMessage({ role: "error", title: "图片读取失败", text: error instanceof Error ? error.message : "图片读取失败" });
         }
     };
 
@@ -801,12 +797,12 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
     const handleToolCall = async (endpoint: string, token: string, payload: AgentPendingToolCall) => {
         if (confirmToolsRef.current && isCanvasWriteTool(payload.name)) {
             if (pendingToolRef.current) {
-                await postToolResult(endpoint, token, clientIdRef.current, { requestId: payload.requestId, error: rt("pendingCanvasTool") });
+                await postToolResult(endpoint, token, clientIdRef.current, { requestId: payload.requestId, error: "仍有待确认的画布工具调用" });
                 return;
             }
             pendingToolRef.current = payload;
             setAgentState({ pendingTool: payload });
-            addEventLog(rt("awaitingConfirmation"), payload, payload);
+            addEventLog("等待确认", payload, payload);
             return;
         }
         await runToolCall(endpoint, token, payload);
@@ -818,9 +814,9 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 addEventLog(toolName(payload.name), payload, payload);
                 const result = await runSiteTool(payload.name, payload.input || {}, navigate, { canvasSnapshot: canvasContextRef.current?.snapshot || null });
                 await postToolResult(endpoint, token, clientIdRef.current, { requestId: payload.requestId, result });
-                addEventLog(rt("toolCompleted", { tool: toolName(payload.name) }), result, result);
+                addEventLog(`${toolName(payload.name)}完成`, result, result);
             } catch (error) {
-                const message = error instanceof Error ? error.message : rt("toolExecutionFailed");
+                const message = error instanceof Error ? error.message : "工具执行失败";
                 await postToolResult(endpoint, token, clientIdRef.current, { requestId: payload.requestId, error: message });
             }
             return;
@@ -836,31 +832,31 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 result = { ok: true, path };
             } else if (payload.name === "canvas_apply_ops") {
                 const context = canvasContextRef.current;
-                if (!context) throw new Error(rt("openCanvasFirst"));
+                if (!context) throw new Error("当前不在画布页，请先用 site_navigate 打开画布");
                 result = context.applyOps(appliedOps);
                 void postState(endpoint, token, clientIdRef.current, result as CanvasAgentSnapshot);
             } else if (payload.name === "canvas_create_attachment_nodes") {
                 const context = canvasContextRef.current;
-                if (!context) throw new Error(rt("openCanvasFirst"));
+                if (!context) throw new Error("当前不在画布页，请先用 site_navigate 打开画布");
                 appliedOps = await attachmentNodeOps(endpoint, token, clientIdRef.current, payload.input?.nodes);
                 result = context.applyOps(appliedOps);
                 await postState(endpoint, token, clientIdRef.current, result as CanvasAgentSnapshot);
             } else {
                 const snapshot = canvasContextRef.current?.snapshot;
-                if (!snapshot) throw new Error(rt("openCanvasFirst"));
+                if (!snapshot) throw new Error("当前不在画布页，请先用 site_navigate 打开画布");
                 result = snapshot;
             }
             await postToolResult(endpoint, token, clientIdRef.current, { requestId: payload.requestId, result });
-            addEventLog(rt("toolCompleted", { tool: toolName(payload.name) }), result, result);
+            addEventLog(`${toolName(payload.name)}完成`, result, result);
         } catch (error) {
-            const message = error instanceof Error ? error.message : rt("canvasOperationFailed");
+            const message = error instanceof Error ? error.message : "画布操作失败";
             await postToolResult(endpoint, token, clientIdRef.current, { requestId: payload.requestId, error: message });
         }
     };
 
     const rejectPendingTool = async () => {
         if (!pendingTool) return;
-        await postToolResult(endpoint, token, clientIdRef.current, { requestId: pendingTool.requestId, error: rt("canvasToolCanceled") });
+        await postToolResult(endpoint, token, clientIdRef.current, { requestId: pendingTool.requestId, error: "用户取消了画布工具调用" });
         pendingToolRef.current = null;
         setAgentState({ pendingTool: null });
     };
@@ -877,11 +873,11 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         const current = useAgentStore.getState();
         const pending = current.pendingApprovals.find((item) => item.requestId === approval.requestId);
         if (!pending || pending.deciding) return;
-        setAgentState({ pendingApprovals: current.pendingApprovals.map((item) => item.requestId === approval.requestId ? { ...item, deciding: decision } : item), activity: rt("submittingApproval") });
+        setAgentState({ pendingApprovals: current.pendingApprovals.map((item) => item.requestId === approval.requestId ? { ...item, deciding: decision } : item), activity: "正在提交权限决定" });
         try {
             await postCodexApproval(endpoint, token, approval.requestId, decision);
             const latest = useAgentStore.getState();
-            if (latest.pendingApprovals.some((item) => item.requestId === approval.requestId)) setAgentState({ activity: rt("waitingCodexApproval") });
+            if (latest.pendingApprovals.some((item) => item.requestId === approval.requestId)) setAgentState({ activity: "等待 Codex 确认权限" });
         } catch (error) {
             const latest = useAgentStore.getState();
             const expired = error instanceof Error && error.message.includes("审批请求已失效");
@@ -891,8 +887,8 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 : latest.pendingApprovals.map((item) => item.requestId === approval.requestId ? { ...item, deciding: undefined } : item);
             setAgentState({ pendingApprovals, activity: approvalActivity(pendingApprovals, latest.waiting, latest.activity) });
             if (resolved) return;
-            addEventLog(rt("approvalFailed"), error);
-            message.error(error instanceof Error ? error.message : rt("approvalFailed"));
+            addEventLog("权限审批失败", error);
+            message.error(error instanceof Error ? error.message : "权限审批失败");
         }
     };
 
@@ -903,18 +899,18 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         };
         if (nextMode !== "full") return apply();
         modal.confirm({
-            title: rt("enableFullAccess"),
-            content: rt("fullAccessDescription"),
-            okText: rt("enableFullAccessAction"),
+            title: "启用完全访问权限",
+            content: "Codex 将不受沙箱限制，可访问互联网及本机任意文件。请仅在信任当前任务时使用。",
+            okText: "启用完全访问",
             okType: "danger",
-            cancelText: t("common.cancel"),
+            cancelText: "取消",
             onOk: apply,
         });
     };
 
     const toggleAgentConnection = async ({ silent = false }: { silent?: boolean } = {}) => {
         if (enabled) {
-            clearAgentSession({ enabled: false, connected: false, activity: rt("offline"), connectError: "" });
+            clearAgentSession({ enabled: false, connected: false, activity: "离线", connectError: "" });
             return;
         }
         const urlToken = searchParams.get("agentToken") || "";
@@ -923,7 +919,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         const nextEndpoint = (urlEndpoint || discovered?.url || endpoint || DEFAULT_AGENT_URL).trim().replace(/\/$/, "");
         const nextToken = (urlToken || token.trim() || discovered?.token || "").trim();
         if (!nextEndpoint) {
-            const text = rt("addressRequired");
+            const text = "请填写本地 Agent 地址";
             if (!silent) {
                 setAgentState({ connectError: text });
                 if (!headless) message.warning(text);
@@ -931,7 +927,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             return;
         }
         if (!nextToken) {
-            const text = rt("agentNotFound");
+            const text = "没有发现本地 Agent，请先在 Codex 使用插件或手动启动 Canvas Agent";
             if (!silent) {
                 setAgentState({ connectError: text });
                 if (!headless) message.warning(text);
@@ -942,7 +938,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             const parsed = new URL(nextEndpoint);
             if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("invalid protocol");
         } catch {
-            const text = rt("invalidAddress");
+            const text = "本地 Agent 地址格式不正确";
             if (!silent) {
                 setAgentState({ connectError: text });
                 if (!headless) message.warning(text);
@@ -950,7 +946,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             return;
         }
         errorLoggedRef.current = false;
-        setAgentState({ url: nextEndpoint, token: nextToken, enabled: true, connected: false, silentConnect: silent, fragmentBootstrap: false, activity: rt("connecting"), connectError: "", activeTab: "setup" });
+        setAgentState({ url: nextEndpoint, token: nextToken, enabled: true, connected: false, silentConnect: silent, fragmentBootstrap: false, activity: "连接中", connectError: "", activeTab: "setup" });
     };
 
     useLayoutEffect(() => {
@@ -958,7 +954,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         if (!bootstrap) return;
         router.replace(`${window.location.pathname}${window.location.search}${bootstrap.remainingHash}`);
         if (!bootstrap.url || !bootstrap.token) {
-            setAgentState({ fragmentBootstrap: false, activeTab: "setup", connectError: rt(!bootstrap.url ? "addressRequired" : "agentNotFound") });
+            setAgentState({ fragmentBootstrap: false, activeTab: "setup", connectError: (!bootstrap.url ? "请填写本地 Agent 地址" : "没有发现本地 Agent，请先在 Codex 使用插件或手动启动 Canvas Agent") });
             useAgentStore.getState().openPanel();
             return;
         }
@@ -966,12 +962,12 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             const parsed = new URL(bootstrap.url);
             if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("invalid protocol");
         } catch {
-            setAgentState({ fragmentBootstrap: false, activeTab: "setup", connectError: rt("invalidAddress") });
+            setAgentState({ fragmentBootstrap: false, activeTab: "setup", connectError: "本地 Agent 地址格式不正确" });
             useAgentStore.getState().openPanel();
             return;
         }
         errorLoggedRef.current = false;
-        setAgentState({ url: bootstrap.url.replace(/\/$/, ""), token: bootstrap.token, enabled: true, connected: false, silentConnect: true, fragmentBootstrap: true, confirmTools: false, activity: rt("connecting"), connectError: "", activeTab: "setup" });
+        setAgentState({ url: bootstrap.url.replace(/\/$/, ""), token: bootstrap.token, enabled: true, connected: false, silentConnect: true, fragmentBootstrap: true, confirmTools: false, activity: "连接中", connectError: "", activeTab: "setup" });
     }, [hash, navigate, setAgentState]);
 
     useEffect(() => {
@@ -1030,17 +1026,17 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         if (!current.connected || current.sending || current.waiting || current.loadingThreads || ["preparing", "running"].includes(current.conversation.status)) return;
         const operation = beginThreadOperation();
         clearSkillSelection();
-        setAgentState({ activeTab: "chat", activity: rt("creatingConversation") });
+        setAgentState({ activeTab: "chat", activity: "正在新建对话" });
         try {
             const result = await fetchAgentJson<AgentWorkspaceResponse>(endpoint, token, "/agent/codex/threads/reset", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ clientId: clientIdRef.current, permissionMode }) });
             if (threadOperationRef.current !== operation) return;
             if (result.conversation) applyConversationState(result.conversation);
-            setAgentState({ activeTab: "chat", activity: rt("newConversation") });
+            setAgentState({ activeTab: "chat", activity: "新对话" });
         } catch (error) {
             const state = agentErrorState(error);
             if (state) applyConversationState(state);
-            addEventLog(rt("newConversationFailed"), error);
-            message.error(error instanceof Error ? error.message : rt("newConversationFailed"));
+            addEventLog("新建对话失败", error);
+            message.error(error instanceof Error ? error.message : "新建对话失败");
             await loadThreads();
         } finally {
             finishThreadOperation(operation);
@@ -1055,12 +1051,12 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             const result = await fetchAgentJson<AgentThreadResponse>(endpoint, token, `/agent/codex/threads/${encodeURIComponent(threadId)}/resume`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ permissionMode, clientId: clientIdRef.current }) });
             if (result.conversation) applyConversationState(result.conversation);
             await loadThreads();
-            if (useAgentStore.getState().activeThreadId === threadId) setAgentState({ activeTab: "chat", activity: rt("conversationResumed") });
+            if (useAgentStore.getState().activeThreadId === threadId) setAgentState({ activeTab: "chat", activity: "已恢复会话" });
         } catch (error) {
             const state = agentErrorState(error);
             if (state) applyConversationState(state);
-            addEventLog(rt("resumeConversationFailed"), error);
-            message.error(error instanceof Error ? error.message : rt("resumeConversationFailed"));
+            addEventLog("恢复对话失败", error);
+            message.error(error instanceof Error ? error.message : "恢复对话失败");
             await loadThreads();
         } finally {
             finishThreadOperation(operation);
@@ -1078,11 +1074,11 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 deletedCount += 1;
             }
             await loadThreads();
-            message.success(rt("recordsDeleted", { count: deletedCount }));
+            message.success(`已删除 ${deletedCount} 条记录`);
         } catch (error) {
             await loadThreads();
-            addEventLog(rt("deleteConversationFailed"), error);
-            message.error(error instanceof Error ? error.message : rt("deleteConversationFailed"));
+            addEventLog("删除对话失败", error);
+            message.error(error instanceof Error ? error.message : "删除对话失败");
         } finally {
             finishThreadOperation(operation);
         }
@@ -1090,11 +1086,11 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
 
     const confirmDeleteThreads = (threadIds: string[]) => {
         modal.confirm({
-            title: rt("deleteConversations", { count: threadIds.length }),
-            content: rt("deleteConversationsDescription"),
-            okText: t("common.delete"),
+            title: `删除 ${threadIds.length} 条对话记录`,
+            content: "删除后无法恢复，确定继续吗？",
+            okText: "删除",
             okType: "danger",
-            cancelText: t("common.cancel"),
+            cancelText: "取消",
             onOk: () => deleteThreads(threadIds),
         });
     };
@@ -1131,7 +1127,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             const activityItems = { ...(current?.activityItems || {}) };
             const previous = activityItems[item.id] || "";
             activityItems[item.id] = isDelta ? `${previous === activityPlaceholder("reasoning") ? "" : previous}${text}` : text;
-            upsertActivityMessage({ ...scoped, title: i18n.t("agent.events.reasoning"), text: reasoningActivityText(activityItems), activityItems, detail: activityDetail(current?.detail || scoped.detail, "reasoning", "inProgress") });
+            upsertActivityMessage({ ...scoped, title: "思考摘要", text: reasoningActivityText(activityItems), activityItems, detail: activityDetail(current?.detail || scoped.detail, "reasoning", "inProgress") });
             return;
         }
         const scoped = scopeEventChatItem(event, activityDeltaFallback(item, text), item.id);
@@ -1165,7 +1161,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             const previous = activityItems[itemId] || "";
             const incoming = normalizeText(item.text);
             activityItems[itemId] = incoming === "已完成分析" && previous && previous !== activityPlaceholder("reasoning") ? previous : incoming;
-            upsertActivityMessage({ ...scoped, title: i18n.t("agent.events.reasoning"), text: reasoningActivityText(activityItems, incoming), activityItems });
+            upsertActivityMessage({ ...scoped, title: "思考摘要", text: reasoningActivityText(activityItems, incoming), activityItems });
             return;
         }
         upsertActivityMessage(scopeEventChatItem(event, { ...item, id: itemId }, itemId));
@@ -1207,8 +1203,8 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         const current = state.messages.find((message) => message.id === item.id);
         if (current && !normalizeText(value)) return;
         upsertActivityMessage(item);
-        setAgentState({ activity: rt("processingFailed"), pendingApprovals: [] });
-        if (log) addEventLog(rt("processingFailed"), error.text, value);
+        setAgentState({ activity: "处理失败", pendingApprovals: [] });
+        if (log) addEventLog("处理失败", error.text, value);
     };
 
     const handleAgentEvent = async (event: AgentEventPayload) => {
@@ -1283,7 +1279,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                     const result = context.applyOps(ops);
                     void postState(endpoint, token, clientIdRef.current, result);
                 }
-                addEventLog(rt("importGeneratedImages"), rt(context ? "addedToSourceCanvas" : "imageGenerated"));
+                addEventLog("导入生成图片", (context ? "已添加到发起任务的画布" : "图片已生成"));
             }
         }
         if (activity && event.item?.id) {
@@ -1321,7 +1317,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
         setAgentState({ messages: currentMessages.map((message, itemIndex) => itemIndex === index ? { ...message, text: isDelta ? `${message.text}${text}` : mergeStreamText(message.text, text) } : message) });
     };
 
-    const connectionStatus = t(connectError ? "agent.status.failed" : connected ? "agent.status.connected" : enabled ? "agent.status.connecting" : "agent.status.disconnected");
+    const connectionStatus = (connectError ? "连接失败" : (connected ? "已连接" : (enabled ? "连接中" : "未连接")));
     const connectionStatusColor = connectError ? "#dc2626" : connected ? "#16a34a" : enabled ? "#d97706" : theme.node.muted;
     const content = (
         <>
@@ -1334,18 +1330,18 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                             <Bot className="size-4" />
                         </span>
                         <div className="hidden text-base font-semibold leading-5 @min-[560px]:block">Agent</div>
-                        <Tooltip title={t("agent.panel.connectionSettings", { status: connectionStatus })} placement="bottom">
-                            <Button size="small" type="text" className="!h-8 !w-8 !min-w-8 !px-0 @min-[560px]:!w-auto @min-[560px]:!min-w-0 @min-[560px]:!px-[7px]" aria-label={t("agent.panel.connectionSettingsLabel", { status: connectionStatus })} icon={<PlugZap className="size-3.5" style={{ color: connectionStatusColor }} />} onClick={() => setAgentState({ activeTab: "setup" })}>
+                        <Tooltip title={`连接设置 · ${connectionStatus}`} placement="bottom">
+                            <Button size="small" type="text" className="!h-8 !w-8 !min-w-8 !px-0 @min-[560px]:!w-auto @min-[560px]:!min-w-0 @min-[560px]:!px-[7px]" aria-label={`连接设置，当前${connectionStatus}`} icon={<PlugZap className="size-3.5" style={{ color: connectionStatusColor }} />} onClick={() => setAgentState({ activeTab: "setup" })}>
                                 <span className="hidden @min-[560px]:inline">{connectionStatus}</span>
                             </Button>
                         </Tooltip>
                     </div>
                 }
                 items={[
-                    { value: "chat", label: t("agent.panel.chat"), icon: <MessageSquare className="size-3.5" /> },
-                    { value: "history", label: t("agent.panel.history"), icon: <History className="size-3.5" />, count: threads.length },
-                    { value: "skills", label: t("agent.panel.skills"), icon: <Sparkles className="size-3.5" />, count: skillCount },
-                    { value: "log", label: t("agent.panel.logs"), icon: <Terminal className="size-3.5" />, count: eventLogs.length },
+                    { value: "chat", label: "对话", icon: <MessageSquare className="size-3.5" /> },
+                    { value: "history", label: "历史", icon: <History className="size-3.5" />, count: threads.length },
+                    { value: "skills", label: "技能", icon: <Sparkles className="size-3.5" />, count: skillCount },
+                    { value: "log", label: "日志", icon: <Terminal className="size-3.5" />, count: eventLogs.length },
                 ]}
                 onChange={(activeTab) => {
                     setAgentState({ activeTab });
@@ -1353,13 +1349,13 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                 }}
                 right={
                     <>
-                        <Tooltip title={t("agent.history.newThread")} placement="bottom">
-                            <Button size="small" type="text" className="!h-8 !w-8 !min-w-8 !px-0 @min-[560px]:!w-auto @min-[560px]:!min-w-0 @min-[560px]:!px-[7px]" aria-label={t("agent.history.newThread")} disabled={!connected || loadingThreads || sending || waiting || conversationBusy} icon={<Plus className="size-3.5" />} onClick={startNewThread}>
-                                <span className="hidden @min-[560px]:inline">{t("agent.history.newThread")}</span>
+                        <Tooltip title={"新对话"} placement="bottom">
+                            <Button size="small" type="text" className="!h-8 !w-8 !min-w-8 !px-0 @min-[560px]:!w-auto @min-[560px]:!min-w-0 @min-[560px]:!px-[7px]" aria-label={"新对话"} disabled={!connected || loadingThreads || sending || waiting || conversationBusy} icon={<Plus className="size-3.5" />} onClick={startNewThread}>
+                                <span className="hidden @min-[560px]:inline">{"新对话"}</span>
                             </Button>
                         </Tooltip>
-                        <Tooltip title={t("agent.panel.collapse")}>
-                            <Button type="text" shape="circle" className="!h-8 !w-8 !min-w-8" aria-label={t("agent.panel.collapseLabel")} style={{ color: theme.node.muted }} icon={<PanelRightClose className="size-4" />} onClick={closePanel} />
+                        <Tooltip title={"收起对话"}>
+                            <Button type="text" shape="circle" className="!h-8 !w-8 !min-w-8" aria-label={"收起 Agent 面板"} style={{ color: theme.node.muted }} icon={<PanelRightClose className="size-4" />} onClick={closePanel} />
                         </Tooltip>
                     </>
                 }
@@ -1414,10 +1410,10 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
                         disabled={!connected || !conversationReady || loadingThreads}
                         sending={sending || waiting}
                         placeholder={conversation.status === "idle" || conversation.status === "preparing"
-                            ? t("agent.panel.mcpInitializing")
+                            ? "MCP 初始化中，完成后即可发送"
                             : conversation.status === "failed"
-                                ? t("agent.panel.initFailed")
-                                : t("agent.panel.placeholder")}
+                                ? "Codex 对话初始化失败，请新建或恢复对话"
+                                : "询问 Codex，输入 / 使用技能，@ 引用画布素材"}
                         theme={theme}
                         onPromptChange={(prompt) => setAgentState({ prompt })}
                         onSubmit={sendPrompt}
@@ -1520,23 +1516,23 @@ function scopeEventChatItem(event: AgentEventPayload, item: AgentChatItem, itemI
 }
 
 function approvalActivity(pendingApprovals: AgentPendingApproval[], waiting: boolean, fallback: string) {
-    if (pendingApprovals.length) return rt("awaitingApproval");
-    return waiting ? rt("codexRunning") : fallback;
+    if (pendingApprovals.length) return "等待权限确认";
+    return waiting ? "Codex 正在运行" : fallback;
 }
 
 async function attachmentNodeOps(endpoint: string, token: string, clientId: string, value: unknown): Promise<CanvasAgentOp[]> {
     const nodes = Array.isArray(value) ? value : [];
-    if (!nodes.length) throw new Error(rt("noImageAttachments"));
+    if (!nodes.length) throw new Error("没有可添加的图片附件");
     return await Promise.all(
         nodes.map(async (value) => {
             const item = value as { id?: unknown; attachmentId?: unknown; title?: unknown; position?: unknown };
             const id = String(item.id || "");
             const attachmentId = String(item.attachmentId || "");
-            if (!id || !attachmentId) throw new Error(rt("invalidAttachmentNode"));
+            if (!id || !attachmentId) throw new Error("图片附件节点参数无效");
             const res = await fetch(`${endpoint}/agent/attachments/${encodeURIComponent(attachmentId)}?token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`);
             if (!res.ok) {
                 const body = (await res.json().catch(() => null)) as { error?: string } | null;
-                throw new Error(body?.error || rt("attachmentReadFailed"));
+                throw new Error(body?.error || "读取图片附件失败");
             }
             const image = await uploadImage(await res.blob());
             const size = fitNodeSize(image.width, image.height);
@@ -1545,7 +1541,7 @@ async function attachmentNodeOps(endpoint: string, token: string, clientId: stri
                 type: "add_node" as const,
                 id,
                 nodeType: "image" as const,
-                title: String(item.title || rt("referenceImage")),
+                title: String(item.title || "参考图"),
                 position: { x: Number(position.x) || 0, y: Number(position.y) || 0 },
                 width: size.width,
                 height: size.height,
@@ -1577,11 +1573,11 @@ async function importGeneratedImages(endpoint: string, token: string, item: Agen
             const response = source.startsWith("data:image/")
                 ? await fetch(source)
                 : await fetch(`${endpoint}/agent/local-image?token=${encodeURIComponent(token)}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: source }) });
-            if (!response.ok) throw new Error(rt("generatedImageReadFailed"));
+            if (!response.ok) throw new Error("读取 Codex 生成图片失败");
             const blob = await response.blob();
             const upload = await uploadImage(blob);
             const dataUrl = await readDataUrl(blob);
-            const name = source.startsWith("/") ? source.split("/").at(-1) || rt("generatedImageName", { index: index + 1 }) : rt("generatedImageName", { index: index + 1 });
+            const name = source.startsWith("/") ? source.split("/").at(-1) || `生成图片 ${index + 1}` : `生成图片 ${index + 1}`;
             return { upload, name, attachment: { id: createId(), name, type: blob.type || upload.mimeType, size: blob.size, width: upload.width, height: upload.height, url: upload.url, dataUrl } };
         }),
     );
@@ -1601,7 +1597,7 @@ function readDataUrl(file: Blob) {
     return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ""));
-        reader.onerror = () => reject(reader.error || new Error(rt("imageReadFailed")));
+        reader.onerror = () => reject(reader.error || new Error("图片读取失败"));
         reader.readAsDataURL(file);
     });
 }

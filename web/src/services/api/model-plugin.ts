@@ -1,6 +1,5 @@
 import axios, { type AxiosRequestConfig } from "axios";
 
-import i18n from "@/i18n";
 import { buildApiUrl, withLocalProxy, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 type RequestOptions = { signal?: AbortSignal };
@@ -100,7 +99,7 @@ function createPoll(signal?: AbortSignal) {
             if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
             const result = extract(await request());
             if (result !== null && result !== undefined && result !== false) return result;
-            if (performance.now() >= deadline) throw new Error(i18n.t("modelPlugin.pollTimeout"));
+            if (performance.now() >= deadline) throw new Error("插件轮询超时，请检查调用脚本或稍后重试");
             await sleep(intervalMs, signal);
         }
     };
@@ -159,7 +158,7 @@ export async function runModelPlugin<T = unknown>(args: RunPluginArgs): Promise<
         if (error instanceof DOMException && error.name === "AbortError") throw error;
         if (axios.isCancel(error)) throw error;
         const message = error instanceof Error ? error.message : String(error);
-        throw new Error(i18n.t("modelPlugin.executionFailed", { message }));
+        throw new Error(`模型调用脚本执行失败：${message}`);
     }
 }
 
@@ -168,55 +167,55 @@ export type PluginVariable = { name: string; type: string; desc: string; capabil
 /** Documentation surface shown in the script editor. */
 export function getPluginVariables(): PluginVariable[] {
     return [
-        { name: "prompt", type: "string", desc: i18n.t("modelPlugin.variables.prompt"), capabilities: ["image", "video", "audio"] },
-        { name: "images", type: "string[]", desc: i18n.t("modelPlugin.variables.images"), capabilities: ["image", "video"] },
-        { name: "videos", type: "File[]", desc: i18n.t("modelPlugin.variables.videos"), capabilities: ["video"] },
-        { name: "audios", type: "File[]", desc: i18n.t("modelPlugin.variables.audios"), capabilities: ["video"] },
-        { name: "messages", type: "{ role, content }[]", desc: i18n.t("modelPlugin.variables.messages"), capabilities: ["text"] },
-        { name: "params", type: "object", desc: i18n.t("modelPlugin.variables.params") },
-        { name: "model", type: "string", desc: i18n.t("modelPlugin.variables.model") },
-        { name: "baseUrl", type: "string", desc: i18n.t("modelPlugin.variables.baseUrl") },
-        { name: "apiKey", type: "string", desc: i18n.t("modelPlugin.variables.apiKey") },
-        { name: "systemPrompt", type: "string", desc: i18n.t("modelPlugin.variables.systemPrompt") },
-        { name: "reasoningEffort", type: '"auto" | "low" | "medium" | "high" | "xhigh"', desc: i18n.t("modelPlugin.variables.reasoningEffort"), capabilities: ["text"] },
-        { name: "http", type: "object", desc: i18n.t("modelPlugin.variables.http") },
-        { name: "request", type: "function", desc: i18n.t("modelPlugin.variables.request") },
-        { name: "poll", type: "function", desc: i18n.t("modelPlugin.variables.poll") },
-        { name: "sleep", type: "function", desc: i18n.t("modelPlugin.variables.sleep") },
-        { name: "signal", type: "AbortSignal", desc: i18n.t("modelPlugin.variables.signal") },
-        { name: "onDelta", type: "function", desc: i18n.t("modelPlugin.variables.onDelta"), capabilities: ["text"] },
+        { name: "prompt", type: "string", desc: "用户输入的提示词（已拼接系统提示词）", capabilities: ["image", "video", "audio"] },
+        { name: "images", type: "string[]", desc: "参考图，dataURL 数组（改图 / 图生视频时有值）", capabilities: ["image", "video"] },
+        { name: "videos", type: "File[]", desc: "参考视频 File 数组，可直接 form.append；画布或工作台接入的参考视频，无则为空数组", capabilities: ["video"] },
+        { name: "audios", type: "File[]", desc: "参考音频 File 数组，可直接 form.append；画布或工作台接入的参考音频，无则为空数组", capabilities: ["video"] },
+        { name: "messages", type: "{ role, content }[]", desc: "对话消息数组，含系统消息", capabilities: ["text"] },
+        { name: "params", type: "object", desc: "生成参数：生图 {size,quality,count,background}、视频 {mode,seconds,size,resolution,ratio,generateAudio,watermark}（mode 为 frames 首尾帧或 reference 全能参考；超过 2 张图时为 reference）、音频 {voice,format,speed,instructions}" },
+        { name: "model", type: "string", desc: "模型名称（不含渠道前缀）" },
+        { name: "baseUrl", type: "string", desc: "渠道接口地址（原样，未拼 /v1）" },
+        { name: "apiKey", type: "string", desc: "渠道 API Key，请求头里自己带上" },
+        { name: "systemPrompt", type: "string", desc: "系统提示词原文" },
+        { name: "reasoningEffort", type: '"auto" | "low" | "medium" | "high" | "xhigh"', desc: "文本推理强度；auto 表示由脚本决定是否传递", capabilities: ["text"] },
+        { name: "http", type: "object", desc: "便捷请求：http.post(path, body, {headers,params,responseType})、http.get(path, opts)、http.url(path)；默认带 Authorization: Bearer apiKey，可用 headers 覆盖；path 相对时按 baseUrl 拼 /v1" },
+        { name: "request", type: "function", desc: "原始请求 request({ method, url, headers, params, data, responseType })，不加任何默认头，鉴权头自己写；url 相对时按 baseUrl 拼接（不加 /v1）" },
+        { name: "poll", type: "function", desc: "轮询 poll(request, extract, {intervalMs,timeoutMs})，extract 返回真值即结束" },
+        { name: "sleep", type: "function", desc: "sleep(ms) 延时" },
+        { name: "signal", type: "AbortSignal", desc: "取消信号，可透传给 http/request" },
+        { name: "onDelta", type: "function", desc: "onDelta(text) 推送流式文本（文本模型）", capabilities: ["text"] },
     ];
 }
 
 export function getPluginReturn(capability: ModelCapability) {
-    return i18n.t(`modelPlugin.returns.${capability}`);
+    return (({ "image":"文生图（images 为空）和图生图（images 有参考图）接口不同，脚本需自行区分；返回图片 URL 或 dataURL 字符串，也可返回它们的数组，或 [{ dataUrl }] / [{ url }] / [{ b64_json }]", "video":"脚本内部完成轮询，返回 { url } 或 { blob } 或视频 URL 字符串", "audio":"返回 Blob，或 base64 / dataURL 字符串，或 { b64_json } / { data } / { url }", "text":"用 onDelta(text) 推送流式，最终 return 完整文本字符串" } as Record<string, string>)[String(capability)] || String(capability));
 }
 
 export function getPluginAuthoringPrompt(capability: ModelCapability, modelName: string, draft = "") {
     const variables = getPluginVariables().filter((variable) => !variable.capabilities || variable.capabilities.includes(capability));
     const lines = [
-        i18n.t("modelPlugin.authoring.intro", { capability: i18n.t(`config.channelEditor.capabilities.${capability}`), model: modelName || i18n.t("modelPlugin.authoring.anyModel") }),
+        `请为 Stephen Canvas 编写一段模型调用脚本。能力类型：${(({ "image":"生图", "video":"视频", "text":"文本", "audio":"音频" } as Record<string, string>)[String(capability)] || String(capability))}。目标模型：${modelName || "（当前选中的模型）"}。`,
         "",
-        i18n.t("modelPlugin.authoring.shape"),
+        "请写成一个 async function，把用到的变量写在参数列表里，并把 params 拆成 size、quality、count 等字段，方便对照。不要 import，不要 Markdown 代码围栏。函数内发请求并 return 结果；因为运行时会注入同名局部变量，最后需要 return await 函数名({ 同样的参数 })。",
         "",
-        i18n.t("modelPlugin.authoring.returnTitle"),
+        "返回要求",
         getPluginReturn(capability),
         "",
-        i18n.t("modelPlugin.authoring.variablesTitle"),
+        "可用变量",
         ...variables.map((variable) => `- ${variable.name} (${variable.type}): ${variable.desc}`),
         "",
-        i18n.t("modelPlugin.authoring.rulesTitle"),
-        i18n.t("modelPlugin.authoring.rules"),
+        "写法要求",
+        "- 写成 async function，参数列表列出用到的变量；params 拆开写出 size、quality、count、seconds 等字段。函数上方用 /** */ 注释写清每个字段。\n- 用 request({ method, url, headers, params, data, responseType }) 发原始 HTTP 请求；需要自动带 Authorization: Bearer apiKey 时用 http.post / http.get。\n- 相对路径：request 按 baseUrl 拼接且不加 /v1；http 的相对 path 会按 baseUrl 拼 /v1。\n- 异步视频任务通常先创建再 poll(request, extract, { intervalMs, timeoutMs })，extract 返回真值即结束。\n- images 是参考图 dataURL 字符串数组。videos、audios 是参考视频/音频 File 数组，可直接 form.append(字段名, file)；没有参考时为空数组。\n- 使用 FormData 时不要手动设置 Content-Type，交给浏览器带 boundary。\n- 函数末尾 return 结果，并在文件最后 return await 函数名({ 同样的参数 })。只输出完整脚本，不要解释。",
     ];
     const templates = getPluginTemplates()[capability];
     if (templates.length) {
-        lines.push("", i18n.t("modelPlugin.authoring.examplesTitle"));
+        lines.push("", "完整示例（请按实际接口改写，不要原样照搬）");
         for (const template of templates) {
             lines.push("", `${template.label}`, template.script);
         }
     }
     if (draft.trim()) {
-        lines.push("", i18n.t("modelPlugin.authoring.draftTitle"), draft.trim());
+        lines.push("", "用户当前草稿（请在此基础上修改；若为空则从零编写）", draft.trim());
     }
     return lines.join("\n");
 }
@@ -227,7 +226,7 @@ export function getPluginTemplates(): Record<ModelCapability, PluginTemplate[]> 
     return {
     image: [
         {
-            label: i18n.t("modelPlugin.templates.openai"),
+            label: "OpenAI 规范",
             script: `/**
  * OpenAI image generation and editing.
  * Text-to-image uses POST /v1/images/generations (JSON) when images is empty.
@@ -322,7 +321,7 @@ return await generateImage({
 });`,
         },
         {
-            label: i18n.t("modelPlugin.templates.gemini"),
+            label: "Gemini 规范",
             script: `/**
  * Gemini image generation via models/{model}:generateContent.
  * Reference images go into parts.inline_data. size maps to aspectRatio; quality maps to imageSize.
@@ -436,7 +435,7 @@ return await generateImage({
     ],
     video: [
         {
-            label: i18n.t("modelPlugin.templates.openai"),
+            label: "OpenAI 规范",
             script: `/**
  * OpenAI-compatible video: POST /v1/videos (multipart), then poll GET /v1/videos/{id}.
  * Do not set Content-Type on FormData; the browser adds the boundary.
@@ -557,7 +556,7 @@ return await generateVideo({
 });`,
         },
         {
-            label: i18n.t("modelPlugin.templates.gemini"),
+            label: "Gemini 规范",
             script: `/**
  * Gemini Veo video: POST models/{model}:predictLongRunning, then poll the operation.
  * First/last-frame mode: images[0] -> image, images[1] -> lastFrame.
@@ -719,7 +718,7 @@ return await generateVideo({
     ],
     audio: [
         {
-            label: i18n.t("modelPlugin.templates.openai"),
+            label: "OpenAI 规范",
             script: `/**
  * OpenAI speech: POST /v1/audio/speech.
  * @param {string} prompt - text to speak
@@ -776,7 +775,7 @@ return await generateAudio({
 });`,
         },
         {
-            label: i18n.t("modelPlugin.templates.gemini"),
+            label: "Gemini 规范",
             script: `/**
  * Gemini TTS: POST models/{model}:generateContent with AUDIO modality.
  * Audio bytes are returned in inlineData.data (base64 PCM).
@@ -847,7 +846,7 @@ return await generateAudio({
     ],
     text: [
         {
-            label: i18n.t("modelPlugin.templates.openai"),
+            label: "OpenAI 规范",
             script: `/**
  * OpenAI text: POST /v1/responses.
  * @param {{role: string, content: string}[]} messages - includes the system message when present
@@ -904,7 +903,7 @@ return await generateText({
 });`,
         },
         {
-            label: i18n.t("modelPlugin.templates.gemini"),
+            label: "Gemini 规范",
             script: `/**
  * Gemini text: POST models/{model}:generateContent.
  * System messages are skipped in contents; systemPrompt goes to systemInstruction.
@@ -988,6 +987,6 @@ export function normalizePluginImages(result: unknown): string[] {
             return "";
         })
         .filter(Boolean);
-    if (!urls.length) throw new Error(i18n.t("modelPlugin.noImages"));
+    if (!urls.length) throw new Error("模型调用脚本没有返回图片");
     return urls;
 }

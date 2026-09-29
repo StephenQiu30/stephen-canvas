@@ -1,7 +1,5 @@
 import { type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 
-import i18n from "@/i18n";
 import { ImageSettingsTheme } from "@/components/image-settings-panel";
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import type { AiConfig, ReasoningEffort } from "@/stores/use-config-store";
@@ -16,19 +14,18 @@ type TextSettingsPanelProps = {
 };
 
 export function TextSettingsPanel({ config, onConfigChange, theme, className = "space-y-4" }: TextSettingsPanelProps) {
-    const { t } = useTranslation();
     return (
         <ImageSettingsTheme theme={theme}>
             <div className={className} style={{ color: theme.node.text }} onMouseDown={(event) => event.stopPropagation()}>
-                <div className="text-lg font-semibold">{t("settingsPanels.text.title")}</div>
+                <div className="text-lg font-semibold">{"文本设置"}</div>
                 <div className="space-y-2.5">
                     <div className="text-sm font-medium" style={{ color: theme.node.muted }}>
-                        {t("settingsPanels.text.reasoning")}
+                        {"推理强度"}
                     </div>
                     <div className="grid grid-cols-5 gap-2">
                         {reasoningEffortOptions.map((value) => (
                             <OptionPill key={value} selected={config.reasoningEffort === value} theme={theme} onClick={() => onConfigChange("reasoningEffort", value)}>
-                                {t(`settingsPanels.common.${value}`)}
+                                {(({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(value)] || String(value))}
                             </OptionPill>
                         ))}
                     </div>
@@ -39,7 +36,7 @@ export function TextSettingsPanel({ config, onConfigChange, theme, className = "
 }
 
 export function reasoningEffortLabel(value: ReasoningEffort) {
-    return reasoningEffortOptions.includes(value) ? i18n.t(`settingsPanels.common.${value}`) : value;
+    return reasoningEffortOptions.includes(value) ? (({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(value)] || String(value)) : value;
 }
 
 function OptionPill({ selected, theme, onClick, children }: { selected: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {

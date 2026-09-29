@@ -1,6 +1,5 @@
 import { nanoid } from "nanoid";
 
-import i18n from "@/i18n";
 import { getNodeSpec, isRegisteredNodeType } from "@/lib/canvas/node-registry";
 import { CanvasNodeType, type CanvasConnection, type CanvasNodeData, type CanvasNodeMetadata, type CanvasNodeTypeId, type ViewportTransform } from "@/types/canvas";
 
@@ -85,5 +84,5 @@ export function applyCanvasAgentOps(snapshot: CanvasAgentSnapshot, ops?: CanvasA
 }
 
 function opLabel(type: string) {
-    return i18n.t(`canvas.agentOps.${type}`, { defaultValue: type });
+    return (({ "add_node":"新增节点", "update_node":"更新节点", "delete_node":"删除节点", "delete_connections":"删除连线", "connect_nodes":"连接", "set_viewport":"调整视图", "select_nodes":"选择节点", "run_generation":"触发生成" } as Record<string, string>)[String(type)] || String(type));
 }

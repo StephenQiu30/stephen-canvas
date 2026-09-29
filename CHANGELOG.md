@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [调整] 移除中英文切换与 i18n 配置，界面固定使用中文文案。
+
 + [优化] 精简 Header 的版本和配置入口，共享工具栏与移动导航直接使用 shadcn Button、Tooltip 和 Sheet，统一组件命名及引入方式。
 
 + [调整] 全站采用 Vercel Geist 设计规范，以 shadcn/Radix 控件统一页面主题、表单和弹层，并收拢 Next.js Client 边界。

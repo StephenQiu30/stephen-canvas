@@ -1,8 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { Switch } from "@/components/ui/app-primitives";
-import { useTranslation } from "react-i18next";
 
-import i18n from "@/i18n";
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import { computeMediaSize, inferMediaRatio, inferMediaScale, mediaRatioOptions, mediaScaleOptions, readMediaDimensions } from "@/lib/media-size";
 import type { AiConfig } from "@/stores/use-config-store";
@@ -15,9 +13,9 @@ const qualityOptions = [
 ];
 const DIMENSION_STEP = 16;
 
-export const imageQualityOptions = qualityOptions.map((item) => ({ value: item.value, get label() { return i18n.t(`settingsPanels.common.${item.labelKey}`); } }));
-export const imageAspectOptions = mediaRatioOptions.map((item) => ({ value: item.value, label: item.value === "auto" ? i18n.t("settingsPanels.common.auto") : item.value }));
-export const imageScaleOptions = mediaScaleOptions.map((value) => ({ value, label: value === "auto" ? i18n.t("settingsPanels.common.auto") : value }));
+export const imageQualityOptions = qualityOptions.map((item) => ({ value: item.value, get label() { return (({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(item.labelKey)] || String(item.labelKey)); } }));
+export const imageAspectOptions = mediaRatioOptions.map((item) => ({ value: item.value, label: item.value === "auto" ? "自动" : item.value }));
+export const imageScaleOptions = mediaScaleOptions.map((value) => ({ value, label: value === "auto" ? "自动" : value }));
 
 type ImageSettingsPanelProps = {
     config: AiConfig;
@@ -30,7 +28,6 @@ type ImageSettingsPanelProps = {
 };
 
 export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = true, className = "w-[320px] space-y-4 rounded-2xl px-1 py-0.5", maxCount = 15, quickCount = 10 }: ImageSettingsPanelProps) {
-    const { t } = useTranslation();
     const [snapDimensionToStep, setSnapDimensionToStep] = useState(true);
     const quality = config.quality || "auto";
     const count = Math.max(1, Math.min(maxCount, Math.floor(Math.abs(Number(config.count)) || 1)));
@@ -60,25 +57,25 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                     if (document.activeElement instanceof HTMLInputElement && event.currentTarget.contains(document.activeElement)) document.activeElement.blur();
                 }}
             >
-                {showTitle ? <div className="text-lg font-semibold">{t("settingsPanels.image.title")}</div> : null}
+                {showTitle ? <div className="text-lg font-semibold">{"图像设置"}</div> : null}
                 <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>{t("settingsPanels.image.quality")}</SettingTitle>
+                    <SettingTitle color={theme.node.muted}>{"质量"}</SettingTitle>
                     <div className="grid grid-cols-4 gap-2.5">
                         {qualityOptions.map((item) => (
                             <OptionPill key={item.value} selected={quality === item.value} theme={theme} onClick={() => onConfigChange("quality", item.value)}>
-                                {t(`settingsPanels.common.${item.labelKey}`)}
+                                {(({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(item.labelKey)] || String(item.labelKey))}
                             </OptionPill>
                         ))}
                     </div>
                 </div>
                 <div className="space-y-2.5">
                     <div className="flex items-center justify-between gap-3">
-                        <SettingTitle color={theme.node.muted}>{t("settingsPanels.image.size")}</SettingTitle>
+                        <SettingTitle color={theme.node.muted}>{"尺寸"}</SettingTitle>
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-medium" style={{ color: theme.node.muted }}>
-                                {t("settingsPanels.image.align16")}
+                                {"16 倍数对齐"}
                             </span>
-                            <span title={t("settingsPanels.image.align16Hint")} onMouseDown={(event) => event.stopPropagation()}>
+                            <span title={"输入完成后自动向上补成 16 的倍数"} onMouseDown={(event) => event.stopPropagation()}>
                                 <Switch size="small" checked={snapDimensionToStep} onChange={setSnapDimensionToStep} />
                             </span>
                         </div>
@@ -90,17 +87,17 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                     </div>
                 </div>
                 <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>{t("settingsPanels.image.resolution")}</SettingTitle>
+                    <SettingTitle color={theme.node.muted}>{"分辨率"}</SettingTitle>
                     <div className="grid grid-cols-4 gap-2.5">
                         {mediaScaleOptions.map((value) => (
                             <OptionPill key={value} selected={selectedScale === value} theme={theme} onClick={() => selectScale(value)}>
-                                {value === "auto" ? t("settingsPanels.common.auto") : value}
+                                {value === "auto" ? "自动" : value}
                             </OptionPill>
                         ))}
                     </div>
                 </div>
                 <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>{t("settingsPanels.image.aspectRatio")}</SettingTitle>
+                    <SettingTitle color={theme.node.muted}>{"宽高比"}</SettingTitle>
                     <div className="grid grid-cols-4 gap-2.5">
                         {mediaRatioOptions.map((item) => (
                             <button
@@ -112,16 +109,16 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                                 onClick={() => selectRatio(item.value)}
                             >
                                 <AspectIcon width={item.width} height={item.height} color={theme.node.text} />
-                                <span>{item.value === "auto" ? t("settingsPanels.common.auto") : item.value}</span>
+                                <span>{item.value === "auto" ? "自动" : item.value}</span>
                             </button>
                         ))}
                     </div>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
-                        <SettingTitle color={theme.node.muted}>{t("settingsPanels.image.transparent")}</SettingTitle>
+                        <SettingTitle color={theme.node.muted}>{"透明背景"}</SettingTitle>
                         <div className="text-xs" style={{ color: theme.node.muted, opacity: 0.75 }}>
-                            {t("settingsPanels.image.transparentHint")}
+                            {"开启后生成无背景的透明图像（仅部分模型可用）"}
                         </div>
                     </div>
                     <span onMouseDown={(event) => event.stopPropagation()}>
@@ -129,11 +126,11 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                     </span>
                 </div>
                 <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>{t("settingsPanels.image.count")}</SettingTitle>
+                    <SettingTitle color={theme.node.muted}>{"生成张数"}</SettingTitle>
                     <div className="grid grid-cols-4 gap-2.5">
                         {Array.from({ length: quickCount }, (_, index) => index + 1).map((value) => (
                             <OptionPill key={value} selected={count === value} theme={theme} onClick={() => onConfigChange("count", String(value))}>
-                                {t("settingsPanels.image.images", { count: value })}
+                                {`${value} 张`}
                             </OptionPill>
                         ))}
                         <CountInput value={count} max={maxCount} theme={theme} onChange={(value) => onConfigChange("count", String(value || 1))} />
@@ -149,13 +146,13 @@ export function ImageSettingsTheme({ theme, children }: { theme: CanvasTheme; ch
 }
 
 export function imageQualityLabel(value: string) {
-    return (["auto", "high", "medium", "low"].includes(value) ? i18n.t(`settingsPanels.common.${value}`) : value);
+    return (["auto", "high", "medium", "low"].includes(value) ? (({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(value)] || String(value)) : value);
 }
 
 export function imageSizeLabel(size: string) {
     const scale = inferMediaScale(size);
     const ratio = inferMediaRatio(size);
-    if (ratio === "auto" || size === "auto") return i18n.t("settingsPanels.common.auto");
+    if (ratio === "auto" || size === "auto") return "自动";
     if (scale === "auto") return ratio;
     return `${scale} · ${ratio}`;
 }

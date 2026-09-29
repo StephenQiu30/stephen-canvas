@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 import { Popover } from "@/components/ui/app-primitives";
 import { Sparkles } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 import { canvasThemes } from "@/lib/canvas-theme";
 import { buildCanvasResourceReferences, type CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
@@ -242,14 +241,13 @@ export function AgentChatPromptInput({ value, disabled, placeholder, theme, onCh
     );
 }
 function AgentCommandMenu({ command, candidates, activeIndex, loading, theme, onSelect }: { command: ComposerCommand; candidates: ComposerCandidate[]; activeIndex: number; loading: boolean; theme: (typeof canvasThemes)[keyof typeof canvasThemes]; onSelect: (candidate: ComposerCandidate) => void }) {
-    const { t } = useTranslation();
     const activeItemRef = useRef<HTMLButtonElement | null>(null);
     useEffect(() => { activeItemRef.current?.scrollIntoView({ block: "nearest" }); }, [activeIndex]);
     const stopPropagation = (event: PointerEvent | MouseEvent) => event.stopPropagation();
     return (
         <div data-agent-command-menu className="absolute bottom-[calc(100%+8px)] left-0 z-[120] w-full min-w-64 overflow-hidden rounded-xl border shadow-xl" style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.node.text }} onPointerDown={stopPropagation} onMouseDown={stopPropagation}>
             <div className="border-b px-3 py-2 text-xs" style={{ borderColor: theme.toolbar.border, color: theme.node.muted }}>
-                {t(command.type === "skill" ? "agent.composer.mentions.selectSkill" : "agent.composer.mentions.selectResource")}{command.query ? ` · ${command.query}` : ""}
+                {(command.type === "skill" ? "选择 Skill" : "引用画布素材")}{command.query ? ` · ${command.query}` : ""}
             </div>
             <div className="thin-scrollbar max-h-[min(21rem,52vh)] overflow-y-auto p-1">
                 {candidates.length ? candidates.map((candidate, index) => {
@@ -263,7 +261,7 @@ function AgentCommandMenu({ command, candidates, activeIndex, loading, theme, on
                             <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{title}</span><span className="mt-0.5 block truncate text-xs" style={{ color: theme.node.muted }}>{description}</span></span>
                         </button>
                     );
-                }) : <div className="px-3 py-6 text-center text-xs" style={{ color: theme.node.muted }}>{t(loading ? "agent.composer.mentions.loadingSkills" : command.type === "skill" ? "agent.composer.mentions.noSkills" : "agent.composer.mentions.noResources")}</div>}
+                }) : <div className="px-3 py-6 text-center text-xs" style={{ color: theme.node.muted }}>{(loading ? "正在读取 Skill…" : (command.type === "skill" ? "没有匹配的已启用 Skill" : "当前画布没有匹配的可引用素材"))}</div>}
             </div>
         </div>
     );

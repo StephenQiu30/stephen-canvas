@@ -3,7 +3,6 @@ import CodeMirror from "@uiw/react-codemirror";
 import { Button, Modal } from "@/components/ui/app-primitives";
 import { Copy } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 
 import { useCopyText } from "@/hooks/use-copy-text";
 import { getPluginAuthoringPrompt, getPluginReturn, getPluginTemplates, getPluginVariables } from "@/services/api/model-plugin";
@@ -32,7 +31,6 @@ function StepBlock({ index, title, children }: { index: number; title: string; c
 }
 
 export function ModelScriptEditor({ open, capability, modelName, value, onSave, onClose }: { open: boolean; capability: ModelCapability; modelName: string; value: string; onSave: (script: string) => void; onClose: () => void }) {
-    const { t } = useTranslation();
     const copyText = useCopyText();
     const [draft, setDraft] = useState(value);
     useEffect(() => {
@@ -41,7 +39,7 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
 
     const variables = getPluginVariables().filter((variable) => !variable.capabilities || variable.capabilities.includes(capability));
     const templates = getPluginTemplates()[capability];
-    const capabilityLabel = t(`config.channelEditor.capabilities.${capability}`);
+    const capabilityLabel = (({ "image":"生图", "video":"视频", "text":"文本", "audio":"音频" } as Record<string, string>)[String(capability)] || String(capability));
     const hasScript = Boolean(draft.trim());
 
     return (
@@ -56,52 +54,52 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
             <div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
                 <header className="shrink-0 border-b border-border px-6 py-3 pr-12 ">
                     <div className="text-base font-semibold">
-                        {t("config.scriptEditor.title", { capability: capabilityLabel })}
+                        {`${capabilityLabel}调用脚本`}
                         {modelName ? ` · ${modelName}` : ""}
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{t("config.scriptEditor.description")}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{"按左侧三步配置：看懂规则、复制说明给外部 AI 写脚本，再粘贴到右侧保存。留空则使用系统默认调用。"}</div>
                 </header>
                 <div className="flex min-h-0 flex-1 overflow-hidden">
                     <aside className="flex h-full w-[420px] shrink-0 flex-col border-r border-border bg-muted/80  ">
                         <div className="flex shrink-0 gap-2 border-b border-border px-5 py-3 text-xs text-muted-foreground  ">
-                            <span>1. {t("config.scriptEditor.stepRule")}</span>
+                            <span>1. {"看懂规则"}</span>
                             <span>→</span>
-                            <span>2. {t("config.scriptEditor.stepAi")}</span>
+                            <span>2. {"让外部 AI 写"}</span>
                             <span>→</span>
-                            <span>3. {t("config.scriptEditor.stepEdit")}</span>
+                            <span>3. {"粘贴保存"}</span>
                         </div>
                         <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain p-0">
-                            <StepBlock index={1} title={t("config.scriptEditor.stepRule")}>
-                                <p className="text-xs leading-5 text-brand-body ">{t("config.scriptEditor.stepRuleHint")}</p>
+                            <StepBlock index={1} title={"看懂规则"}>
+                                <p className="text-xs leading-5 text-brand-body ">{"写成一个 async function，把 prompt、images、params 等写在参数里，params 再拆出 size、quality、count 等字段。函数里发请求并 return 结果，最后再调用一次该函数。"}</p>
                                 <div className="mt-3">
-                                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("config.scriptEditor.returnRequirements")}</div>
+                                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{"返回要求"}</div>
                                     <div className="text-xs leading-6 text-brand-body ">{getPluginReturn(capability)}</div>
                                 </div>
                             </StepBlock>
-                            <StepBlock index={2} title={t("config.scriptEditor.stepAi")}>
+                            <StepBlock index={2} title={"让外部 AI 写"}>
                                 <ol className="list-decimal space-y-1.5 pl-4 text-xs leading-5 text-brand-body ">
-                                    <li>{t("config.scriptEditor.stepAiCopy")}</li>
-                                    <li>{t("config.scriptEditor.stepAiAsk")}</li>
-                                    <li>{t("config.scriptEditor.stepAiPaste")}</li>
+                                    <li>{"点击下方按钮，复制本页的变量、返回要求和写法说明。"}</li>
+                                    <li>{"打开 ChatGPT、Claude 或其他 AI，先粘贴说明，再附上你要对接的接口文档。"}</li>
+                                    <li>{"把 AI 返回的脚本粘贴到右侧编辑器，确认后保存。"}</li>
                                 </ol>
-                                <p className="mt-2 text-[11px] leading-5 text-muted-foreground">{t("config.scriptEditor.stepAiIncludes")}</p>
+                                <p className="mt-2 text-[11px] leading-5 text-muted-foreground">{"复制内容包含当前模型、返回要求、全部可用变量和写法约束，不会带上 API Key 原文。"}</p>
                                 <Button
                                     type="primary"
                                     className="mt-3"
                                     icon={<Copy className="size-3.5" />}
-                                    onClick={() => copyText(getPluginAuthoringPrompt(capability, modelName, draft), t("config.scriptEditor.briefCopied"))}
+                                    onClick={() => copyText(getPluginAuthoringPrompt(capability, modelName, draft), "写脚本说明已复制，请到你的 AI 里粘贴")}
                                 >
-                                    {t("config.scriptEditor.copyBrief")}
+                                    {"复制写脚本说明"}
                                 </Button>
                             </StepBlock>
                             <section className="px-5 py-4">
-                                <StepHeading index={3} title={t("config.scriptEditor.variables")} />
+                                <StepHeading index={3} title={"可用变量"} />
                                 <div className="mb-2 flex items-center justify-between">
                                     <p className="text-xs leading-5 text-muted-foreground ">
-                                        {t("config.scriptEditor.variablesHint")}
-                                        {capability === "video" ? ` ${t("config.scriptEditor.variablesHintVideo")}` : ""}
+                                        {"点击变量名插入到右侧编辑器。"}
+                                        {capability === "video" ? ` ${"视频模型可使用 videos、audios 作为参考视频和参考音频。"}` : ""}
                                     </p>
-                                    <span className="shrink-0 text-[10px] text-muted-foreground">{t("config.scriptEditor.insert")}</span>
+                                    <span className="shrink-0 text-[10px] text-muted-foreground">{"点击插入"}</span>
                                 </div>
                                 <div className="space-y-1.5">
                                     {variables.map((variable) => (
@@ -127,10 +125,10 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
                     <div className="flex h-full min-w-0 flex-1 flex-col bg-background">
                         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5 ">
                             <div>
-                                <div className="text-sm font-medium text-brand-body ">{t("config.scriptEditor.editorTitle")}</div>
-                                <div className="text-xs text-muted-foreground">{t("config.scriptEditor.editorHint")}</div>
+                                <div className="text-sm font-medium text-brand-body ">{"脚本编辑器"}</div>
+                                <div className="text-xs text-muted-foreground">{"把外部 AI 写好的脚本粘贴到这里，也可以先插入模板再改。"}</div>
                             </div>
-                            <span className="shrink-0 text-[11px] text-muted-foreground">{hasScript ? t("config.scriptEditor.editorFilled") : t("config.scriptEditor.editorEmpty")}</span>
+                            <span className="shrink-0 text-[11px] text-muted-foreground">{hasScript ? "已填写自定义脚本" : "当前使用系统默认调用"}</span>
                         </div>
                         <div className="min-h-0 flex-1 overflow-hidden">
                             <CodeMirror
@@ -139,7 +137,7 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
                                 height="100%"
                                 theme={isDarkMode() ? "dark" : "light"}
                                 extensions={[javascript()]}
-                                placeholder={t("config.scriptEditor.placeholder")}
+                                placeholder={"// 把外部 AI 写好的脚本粘贴到这里；留空则使用系统默认调用。"}
                                 style={{ height: "100%", fontSize: 13 }}
                                 className="h-full [&_.cm-editor]:h-full [&_.cm-gutters]:border-none [&_.cm-scroller]:overflow-auto"
                             />
@@ -148,18 +146,18 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
                 </div>
                 <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border px-6 py-3 ">
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{t("config.scriptEditor.startFromTemplate")}</span>
+                        <span className="text-xs text-muted-foreground">{"从模板开始"}</span>
                         {templates.map((template) => (
                             <Button key={template.label} size="small" onClick={() => setDraft(template.script)}>
-                                {t("config.scriptEditor.insertTemplate", { name: template.label })}
+                                {`插入${template.label}模板`}
                             </Button>
                         ))}
                         <Button size="small" danger onClick={() => setDraft("")}>
-                            {t("config.scriptEditor.restoreDefault")}
+                            {"恢复默认调用"}
                         </Button>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button onClick={onClose}>{t("common.cancel")}</Button>
+                        <Button onClick={onClose}>{"取消"}</Button>
                         <Button
                             type="primary"
                             onClick={() => {
@@ -167,7 +165,7 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
                                 onClose();
                             }}
                         >
-                            {t("common.save")}
+                            {"保存"}
                         </Button>
                     </div>
                 </footer>

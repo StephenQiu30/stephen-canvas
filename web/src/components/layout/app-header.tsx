@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useTranslation } from "react-i18next";
 
 import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { AppConfigModal } from "@/components/layout/app-config-modal";
@@ -16,7 +15,6 @@ import { useEffect, useRef } from "react";
 import { useAgentStore } from "@/stores/use-agent-store";
 
 export function AppHeader() {
-    const { t } = useTranslation();
     const pathname = usePathname();
     const autoConnectRef = useRef(false);
     const agentToken = useAgentStore((state) => state.token);
@@ -50,7 +48,7 @@ export function AppHeader() {
                                         WebkitMask: "url(/logo.svg) center / contain no-repeat",
                                     }}
                                 />
-                                <span className="text-base font-medium">{t("meta.title")}</span>
+                                <span className="text-base font-medium">{"Stephen Canvas"}</span>
                             </Link>
 
                             <MobileNavSheet activeToolSlug={activeToolSlug} />
@@ -72,7 +70,7 @@ export function AppHeader() {
                                             )}
                                         >
                                             <Icon className="size-4" />
-                                            <span className="truncate">{t(`navigation.${tool.slug}`)}</span>
+                                            <span className="truncate">{(({ "canvas":"我的画布", "image":"生图工作台", "video":"视频创作台", "assets":"我的资产", "config":"配置" } as Record<string, string>)[String(tool.slug)] || String(tool.slug))}</span>
                                         </Link>
                                     );
                                 })}
@@ -82,11 +80,11 @@ export function AppHeader() {
                         <div className="my-auto flex h-9 min-w-0 items-center justify-end gap-2 justify-self-end whitespace-nowrap">
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" onClick={togglePanel} aria-pressed={panelOpen} aria-label={t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")}>
+                                    <Button variant="ghost" size="icon" onClick={togglePanel} aria-pressed={panelOpen} aria-label={(panelOpen ? "收起 Agent" : "打开 Agent")}>
                                         <Bot />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>{t(panelOpen ? "topNav.closeAgent" : "topNav.openAgent")}</TooltipContent>
+                                <TooltipContent>{(panelOpen ? "收起 Agent" : "打开 Agent")}</TooltipContent>
                             </Tooltip>
                             <AppToolbarActions />
                         </div>

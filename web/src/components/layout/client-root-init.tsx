@@ -1,21 +1,14 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
-import { useTranslation } from "react-i18next";
 
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { useConfigStore } from "@/stores/use-config-store";
-import { initializeAppLocale } from "@/i18n";
 
 export function ClientRootInit({ children }: { children: ReactNode }) {
     const { message } = useAppFeedback();
-    const { t } = useTranslation();
     const handledConfigParams = useRef(false);
     const importChannelCredentials = useConfigStore((state) => state.importChannelCredentials);
     const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
-
-    useEffect(() => {
-        void initializeAppLocale();
-    }, []);
 
     useEffect(() => {
         if (handledConfigParams.current) return;
@@ -31,11 +24,11 @@ export function ClientRootInit({ children }: { children: ReactNode }) {
         window.history.replaceState(null, "", `${window.location.pathname}${searchParams.size ? `?${searchParams}` : ""}${window.location.hash}`);
         const result = importChannelCredentials({ baseUrl, apiKey });
         openConfigDialog(false, "channels");
-        if (result.status === "created") message.success(t("config.importedChannelCreated", { name: result.channelName }));
-        else if (result.status === "updated") message.success(t("config.importedChannelUpdated", { name: result.channelName }));
-        else if (result.status === "missing-base-url") message.error(t("config.importedChannelBaseUrlRequired"));
-        else message.error(t("config.importedChannelBaseUrlInvalid"));
-    }, [importChannelCredentials, message, openConfigDialog, t]);
+        if (result.status === "created") message.success(`已新增渠道“${result.channelName}”，原有渠道未改动`);
+        else if (result.status === "updated") message.success(`已更新渠道“${result.channelName}”的连接配置`);
+        else if (result.status === "missing-base-url") message.error("导入链接缺少 Base URL，未修改任何渠道");
+        else message.error("导入链接中的 Base URL 无效，未修改任何渠道");
+    }, [importChannelCredentials, message, openConfigDialog]);
 
     return <>{children}</>;
 }

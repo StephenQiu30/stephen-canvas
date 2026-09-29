@@ -2,7 +2,6 @@ import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { Button, Form, Input, Switch } from "@/components/ui/app-primitives";
 import { Copy, Network, Wifi } from "lucide-react";
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 
 import { useCopyText } from "@/hooks/use-copy-text";
 import { testLocalProxy } from "@/services/api/local-proxy";
@@ -10,7 +9,6 @@ import { DEFAULT_LOCAL_PROXY_URL, LOCAL_PROXY_PACKAGE, normalizeLocalProxyUrl, u
 
 export function ConfigLocalProxy() {
     const { message } = useAppFeedback();
-    const { t } = useTranslation();
     const copyText = useCopyText();
     const [testing, setTesting] = useState(false);
     const config = useConfigStore((state) => state.config);
@@ -20,9 +18,9 @@ export function ConfigLocalProxy() {
     const testProxy = async () => {
         setTesting(true);
         try {
-            message.success(t("config.proxy.available", { proxy: await testLocalProxy(config.proxyUrl) }));
+            message.success(`本地代理连接正常（${await testLocalProxy(config.proxyUrl)}）`);
         } catch (error) {
-            message.error(error instanceof Error ? error.message : t("config.proxy.unreachable"));
+            message.error(error instanceof Error ? error.message : "无法连接本地代理，请确认命令已启动且地址填写正确。");
         } finally {
             setTesting(false);
         }
@@ -35,22 +33,22 @@ export function ConfigLocalProxy() {
                     <div>
                         <div className="flex items-center gap-2 text-sm font-semibold">
                             <Network className="size-4" />
-                            {t("config.proxy.title")}
+                            {"本地代理"}
                         </div>
-                        <div className="mt-1 text-xs text-muted-foreground">{t("config.proxy.description")}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">{"开启后，拉取模型列表、生图、生视频、生成文本、生成音频和 WebDAV 同步等请求都会先发给本机代理再转发出去，用来绕开浏览器跨域限制。"}</div>
                     </div>
                     <Switch checked={config.proxyEnabled} onChange={(checked) => updateConfig("proxyEnabled", checked)} />
                 </div>
                 {config.proxyEnabled ? (
                     <>
                         <div className="mt-3 rounded-md bg-muted px-3 py-2 ">
-                            <div className="mb-1 text-xs text-muted-foreground">{t("config.proxy.startHint")}</div>
+                            <div className="mb-1 text-xs text-muted-foreground">{"先在终端运行下面的命令，并在使用画布期间保持运行："}</div>
                             <div className="flex items-center justify-between gap-3">
                                 <code className="min-w-0 truncate text-xs">{command}</code>
                                 <Button size="small" type="text" icon={<Copy className="size-3.5" />} onClick={() => copyText(command)} />
                             </div>
                         </div>
-                        <Form.Item label={t("config.proxy.address")} extra={t("config.proxy.addressDescription")} className="mt-3 mb-0">
+                        <Form.Item label={"代理地址"} extra={"需要和上面命令启动后打印的地址一致。"} className="mt-3 mb-0">
                             <Input
                                 value={config.proxyUrl}
                                 placeholder={DEFAULT_LOCAL_PROXY_URL}
@@ -59,9 +57,9 @@ export function ConfigLocalProxy() {
                             />
                         </Form.Item>
                         <Button className="mt-3" icon={<Wifi className="size-4" />} loading={testing} onClick={() => void testProxy()}>
-                            {t("config.proxy.test")}
+                            {"测试连接"}
                         </Button>
-                        <div className="mt-3 text-xs text-muted-foreground">{t("config.proxy.channelHint")}</div>
+                        <div className="mt-3 text-xs text-muted-foreground">{"渠道和 WebDAV 仍填写真实地址，不要填代理地址；关闭开关即可恢复直连。"}</div>
                     </>
                 ) : null}
             </section>

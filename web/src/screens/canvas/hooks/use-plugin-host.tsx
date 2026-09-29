@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
-import { useTranslation } from "react-i18next";
 
 import { requestEdit, requestGeneration, requestImageQuestion, type AiTextMessage } from "@/services/api/image";
 import { imageToDataUrl } from "@/services/image-storage";
@@ -35,7 +34,6 @@ type PluginHostParams = {
  * through plugin-callable host/ai objects. Loads installed remote plugins on mount and returns renderers for plugin panels and toolbars.
  */
 export function usePluginHost(params: PluginHostParams) {
-    const { t } = useTranslation();
     const { effectiveConfig, isAiConfigReady, openConfigDialog, theme, nodesRef, connectionsRef, viewportRef, setNodes, setDialogNodeId, applyAgentOps } = params;
 
     // Host capabilities available to plugin nodes; methods receive nodeId and are not bound to a specific node.
@@ -46,7 +44,7 @@ export function usePluginHost(params: PluginHostParams) {
         const ensureReady = (config: AiConfig) => {
             if (!isAiConfigReady(config, config.model)) {
                 openConfigDialog(true);
-                throw new Error(t("canvas.plugins.aiConfigRequired"));
+                throw new Error("AI 配置未就绪，请先在设置里配置模型与密钥");
             }
         };
         return {
@@ -87,7 +85,7 @@ export function usePluginHost(params: PluginHostParams) {
             listModels: (capability) => selectableModelsByCapability(effectiveConfig, capability as ModelCapability | undefined).map((value) => ({ value, label: decodeChannelModel(value)?.model || value })),
             defaultModel: (capability) => buildGenerationConfig(effectiveConfig, undefined, capability).model,
         };
-    }, [effectiveConfig, isAiConfigReady, openConfigDialog, t]);
+    }, [effectiveConfig, isAiConfigReady, openConfigDialog]);
 
     const pluginHost = useMemo<CanvasPluginHost>(
         () => ({
@@ -135,15 +133,15 @@ export function usePluginHost(params: PluginHostParams) {
             const interactive = Boolean(node.metadata?.interactive);
             const toggle: CanvasNodeToolbarItem = {
                 id: "node-interaction-toggle",
-                title: t(interactive ? "canvas.plugins.interactiveTitle" : "canvas.plugins.movableTitle"),
-                label: t(interactive ? "canvas.plugins.move" : "canvas.plugins.interact"),
+                title: (interactive ? "当前：交互中。点击切回「移动」——拖动可移动节点" : "当前：可移动。点击切到「交互」——可操作节点内容（如转动全景）"),
+                label: (interactive ? "移动" : "交互"),
                 icon: interactive ? "✋" : "🖐",
                 active: interactive,
                 onClick: () => pluginHost.updateMetadata(node.id, { interactive: !interactive }),
             };
             return [toggle, ...custom];
         },
-        [pluginHost, t, theme],
+        [pluginHost, theme],
     );
 
     // Load installed remote plugins on startup.

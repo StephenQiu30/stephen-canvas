@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/app-primitives";
 import { Download, FileUp, Plus } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 import { readZip } from "@/lib/zip";
 import { setMediaBlob } from "@/services/file-storage";
@@ -20,7 +19,6 @@ import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 
 export default function CanvasPage() {
     const { message } = useAppFeedback();
-    const { t } = useTranslation();
     const router = useRouter();
     const searchParams = useSearchParams();
     const inputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +39,7 @@ export default function CanvasPage() {
         if (agentHash) router.replace(target);
         else router.push(target);
     };
-    const createAndEnter = () => enterProject(createProject(t("canvas.defaultTitle", { count: projects.length + 1 })));
+    const createAndEnter = () => enterProject(createProject(`Stephen Canvas ${projects.length + 1}`));
     const importCanvas = async (file?: File) => {
         if (!file) return;
         try {
@@ -60,9 +58,9 @@ export default function CanvasPage() {
                 ),
             );
             data.projects.forEach((item) => importProject(item.project));
-            message.success(t("canvas.imported", { count: data.projects.length }));
+            message.success(`已导入 ${data.projects.length} 个画布`);
         } catch {
-            message.error(t("canvas.importFailed"));
+            message.error("导入失败，请选择有效的画布压缩包");
         } finally {
             if (inputRef.current) inputRef.current.value = "";
         }
@@ -71,46 +69,46 @@ export default function CanvasPage() {
     useEffect(() => {
         if (!hydrated || autoOpenRef.current || (mode !== "new" && mode !== "recent")) return;
         autoOpenRef.current = true;
-        enterProject(mode === "new" ? createProject(t("canvas.defaultTitle", { count: projects.length + 1 })) : projects[0]?.id || createProject(t("canvas.defaultTitle", { count: projects.length + 1 })));
-    }, [createProject, hydrated, mode, projects, t]);
+        enterProject(mode === "new" ? createProject(`Stephen Canvas ${projects.length + 1}`) : projects[0]?.id || createProject(`Stephen Canvas ${projects.length + 1}`));
+    }, [createProject, hydrated, mode, projects]);
 
-    if (hydrated && (mode === "new" || mode === "recent")) return <main className="flex h-full items-center justify-center bg-background text-sm text-muted-foreground">{t("canvas.opening")}</main>;
+    if (hydrated && (mode === "new" || mode === "recent")) return <main className="flex h-full items-center justify-center bg-background text-sm text-muted-foreground">{"正在打开画布..."}</main>;
 
     return (
         <main className="h-full overflow-auto bg-background text-foreground ">
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
                 <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6 ">
                     <div>
-                        <p className="text-xs text-muted-foreground">{t("canvas.library")}</p>
-                        <h1 className="mt-3 text-3xl font-semibold">{t("canvas.title")}</h1>
+                        <p className="text-xs text-muted-foreground">{"画布库"}</p>
+                        <h1 className="mt-3 text-3xl font-semibold">{"Stephen Canvas"}</h1>
                     </div>
                     <div className="flex items-center gap-2">
                         {selectedIds.length ? (
                             <>
-                                <Button disabled={!hydrated} icon={<Download className="size-4" />} onClick={() => void exportCanvasProjects(projects.filter((project) => selectedIds.includes(project.id)), `${t("canvas.title")}-${selectedIds.length}`)}>
-                                    {t("canvas.exportSelected")}
+                                <Button disabled={!hydrated} icon={<Download className="size-4" />} onClick={() => void exportCanvasProjects(projects.filter((project) => selectedIds.includes(project.id)), `${"Stephen Canvas"}-${selectedIds.length}`)}>
+                                    {"导出选中"}
                                 </Button>
                                 <Button disabled={!hydrated} onClick={() => setDeleteIds(selectedIds)}>
-                                    {t("canvas.deleteSelected")}
+                                    {"删除选中"}
                                 </Button>
                             </>
                         ) : null}
                         {projects.length ? (
                             <Button disabled={!hydrated} onClick={() => setDeleteIds(projects.map((project) => project.id))}>
-                                {t("canvas.deleteAll")}
+                                {"删除全部"}
                             </Button>
                         ) : null}
                         <Button disabled={!hydrated} icon={<FileUp className="size-4" />} onClick={() => inputRef.current?.click()}>
-                            {t("canvas.import")}
+                            {"导入画布"}
                         </Button>
                         <Button disabled={!hydrated} type="primary" icon={<Plus className="size-4" />} onClick={createAndEnter}>
-                            {t("canvas.create")}
+                            {"新建画布"}
                         </Button>
                     </div>
                 </header>
 
                 {!hydrated ? (
-                    <section className="flex min-h-[360px] items-center justify-center border-y border-border text-sm text-muted-foreground ">{t("canvas.loading")}</section>
+                    <section className="flex min-h-[360px] items-center justify-center border-y border-border text-sm text-muted-foreground ">{"正在加载画布..."}</section>
                 ) : projects.length ? (
                     <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                         {projects.map((project) => (
@@ -119,10 +117,10 @@ export default function CanvasPage() {
                     </div>
                 ) : (
                     <section className="flex min-h-[360px] flex-col items-center justify-center border-y border-border text-center ">
-                        <h2 className="text-xl font-medium">{t("canvas.empty")}</h2>
-                        <p className="mt-3 text-sm text-muted-foreground">{t("canvas.emptyDescription")}</p>
+                        <h2 className="text-xl font-medium">{"还没有画布"}</h2>
+                        <p className="mt-3 text-sm text-muted-foreground">{"新建一个画布后，就可以独立保存节点、连线和画布外观。"}</p>
                         <Button type="primary" className="mt-6" icon={<Plus className="size-4" />} onClick={createAndEnter}>
-                            {t("canvas.create")}
+                            {"新建画布"}
                         </Button>
                     </section>
                 )}
