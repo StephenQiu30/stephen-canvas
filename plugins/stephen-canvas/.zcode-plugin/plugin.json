@@ -1,0 +1,20 @@
+{
+  "name": "stephen-canvas",
+  "version": "0.1.0",
+  "description": "Use ZCode to read and operate Stephen Canvas through the local Canvas Agent MCP server.",
+  "author": {
+    "name": "StephenQiu30",
+    "url": "https://stephenqiu30.github.io/stephen-canvas/"
+  },
+  "homepage": "https://stephenqiu30.github.io/stephen-canvas/",
+  "repository": "https://github.com/StephenQiu30/stephen-canvas",
+  "license": "MIT",
+  "keywords": ["stephen-canvas", "canvas", "mcp", "agent"],
+  "skills": "skills",
+  "mcpServers": {
+    "stephen-canvas": {
+      "command": "npx",
+      "args": ["-y", "@stephenqiu30/canvas-agent@latest", "mcp"]
+    }
+  }
+}

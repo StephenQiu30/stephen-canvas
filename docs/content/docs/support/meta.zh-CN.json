@@ -1,0 +1,8 @@
+{
+  "title": "安全说明",
+  "root": true,
+  "defaultOpen": true,
+  "pages": [
+    "security"
+  ]
+}

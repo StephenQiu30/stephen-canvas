@@ -1,0 +1,8 @@
+{
+  "title": "Security",
+  "root": true,
+  "defaultOpen": true,
+  "pages": [
+    "security"
+  ]
+}
