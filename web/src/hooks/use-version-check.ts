@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { APP_RELEASES, APP_VERSION } from "@/constant/env";
 import { parseChangelog, type ReleaseInfo } from "@/lib/release";
 
-const latestVersionUrl = "https://raw.githubusercontent.com/StephenQiu30/stephen-canvas/main/VERSION";
 const latestChangelogUrl = "https://raw.githubusercontent.com/StephenQiu30/stephen-canvas/main/CHANGELOG.md";
 
 function readLocalReleases(): ReleaseInfo[] {
@@ -15,6 +14,10 @@ function readLocalReleases(): ReleaseInfo[] {
 function toVersionParts(version: string) {
     const match = version.trim().match(/^v?(\d+)\.(\d+)\.(\d+)/);
     return match ? match.slice(1).map(Number) : null;
+}
+
+function latestReleaseVersion(changelog: string) {
+    return parseChangelog(changelog).find((release) => release.version !== "Unreleased")?.version;
 }
 
 function isNewerVersion(latestVersion: string, currentVersion: string) {
@@ -37,10 +40,11 @@ export function useVersionCheck() {
 
     const checkLatestVersion = useCallback(async () => {
         try {
-            const response = await fetch(latestVersionUrl);
+            const response = await fetch(latestChangelogUrl);
             if (!response.ok) return false;
-            const version = await response.text();
-            setLatestVersion(version.trim() || currentVersion);
+            const version = latestReleaseVersion(await response.text());
+            if (!version) return false;
+            setLatestVersion(version);
             return true;
         } catch {
             return false;
@@ -51,12 +55,13 @@ export function useVersionCheck() {
         async (showMessage = false) => {
             setChecking(true);
             try {
-                const [versionResponse, changelogResponse] = await Promise.all([fetch(latestVersionUrl), fetch(latestChangelogUrl)]);
-                if (!versionResponse.ok) throw new Error(t("version.readFailed"));
+                const changelogResponse = await fetch(latestChangelogUrl);
                 if (!changelogResponse.ok) throw new Error(t("version.changelogFailed"));
-                const [version, changelog] = await Promise.all([versionResponse.text(), changelogResponse.text()]);
-                setLatestVersion(version.trim() || currentVersion);
-                if (changelog.trim()) setReleases(parseChangelog(changelog));
+                const changelog = await changelogResponse.text();
+                const version = latestReleaseVersion(changelog);
+                if (!version) throw new Error(t("version.readFailed"));
+                setLatestVersion(version);
+                setReleases(parseChangelog(changelog));
                 if (showMessage) message.success(t("version.updated"));
                 return true;
             } catch {
