@@ -4,6 +4,7 @@ export default {
         description: "一个无限画布创作工具",
     },
     theme: { toggle: "切换主题" },
+    footer: { tagline: "开源 AI 创作工作台", repository: "项目仓库" },
     common: {
         cancel: "取消",
         save: "保存",

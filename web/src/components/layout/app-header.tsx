@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { useAgentStore } from "@/stores/use-agent-store";
 
-export function AppTopNav() {
+export function AppHeader() {
     const { t } = useTranslation();
     const pathname = usePathname();
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -25,15 +25,16 @@ export function AppTopNav() {
     const connectAgent = useAgentStore((state) => state.connectAgent);
     const togglePanel = useAgentStore((state) => state.togglePanel);
     const panelOpen = useAgentStore((state) => state.panelOpen);
-    const hideHeader = /^\/canvas\/[^/]+/.test(pathname);
+    const hideHeader = /^\/canvas\/[^/]+$/.test(pathname);
+    const isWorkspaceRoute = pathname === "/" || hideHeader || navigationTools.some((tool) => pathname === `/${tool.slug}`);
     const slug = pathname.split("/").filter(Boolean)[0];
     const activeToolSlug = navigationTools.some((tool) => tool.slug === slug) ? (slug as NavigationToolSlug) : undefined;
 
     useEffect(() => {
-        if (autoConnectRef.current || agentEnabled || agentConnected || !agentToken.trim()) return;
+        if (!isWorkspaceRoute || autoConnectRef.current || agentEnabled || agentConnected || !agentToken.trim()) return;
         autoConnectRef.current = true;
         connectAgent({ silent: true });
-    }, [agentConnected, agentEnabled, agentToken, connectAgent]);
+    }, [agentConnected, agentEnabled, agentToken, connectAgent, isWorkspaceRoute]);
 
     return (
         <>

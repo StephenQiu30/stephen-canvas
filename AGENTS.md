@@ -28,6 +28,7 @@
 - 全局组件、全局常量、全局配置等全局性质的内容不要作为 props 或参数层层传递；哪里需要就在哪里直接从对应全局入口获取。
 - 多个页面重复出现的 UI 副作用动作，例如复制文本并提示、下载并提示、统一确认弹窗，优先抽成 `web/src/hooks/` 下的全局 hook；不要放进 store，除非它确实是需要共享/订阅的状态。
 - Next.js 路由入口放在 `web/src/app/`，业务页面放在 `web/src/screens/`，页面布局放在 `web/src/layouts/`。
+- 工作台页面统一由 `web/src/layouts/basic-layout.tsx` 组合 `AppHeader`、页面内容、`AppFooter` 和 Agent 面板；主题切换复用 `UserStatusActions`，单画布编辑页隐藏页头和页脚以保留完整画布空间。
 - 画布业务页面放在 `web/src/screens/canvas/`，Next.js 路由入口放在 `web/src/app/(workspace)/canvas/`，画布组件放在 `web/src/components/canvas/`，画布状态放在 `web/src/stores/canvas/`，画布工具函数放在 `web/src/lib/canvas/`。
 - 业务页面按目录组织，例如 `web/src/screens/image/index.tsx`；页面里只有一个主业务组件时直接写在对应页面入口中，不要单独拆 `Manager` 组件再传一堆 props。
 - 不要新增只做简单转发的组件，例如只 `return <X>{children}</X>` 或只换个名字透传 props；直接在使用处使用真实组件或把逻辑写进当前文件。

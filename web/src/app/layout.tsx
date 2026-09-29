@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { AppProviders } from "@/components/layout/app-providers";
+import { BasicLayout } from "@/layouts/basic-layout";
 
 import "streamdown/styles.css";
 import "./globals.css";
@@ -23,7 +24,11 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <html lang="zh-CN" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
             <body className="font-sans">
                 <Script src={`${basePath}/config.js`} strategy="beforeInteractive" />
-                <AppProviders>{children}</AppProviders>
+                <AppProviders>
+                    <Suspense fallback={null}>
+                        <BasicLayout>{children}</BasicLayout>
+                    </Suspense>
+                </AppProviders>
             </body>
         </html>
     );

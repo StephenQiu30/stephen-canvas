@@ -4,6 +4,7 @@ export default {
         description: "An infinite canvas creation tool",
     },
     theme: { toggle: "Toggle theme" },
+    footer: { tagline: "Open-source AI creative workspace", repository: "Project repository" },
     common: {
         cancel: "Cancel",
         save: "Save",
