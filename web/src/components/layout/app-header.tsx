@@ -1,18 +1,17 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Bot } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { AppConfigModal } from "@/components/layout/app-config-modal";
-import { MobileNavSheet } from "@/components/layout/mobile-nav-sheet";
 import { AppToolbarActions } from "@/components/layout/app-toolbar-actions";
-import { cn } from "@/lib/utils";
-import { useEffect, useRef } from "react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { useAgentStore } from "@/stores/use-agent-store";
+import { useEffect, useRef } from "react";
 
 export function AppHeader() {
     const pathname = usePathname();
@@ -37,57 +36,27 @@ export function AppHeader() {
     return (
         <>
             {!hideHeader ? (
-                <header className="sticky top-0 z-20 h-16 shrink-0 border-b border-border bg-background/90 backdrop-blur-xl">
-                    <div className="mx-auto flex h-full max-w-7xl items-stretch justify-between gap-5 px-6">
-                        <div className="flex min-w-0 items-center">
-                            <Link href="/" className="flex h-full shrink-0 items-center gap-2 text-sm font-semibold leading-none tracking-tight text-foreground transition hover:text-muted-foreground">
-                                <span
-                                    className="size-5 shrink-0 bg-current"
-                                    style={{
-                                        mask: "url(/logo.svg) center / contain no-repeat",
-                                        WebkitMask: "url(/logo.svg) center / contain no-repeat",
-                                    }}
-                                />
-                                <span className="text-base font-medium">{"Stephen Canvas"}</span>
-                            </Link>
-
-                            <MobileNavSheet activeToolSlug={activeToolSlug} />
-
-                            <nav className="hide-scrollbar ml-8 hidden h-16 min-w-0 items-center gap-7 overflow-x-auto md:flex">
-                                {navigationTools.map((tool) => {
-                                    const Icon = tool.icon;
-                                    const active = tool.slug === activeToolSlug;
-                                    return (
-                                        <Link
-                                            key={tool.slug}
-                                            href={`/${tool.slug}`}
-                                            aria-current={active ? "page" : undefined}
-                                            className={cn(
-                                                "relative flex h-16 shrink-0 items-center gap-2 text-sm leading-6 transition after:absolute after:inset-x-0 after:bottom-0 after:h-px",
-                                                active
-                                                    ? "font-medium text-foreground after:bg-foreground"
-                                                    : "text-muted-foreground after:bg-transparent hover:text-foreground",
-                                            )}
-                                        >
-                                            <Icon className="size-4" />
-                                            <span className="truncate">{(({ "canvas":"我的画布", "image":"生图工作台", "video":"视频创作台", "assets":"我的资产", "config":"配置" } as Record<string, string>)[String(tool.slug)] || String(tool.slug))}</span>
-                                        </Link>
-                                    );
-                                })}
-                            </nav>
-                        </div>
-
-                        <div className="my-auto flex h-9 min-w-0 items-center justify-end gap-2 justify-self-end whitespace-nowrap">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" onClick={togglePanel} aria-pressed={panelOpen} aria-label={(panelOpen ? "收起 Agent" : "打开 Agent")}>
-                                        <Bot />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{(panelOpen ? "收起 Agent" : "打开 Agent")}</TooltipContent>
-                            </Tooltip>
-                            <AppToolbarActions />
-                        </div>
+                <header className="flex h-16 shrink-0 items-center justify-between gap-3 px-4 lg:px-10">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <SidebarTrigger aria-label="切换导航" />
+                        <Link href={activeToolSlug ? `/${activeToolSlug}` : "/"} className="truncate text-sm text-muted-foreground">
+                            {activeToolSlug === "canvas"
+                                ? "项目空间"
+                                : activeToolSlug
+                                  ? ({ canvas: "我的画布", image: "生图工作台", video: "视频创作台", assets: "我的资产", config: "配置" } as Record<string, string>)[String(activeToolSlug)] || String(activeToolSlug)
+                                  : "创作工作台"}
+                        </Link>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={togglePanel} aria-pressed={panelOpen} aria-label={panelOpen ? "收起 Agent" : "打开 Agent"}>
+                                    <Bot />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{panelOpen ? "收起 Agent" : "打开 Agent"}</TooltipContent>
+                        </Tooltip>
+                        <AppToolbarActions />
                     </div>
                 </header>
             ) : null}

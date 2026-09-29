@@ -1,8 +1,9 @@
+import { Button, Button as ShadcnButton } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { CircleDot, Eraser, Grid2x2, Group, Hand, Image as ImageIcon, Info, Moon, MousePointer2, Music2, Palette, Puzzle, Redo2, Settings2, Square, Sun, Trash2, Type, Undo2, Upload, Video } from "lucide-react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
-import { Button, Segmented, Switch } from "@/components/ui/app-primitives";
-import { Button as ShadcnButton } from "@/components/ui/button";
-import { CircleDot, Eraser, Grid2x2, Group, Hand, Image as ImageIcon, Info, Moon, MousePointer2, Music2, Palette, Puzzle, Redo2, Settings2, Square, Sun, Trash2, Type, Undo2, Upload, Video } from "lucide-react";
 
 import { canvasThemes, type CanvasBackgroundMode, type CanvasColorTheme, type CanvasTheme } from "@/lib/canvas-theme";
 import { getNodePluginId, listNodeDefinitions, useNodeRegistryVersion } from "@/lib/canvas/node-registry";
@@ -89,7 +90,18 @@ export function CanvasToolbar({
         <div ref={rootRef} className="pointer-events-none absolute bottom-5 z-50 flex justify-center" style={{ left: 300, right: 16 }}>
             {tip ? <DockTip label={tip} x={tipX} theme={theme} /> : null}
             <div ref={wrapRef} className="thin-scrollbar pointer-events-auto flex h-14 max-w-full items-center gap-1 overflow-x-auto rounded-xl border px-2 shadow-lg backdrop-blur [&>*]:shrink-0" style={dockStyle}>
-                <ToolbarButton id={`tool-${canvasTool}`} label={canvasTool === "select" ? "选择" : "移动"} active hovered={hovered} activeStyle={activeStyle} hoverStyle={hoverStyle} wrapRef={wrapRef} onTipX={setTipX} onHover={setHovered} onClick={() => onCanvasToolChange(canvasTool === "select" ? "pan" : "select")}>
+                <ToolbarButton
+                    id={`tool-${canvasTool}`}
+                    label={canvasTool === "select" ? "选择" : "移动"}
+                    active
+                    hovered={hovered}
+                    activeStyle={activeStyle}
+                    hoverStyle={hoverStyle}
+                    wrapRef={wrapRef}
+                    onTipX={setTipX}
+                    onHover={setHovered}
+                    onClick={() => onCanvasToolChange(canvasTool === "select" ? "pan" : "select")}
+                >
                     {canvasTool === "select" ? <MousePointer2 className="size-4.5" /> : <Hand className="size-4.5" />}
                 </ToolbarButton>
                 <ToolbarButton id="tool-undo" label={"撤销"} disabled={!canUndo} hovered={hovered} hoverStyle={hoverStyle} wrapRef={wrapRef} onTipX={setTipX} onHover={setHovered} onClick={onUndo}>
@@ -181,7 +193,8 @@ export function CanvasToolbar({
                     <div className="px-1.5 pb-1.5 text-[11px] font-medium opacity-50">{"扩展节点"}</div>
                     <div className="grid gap-0.5">
                         {extensionDefs.map((def) => (
-                            <button
+                            <Button
+                                variant="ghost"
                                 key={def.type}
                                 type="button"
                                 className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm transition"
@@ -197,7 +210,7 @@ export function CanvasToolbar({
                                     {def.icon}
                                 </span>
                                 <span className="min-w-0 flex-1 truncate">{def.title}</span>
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 </div>
@@ -221,16 +234,22 @@ export function CanvasToolbar({
                         </CanvasThemeButton>
                     </div>
                     <div className="mt-3 px-1 pb-1.5 text-[11px] font-medium opacity-50">{"网格样式"}</div>
-                    <Segmented
-                        className="w-full !p-1 [&>button]:!min-h-8 [&>button]:!flex-1"
-                        value={backgroundMode}
-                        onChange={(value) => onBackgroundModeChange(value as CanvasBackgroundMode)}
-                        options={[
+                    <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        className={"w-full !p-1 [&>button]:!min-h-8 [&>button]:!flex-1"}
+                        value={String(backgroundMode)}
+                        onValueChange={(value) => {
+                            if (value) ((value) => onBackgroundModeChange(value as CanvasBackgroundMode))(value);
+                        }}
+                    >
+                        {[
                             {
                                 value: "dots",
                                 label: (
                                     <span className="inline-flex items-center gap-1.5">
-                                        <CircleDot className="size-4" />{"点"}
+                                        <CircleDot className="size-4" />
+                                        {"点"}
                                     </span>
                                 ),
                             },
@@ -238,7 +257,8 @@ export function CanvasToolbar({
                                 value: "lines",
                                 label: (
                                     <span className="inline-flex items-center gap-1.5">
-                                        <Grid2x2 className="size-4" />{"线"}
+                                        <Grid2x2 className="size-4" />
+                                        {"线"}
                                     </span>
                                 ),
                             },
@@ -251,14 +271,21 @@ export function CanvasToolbar({
                                     </span>
                                 ),
                             },
-                        ]}
-                    />
+                        ].map((item) => {
+                            const option = typeof item === "object" ? item : { value: item, label: item };
+                            return (
+                                <ToggleGroupItem key={String(option.value)} value={String(option.value)}>
+                                    {option.label}
+                                </ToggleGroupItem>
+                            );
+                        })}
+                    </ToggleGroup>
                     <div className="mt-3 flex items-center justify-between gap-3 rounded-lg px-1.5 py-1">
                         <span className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-medium opacity-65">
                             <Info className="size-3.5" />
                             {"图片信息"}
                         </span>
-                        <Switch size="small" checked={showImageInfo} onChange={onShowImageInfoChange} />
+                        <Switch checked={showImageInfo} onCheckedChange={onShowImageInfoChange} />
                     </div>
                 </div>
             ) : null}
@@ -299,19 +326,22 @@ function ToolbarButton({
 
     return (
         <Button
-            type="text"
             aria-label={label}
-            className="!h-8 !w-8 !min-w-8 !p-0"
-            disabled={disabled}
             style={active ? activeStyle : hovered === id && !disabled ? hoverStyle : { color: danger ? "#f87171" : theme.toolbar.item, opacity: disabled ? 0.35 : 1 }}
-            icon={children}
             onMouseEnter={(event) => {
                 onHover(id);
                 onTipX(getTipX(wrapRef.current, event.currentTarget));
             }}
             onMouseLeave={() => onHover(null)}
             onClick={onClick}
-        />
+            type={"button"}
+            variant={"ghost"}
+            size="icon"
+            disabled={disabled}
+            className={"!h-8 !w-8 !min-w-8 !p-0"}
+        >
+            {children}
+        </Button>
     );
 }
 

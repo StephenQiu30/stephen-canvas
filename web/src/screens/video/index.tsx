@@ -1,26 +1,34 @@
 "use client";
 
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
-import { ArrowLeft, ArrowRight, CheckSquare, ClipboardPaste, Download, FolderPlus, History, LoaderCircle, Plus, SlidersHorizontal, Sparkles, Trash2, Upload, VideoIcon } from "lucide-react";
-import { useEffect, useRef, useState, useSyncExternalStore, type DragEvent } from "react";
-import { Button, Checkbox, Drawer, Empty, Input, Modal, Tag, Typography } from "@/components/ui/app-primitives";
-import localforage from "localforage";
-import { nanoid } from "nanoid";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { saveAs } from "file-saver";
+import localforage from "localforage";
+import { ArrowLeft, ArrowRight, CheckSquare, ClipboardPaste, Download, FolderPlus, History, LoaderCircle, Plus, SlidersHorizontal, Sparkles, Trash2, Upload, VideoIcon } from "lucide-react";
+import { nanoid } from "nanoid";
+import { useEffect, useRef, useState, useSyncExternalStore, type DragEvent } from "react";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { ModelPicker } from "@/components/model-picker";
 import { VideoSettingsPanel, normalizeVideoResolutionValue, normalizeVideoSizeValue, videoModeLabel, videoSizeLabel } from "@/components/video-settings-panel";
 import { canvasThemes } from "@/lib/canvas-theme";
-import { clampVideoSeconds } from "@/lib/media-size";
 import { formatBytes, formatDuration } from "@/lib/image-utils";
-import { deleteStoredMedia, resolveMediaUrl } from "@/services/file-storage";
-import { resolveImageUrl, ensureImagePreview, getImagePreviewRevision, previewUrlFor, subscribeImagePreviews, uploadImage } from "@/services/image-storage";
+import { clampVideoSeconds } from "@/lib/media-size";
 import { createVideoGenerationTask, pollVideoGenerationTask, storeGeneratedVideo, type VideoGenerationTask } from "@/services/api/video";
+import { deleteStoredMedia, resolveMediaUrl } from "@/services/file-storage";
+import { ensureImagePreview, getImagePreviewRevision, previewUrlFor, resolveImageUrl, subscribeImagePreviews, uploadImage } from "@/services/image-storage";
 import { useAssetStore } from "@/stores/use-asset-store";
-import { useWorkbenchAgentStore } from "@/stores/use-workbench-agent-store";
 import { boolConfig, modelOptionLabel, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
+import { useWorkbenchAgentStore } from "@/stores/use-workbench-agent-store";
 import type { ReferenceImage } from "@/types/image";
 
 type GeneratedVideo = {
@@ -369,46 +377,59 @@ export default function VideoPage() {
 
     return (
         <div className="flex h-full flex-col overflow-hidden bg-muted text-foreground  ">
-            <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 lg:grid-cols-[300px_minmax(0,1fr)] lg:overflow-hidden xl:grid-cols-[320px_minmax(0,1fr)]">
-                <aside className="thin-scrollbar hidden min-h-0 overflow-y-auto rounded-lg border border-border bg-card p-4 shadow-sm  lg:block">
-                    <LogPanel logs={logs} selectedLogIds={selectedLogIds} activeLogId={previewLog?.id} onSelectedLogIdsChange={setSelectedLogIds} onCreateSession={createSession} onDeleteSelected={() => setDeleteConfirmOpen(true)} onPreviewLog={previewGenerationLog} />
+            <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto px-4 pb-4 lg:px-6 @min-[1280px]:grid-cols-[240px_minmax(0,1fr)] @min-[1280px]:overflow-hidden">
+                <aside className="thin-scrollbar hidden min-h-0 overflow-y-auto rounded-xl border border-border bg-card p-4 @min-[1280px]:block">
+                    <LogPanel
+                        logs={logs}
+                        selectedLogIds={selectedLogIds}
+                        activeLogId={previewLog?.id}
+                        onSelectedLogIdsChange={setSelectedLogIds}
+                        onCreateSession={createSession}
+                        onDeleteSelected={() => setDeleteConfirmOpen(true)}
+                        onPreviewLog={previewGenerationLog}
+                    />
                 </aside>
 
-                <section className="grid gap-3 lg:min-h-0 lg:overflow-hidden xl:grid-cols-[420px_minmax(0,1fr)]">
-                    <div className="thin-scrollbar flex flex-col rounded-lg border border-border bg-card p-4 shadow-sm  lg:min-h-0 lg:overflow-y-auto">
+                <section className="grid min-w-0 gap-4 @min-[800px]:min-h-0 @min-[800px]:overflow-hidden @min-[800px]:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
+                    <div className="thin-scrollbar flex flex-col min-w-0 rounded-xl border border-border bg-card p-5 @min-[800px]:min-h-0 @min-[800px]:overflow-y-auto">
                         <div className="flex items-start justify-between gap-3">
                             <h1 className="text-2xl font-semibold text-foreground ">{"视频创作台"}</h1>
-                            <div className="flex shrink-0 gap-2 lg:hidden">
-                                <Button icon={<History className="size-4" />} onClick={() => setLogsOpen(true)}>
+                            <div className="flex shrink-0 gap-2 @min-[1280px]:hidden">
+                                <Button onClick={() => setLogsOpen(true)} type={"button"} variant={"secondary"} size="default">
+                                    {<History data-icon="inline-start" />}
                                     {"生成记录"}
                                 </Button>
-                                <Button icon={<SlidersHorizontal className="size-4" />} onClick={() => setSettingsOpen(true)}>
+                                <Button onClick={() => setSettingsOpen(true)} type={"button"} variant={"secondary"} size="default">
+                                    {<SlidersHorizontal data-icon="inline-start" />}
                                     {"参数"}
                                 </Button>
                             </div>
                         </div>
 
-                        <div className="mt-6 space-y-5">
+                        <div className="mt-6 flex flex-col gap-5">
                             <div>
                                 <div className="mb-2 flex items-center justify-between gap-3">
                                     <span className="text-base font-semibold">{"提示词"}</span>
                                     <div className="flex gap-2">
-                                        <Button size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => setAssetPickerOpen(true)}>
+                                        <Button onClick={() => setAssetPickerOpen(true)} type={"button"} variant={"secondary"} size="sm">
+                                            {<FolderPlus data-icon="inline-start" />}
                                             {"查看我的资产"}
                                         </Button>
                                     </div>
                                 </div>
-                                <Input.TextArea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} placeholder={"描述镜头运动、主体动作、场景氛围和画面风格"} />
+                                <Textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} placeholder={"描述镜头运动、主体动作、场景氛围和画面风格"} />
                             </div>
 
                             <div className="min-w-0">
                                 <div className="mb-2 flex items-center justify-between gap-3">
                                     <span className="text-base font-semibold">{"参考图"}</span>
                                     <div className="flex gap-2">
-                                        <Button size="small" icon={<ClipboardPaste className="size-3.5" />} onClick={() => void addReferencesFromClipboard()}>
+                                        <Button onClick={() => void addReferencesFromClipboard()} type={"button"} variant={"secondary"} size="sm">
+                                            {<ClipboardPaste data-icon="inline-start" />}
                                             {"剪切板"}
                                         </Button>
-                                        <Button size="small" icon={<Upload className="size-3.5" />} onClick={() => fileInputRef.current?.click()}>
+                                        <Button onClick={() => fileInputRef.current?.click()} type={"button"} variant={"secondary"} size="sm">
+                                            {<Upload data-icon="inline-start" />}
                                             {"上传"}
                                         </Button>
                                     </div>
@@ -428,9 +449,15 @@ export default function VideoPage() {
                                             <img src={previewUrlFor(item.storageKey) || item.dataUrl} alt={item.name} className="size-full object-cover" />
                                             <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">{index + 1}</span>
                                             <ReferenceOrderButtons index={index} total={references.length} onMove={(offset) => setReferences((value) => moveListItem(value, index, offset))} />
-                                            <button type="button" className="absolute right-1 top-1 hidden size-6 items-center justify-center rounded bg-black/60 text-white group-hover:flex" onClick={() => setReferences((value) => value.filter((ref) => ref.id !== item.id))} aria-label={"移除参考图"}>
+                                            <Button
+                                                variant="ghost"
+                                                type="button"
+                                                className="absolute right-1 top-1 hidden size-6 items-center justify-center rounded bg-black/60 text-white group-hover:flex"
+                                                onClick={() => setReferences((value) => value.filter((ref) => ref.id !== item.id))}
+                                                aria-label={"移除参考图"}
+                                            >
                                                 <Trash2 className="size-3.5" />
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))}
                                     {!references.length ? <div className="flex min-w-full items-center justify-center text-sm text-muted-foreground">{referenceDragTarget ? "松开即可上传参考资产" : "暂无参考图，可拖入文件，最多 9 张"}</div> : null}
@@ -439,9 +466,11 @@ export default function VideoPage() {
 
                             <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2 text-sm   sm:hidden">
                                 <span className="truncate text-muted-foreground ">
-                                    {modelOptionLabel(effectiveConfig, model)} · {normalizeResolution(effectiveConfig.vquality)}p · {videoSizeLabel(effectiveConfig.size)} · {normalizeVideoSeconds(effectiveConfig.videoSeconds)}s · {videoModeLabel(effectiveConfig.videoMode)}
+                                    {modelOptionLabel(effectiveConfig, model)} · {normalizeResolution(effectiveConfig.vquality)}p · {videoSizeLabel(effectiveConfig.size)} · {normalizeVideoSeconds(effectiveConfig.videoSeconds)}s ·{" "}
+                                    {videoModeLabel(effectiveConfig.videoMode)}
                                 </span>
-                                <Button size="small" type="text" icon={<SlidersHorizontal className="size-4" />} onClick={() => setSettingsOpen(true)}>
+                                <Button onClick={() => setSettingsOpen(true)} type={"button"} variant={"ghost"} size="sm">
+                                    {<SlidersHorizontal data-icon="inline-start" />}
                                     {"调整"}
                                 </Button>
                             </div>
@@ -452,25 +481,38 @@ export default function VideoPage() {
                         </div>
 
                         <div className="mt-auto pt-6">
-                            <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
+                            <Button onClick={() => void generate()} type={"button"} variant={"default"} size="lg" disabled={Boolean(running) || !canGenerate || running} className={true && "w-full"}>
+                                {running ? <Spinner data-icon="inline-start" /> : <Sparkles data-icon="inline-start" />}
                                 {"开始生成"}
                             </Button>
                         </div>
                     </div>
 
-                    <div className="thin-scrollbar rounded-lg border border-border bg-card p-4 shadow-sm  lg:min-h-0 lg:overflow-y-auto lg:p-5">
+                    <div className="thin-scrollbar min-w-0 rounded-xl border border-border bg-card p-5 @min-[800px]:min-h-0 @min-[800px]:overflow-y-auto lg:p-5">
                         <div className="mb-4 flex items-center justify-between gap-3">
                             <h2 className="text-xl font-semibold">{"生成结果"}</h2>
-                            {running ? <Tag className="m-0 px-2 py-1">{`等待 ${formatDuration(elapsedMs)}`}</Tag> : null}
+                            {running ? <Badge className="m-0 px-2 py-1" variant={"secondary"}>{`等待 ${formatDuration(elapsedMs)}`}</Badge> : null}
                         </div>
                         {results.length ? (
                             <div className="grid gap-4">
-                                {results.map((result) => (result.status === "success" && result.video ? <ResultVideoCard key={result.id} video={result.video} onDownload={downloadVideo} onSaveAsset={saveResultToAssets} /> : result.status === "failed" ? <FailedVideoCard key={result.id} error={result.error || "生成失败"} onRetry={retryResult} /> : <PendingVideoCard key={result.id} />))}
+                                {results.map((result) =>
+                                    result.status === "success" && result.video ? (
+                                        <ResultVideoCard key={result.id} video={result.video} onDownload={downloadVideo} onSaveAsset={saveResultToAssets} />
+                                    ) : result.status === "failed" ? (
+                                        <FailedVideoCard key={result.id} error={result.error || "生成失败"} onRetry={retryResult} />
+                                    ) : (
+                                        <PendingVideoCard key={result.id} />
+                                    ),
+                                )}
                             </div>
                         ) : (
                             <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-border text-center  lg:min-h-[560px]">
                                 <VideoIcon className="mb-4 size-11 text-muted-foreground" />
-                                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={"还没有生成视频"} />
+                                <Empty>
+                                    <EmptyHeader>
+                                        <EmptyDescription>{"还没有生成视频"}</EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
                             </div>
                         )}
                     </div>
@@ -487,18 +529,68 @@ export default function VideoPage() {
                     event.target.value = "";
                 }}
             />
-            <Drawer title={"生成记录"} placement="bottom" size="large" open={logsOpen} onClose={() => setLogsOpen(false)}>
-                <LogPanel logs={logs} selectedLogIds={selectedLogIds} activeLogId={previewLog?.id} onSelectedLogIdsChange={setSelectedLogIds} onCreateSession={createSession} onDeleteSelected={() => setDeleteConfirmOpen(true)} onPreviewLog={previewGenerationLog} />
-            </Drawer>
-            <Drawer title={"参数"} placement="bottom" height="82vh" open={settingsOpen} onClose={() => setSettingsOpen(false)}>
-                <div className="grid grid-cols-2 gap-3 pb-4">
-                    <GenerationSettings config={effectiveConfig} model={model} updateConfig={updateConfig} openConfigDialog={openConfigDialog} />
-                </div>
-            </Drawer>
+            <Sheet
+                open={logsOpen}
+                onOpenChange={(open) => {
+                    if (!open) (() => setLogsOpen(false))();
+                }}
+            >
+                <SheetContent side="bottom" aria-describedby={undefined} style={{ height: "80vh", maxWidth: "100vw" }}>
+                    <SheetHeader>
+                        <SheetTitle>{"生成记录"}</SheetTitle>
+                    </SheetHeader>
+                    <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+                        <LogPanel
+                            logs={logs}
+                            selectedLogIds={selectedLogIds}
+                            activeLogId={previewLog?.id}
+                            onSelectedLogIdsChange={setSelectedLogIds}
+                            onCreateSession={createSession}
+                            onDeleteSelected={() => setDeleteConfirmOpen(true)}
+                            onPreviewLog={previewGenerationLog}
+                        />
+                    </div>
+                </SheetContent>
+            </Sheet>
+            <Sheet
+                open={settingsOpen}
+                onOpenChange={(open) => {
+                    if (!open) (() => setSettingsOpen(false))();
+                }}
+            >
+                <SheetContent side="bottom" aria-describedby={undefined} style={{ height: "82vh", maxWidth: "100vw" }}>
+                    <SheetHeader>
+                        <SheetTitle>{"参数"}</SheetTitle>
+                    </SheetHeader>
+                    <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+                        <div className="grid grid-cols-2 gap-3 pb-4">
+                            <GenerationSettings config={effectiveConfig} model={model} updateConfig={updateConfig} openConfigDialog={openConfigDialog} />
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
             <AssetPickerModal open={assetPickerOpen} defaultTab="my-assets" onInsert={(payload) => void insertPickedAsset(payload)} onClose={() => setAssetPickerOpen(false)} />
-            <Modal title={"删除生成记录"} open={deleteConfirmOpen} onCancel={() => setDeleteConfirmOpen(false)} onOk={deleteSelectedLogs} okText={"删除"} okButtonProps={{ danger: true }} cancelText={"取消"}>
-                {`确定删除选中的 ${selectedLogIds.length} 条生成记录吗？`}
-            </Modal>
+            <Dialog
+                open={deleteConfirmOpen}
+                onOpenChange={(open) => {
+                    if (!open) (() => setDeleteConfirmOpen(false))();
+                }}
+            >
+                <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"}>
+                    <DialogHeader>
+                        <DialogTitle>{"删除生成记录"}</DialogTitle>
+                    </DialogHeader>
+                    <div>{`确定删除选中的 ${selectedLogIds.length} 条生成记录吗？`}</div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+                            {"取消"}
+                        </Button>
+                        <Button type="button" variant="destructive" disabled={({ danger: true } as { disabled?: boolean }).disabled} onClick={deleteSelectedLogs}>
+                            {"删除"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
@@ -513,7 +605,7 @@ function GenerationSettings({ config, model, updateConfig, openConfigDialog }: {
                 <ModelPicker config={config} value={model} onChange={(value) => updateConfig("videoModel", value)} capability="video" fullWidth onMissingConfig={() => openConfigDialog(false)} />
             </label>
             <div className="col-span-2">
-                <VideoSettingsPanel config={config} onConfigChange={(key, value) => updateConfig(key, value)} theme={theme} showTitle={false} className="space-y-4" />
+                <VideoSettingsPanel config={config} onConfigChange={(key, value) => updateConfig(key, value)} theme={theme} showTitle={false} className="flex flex-col gap-4" />
             </div>
         </>
     );
@@ -532,10 +624,12 @@ function ResultVideoCard({ video, onDownload, onSaveAsset }: { video: GeneratedV
                     <span>{formatDuration(video.durationMs)}</span>
                 </div>
                 <div className="flex shrink-0 gap-1">
-                    <Button size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => onSaveAsset(video)}>
+                    <Button onClick={() => onSaveAsset(video)} type={"button"} variant={"secondary"} size="sm">
+                        {<FolderPlus data-icon="inline-start" />}
                         {"加入我的资产"}
                     </Button>
-                    <Button size="small" icon={<Download className="size-3.5" />} onClick={() => onDownload(video)}>
+                    <Button onClick={() => onDownload(video)} type={"button"} variant={"secondary"} size="sm">
+                        {<Download data-icon="inline-start" />}
                         {"下载"}
                     </Button>
                 </div>
@@ -560,12 +654,10 @@ function FailedVideoCard({ error, onRetry }: { error: string; onRetry: () => voi
         <div className="overflow-hidden rounded-lg border border-red-200 bg-red-50 dark:border-red-950 dark:bg-red-950/20">
             <div className="flex aspect-video flex-col items-center justify-center gap-3 p-5 text-center">
                 <div className="text-sm font-medium text-red-600 dark:text-red-300">{"生成失败"}</div>
-                <Typography.Paragraph ellipsis={{ rows: 4 }} className="!mb-0 !text-xs !text-red-500 dark:!text-red-300">
-                    {error}
-                </Typography.Paragraph>
+                <p className={cn("truncate", "!mb-0 !text-xs !text-red-500 dark:!text-red-300")}>{error}</p>
             </div>
             <div className="flex justify-end border-t border-red-200 p-3 dark:border-red-950">
-                <Button size="small" danger onClick={onRetry}>
+                <Button onClick={onRetry} type={"button"} variant={"destructive"} size="sm">
                     {"重试"}
                 </Button>
             </div>
@@ -597,22 +689,34 @@ function LogPanel({
         <>
             <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="text-base font-semibold">{"生成记录"}</h2>
-                <Tag className="m-0">{logs.length}</Tag>
+                <Badge className="m-0" variant={"secondary"}>
+                    {logs.length}
+                </Badge>
             </div>
             <div className="mb-4 flex flex-wrap gap-2">
-                <Button size="small" icon={<Plus className="size-3.5" />} onClick={onCreateSession}>
+                <Button onClick={onCreateSession} type={"button"} variant={"secondary"} size="sm">
+                    {<Plus data-icon="inline-start" />}
                     {"新建"}
                 </Button>
-                <Button size="small" icon={<CheckSquare className="size-3.5" />} disabled={!logs.length} onClick={toggleAll}>
+                <Button onClick={toggleAll} type={"button"} variant={"secondary"} size="sm" disabled={!logs.length}>
+                    {<CheckSquare data-icon="inline-start" />}
                     {allSelected ? "取消" : "全选"}
                 </Button>
-                <Button size="small" danger icon={<Trash2 className="size-3.5" />} disabled={!selectedLogIds.length} onClick={onDeleteSelected}>
+                <Button onClick={onDeleteSelected} type={"button"} variant={"destructive"} size="sm" disabled={!selectedLogIds.length}>
+                    {<Trash2 data-icon="inline-start" />}
                     {"删除"}
                 </Button>
             </div>
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
                 {logs.map((log) => (
-                    <LogCard key={log.id} log={log} selected={selectedLogIds.includes(log.id)} active={activeLogId === log.id} onSelectedChange={(checked) => onSelectedLogIdsChange(checked ? [...selectedLogIds, log.id] : selectedLogIds.filter((id) => id !== log.id))} onClick={() => onPreviewLog(log)} />
+                    <LogCard
+                        key={log.id}
+                        log={log}
+                        selected={selectedLogIds.includes(log.id)}
+                        active={activeLogId === log.id}
+                        onSelectedChange={(checked) => onSelectedLogIdsChange(checked ? [...selectedLogIds, log.id] : selectedLogIds.filter((id) => id !== log.id))}
+                        onClick={() => onPreviewLog(log)}
+                    />
                 ))}
                 {!logs.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-border text-center text-sm text-muted-foreground ">{"暂无生成记录"}</div> : null}
             </div>
@@ -622,27 +726,33 @@ function LogPanel({
 
 function LogCard({ log, selected, active, onSelectedChange, onClick }: { log: GenerationLog; selected: boolean; active: boolean; onSelectedChange: (checked: boolean) => void; onClick: () => void }) {
     return (
-        <button type="button" className={`block w-full rounded-lg border p-2 text-left transition ${active ? "border-border bg-blue-50 dark:bg-blue-950/20" : "border-border bg-background hover:bg-muted"}`} onClick={onClick}>
+        <Button variant="ghost" type="button" className={`block w-full rounded-lg border p-2 text-left transition ${active ? "border-border bg-blue-50 dark:bg-blue-950/20" : "border-border bg-background hover:bg-muted"}`} onClick={onClick}>
             <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2">
-                <Checkbox className="mt-0.5" checked={selected} onClick={(event) => event.stopPropagation()} onChange={(event) => onSelectedChange(event.target.checked)} />
+                <Checkbox className="mt-0.5" onClick={(event) => event.stopPropagation()} checked={selected} onCheckedChange={(checked) => onSelectedChange(checked === true)} />
                 <div className="min-w-0">
                     <div className="truncate text-sm font-semibold leading-5">{log.title}</div>
                     <div className="mt-2 flex flex-wrap gap-1">
-                        <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none">{log.size}</Tag>
-                        <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none">{log.resolution}p</Tag>
-                        <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none">{log.seconds}s</Tag>
+                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={"secondary"}>
+                            {log.size}
+                        </Badge>
+                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={"secondary"}>
+                            {log.resolution}p
+                        </Badge>
+                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={"secondary"}>
+                            {log.seconds}s
+                        </Badge>
                     </div>
                 </div>
                 <div className="grid justify-items-end gap-2">
-                    <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" color={log.status === "success" ? "blue" : log.status === "pending" ? "processing" : "red"}>
-                        {(log.status === "success" ? "成功" : log.status === "pending" ? "生成中" : "生成失败")}
-                    </Tag>
-                    <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" color="green">
+                    <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={log.status === "failed" ? "destructive" : "secondary"}>
+                        {log.status === "success" ? "成功" : log.status === "pending" ? "生成中" : "生成失败"}
+                    </Badge>
+                    <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant="secondary">
                         {formatDuration(log.durationMs)}
-                    </Tag>
+                    </Badge>
                 </div>
             </div>
-        </button>
+        </Button>
     );
 }
 
@@ -708,8 +818,12 @@ function ReferenceOrderButtons({ index, total, onMove }: { index: number; total:
     if (total <= 1) return null;
     return (
         <div className="absolute inset-x-1 bottom-1 flex justify-between">
-            <Button size="small" className="!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm" icon={<ArrowLeft className="size-3" />} disabled={index <= 0} onClick={() => onMove(-1)} />
-            <Button size="small" className="!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm" icon={<ArrowRight className="size-3" />} disabled={index >= total - 1} onClick={() => onMove(1)} />
+            <Button onClick={() => onMove(-1)} type={"button"} variant={"secondary"} size="icon-sm" disabled={index <= 0} className={"!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm"}>
+                {<ArrowLeft data-icon="inline-start" />}
+            </Button>
+            <Button onClick={() => onMove(1)} type={"button"} variant={"secondary"} size="icon-sm" disabled={index >= total - 1} className={"!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm"}>
+                {<ArrowRight data-icon="inline-start" />}
+            </Button>
         </div>
     );
 }
@@ -727,7 +841,27 @@ function normalizeLogConfig(log: Partial<GenerationLog>): GenerationLogConfig {
     };
 }
 
-function buildLog({ prompt, model, config, references, durationMs, status, task, video, error }: { prompt: string; model: string; config: AiConfig; references: ReferenceImage[]; durationMs: number; status: GenerationLog["status"]; task?: VideoGenerationTask; video?: GeneratedVideo; error?: string }): GenerationLog {
+function buildLog({
+    prompt,
+    model,
+    config,
+    references,
+    durationMs,
+    status,
+    task,
+    video,
+    error,
+}: {
+    prompt: string;
+    model: string;
+    config: AiConfig;
+    references: ReferenceImage[];
+    durationMs: number;
+    status: GenerationLog["status"];
+    task?: VideoGenerationTask;
+    video?: GeneratedVideo;
+    error?: string;
+}): GenerationLog {
     const logConfig = {
         model: config.model,
         videoModel: config.videoModel,

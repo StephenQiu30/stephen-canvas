@@ -1,5 +1,6 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { SelectGroup } from "@/components/ui/select";
 import { Cpu } from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,10 @@ type ModelPickerProps = {
 export function ModelPicker({ config, value, onChange, capability, className, fullWidth = false, placeholder, onMissingConfig }: ModelPickerProps) {
     const pickerId = useId();
     const [open, setOpen] = useState(false);
-    const options = useMemo(() => Array.from(new Set([...(config.channelMode === "local" && !capability ? [value] : []), ...selectableModelsByCapability(config, capability)].filter((model): model is string => Boolean(model)))), [capability, config, value]);
+    const options = useMemo(
+        () => Array.from(new Set([...(config.channelMode === "local" && !capability ? [value] : []), ...selectableModelsByCapability(config, capability)].filter((model): model is string => Boolean(model)))),
+        [capability, config, value],
+    );
     const current = value || "";
     const pickerPlaceholder = placeholder || "选择模型";
 
@@ -58,7 +62,7 @@ export function ModelPicker({ config, value, onChange, capability, className, fu
             </SelectTrigger>
             <SelectContent
                 data-canvas-no-zoom
-                className="z-[1200] w-80 max-w-[calc(100vw-24px)] rounded-xl border border-border/70 bg-popover p-1 shadow-xl"
+                className="w-80 max-w-[calc(100vw-24px)] rounded-xl border border-border/70 bg-popover p-1 shadow-xl"
                 position="popper"
                 align="start"
                 side="bottom"
@@ -66,24 +70,26 @@ export function ModelPicker({ config, value, onChange, capability, className, fu
                 onPointerDown={(event) => event.stopPropagation()}
                 onMouseDown={(event) => event.stopPropagation()}
             >
-                {options.length ? (
-                    options.map((model) => (
-                        <SelectItem key={model} value={model} textValue={modelOptionLabel(config, model)}>
-                            <ModelLabel config={config} model={model} />
+                <SelectGroup>
+                    {options.length ? (
+                        options.map((model) => (
+                            <SelectItem key={model} value={model} textValue={modelOptionLabel(config, model)}>
+                                <ModelLabel config={config} model={model} />
+                            </SelectItem>
+                        ))
+                    ) : (
+                        <SelectItem value="__empty__" disabled>
+                            {emptyModelLabel(config, capability)}
                         </SelectItem>
-                    ))
-                ) : (
-                    <SelectItem value="__empty__" disabled>
-                        {emptyModelLabel(config, capability)}
-                    </SelectItem>
-                )}
+                    )}
+                </SelectGroup>
             </SelectContent>
         </Select>
     );
 }
 
 function emptyModelLabel(config: AiConfig, capability?: ModelCapability) {
-    const label = capability ? (({ "image":"生图", "video":"视频", "text":"文本", "audio":"音频" } as Record<string, string>)[String(capability)] || String(capability)) : "";
+    const label = capability ? ({ image: "生图", video: "视频", text: "文本", audio: "音频" } as Record<string, string>)[String(capability)] || String(capability) : "";
     if (capability && config.models.length) return `请先在渠道里为${label}指定模型`;
     return config.models.length ? `暂无匹配的${label}模型` : "请先到配置里添加渠道和模型";
 }

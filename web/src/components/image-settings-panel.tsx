@@ -1,5 +1,8 @@
-import { type ReactNode, useState } from "react";
-import { Switch } from "@/components/ui/app-primitives";
+import { FieldGroup, FieldLabel } from "@/components/ui/field";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useState } from "react";
 
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import { computeMediaSize, inferMediaRatio, inferMediaScale, mediaRatioOptions, mediaScaleOptions, readMediaDimensions } from "@/lib/media-size";
@@ -13,7 +16,12 @@ const qualityOptions = [
 ];
 const DIMENSION_STEP = 16;
 
-export const imageQualityOptions = qualityOptions.map((item) => ({ value: item.value, get label() { return (({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(item.labelKey)] || String(item.labelKey)); } }));
+export const imageQualityOptions = qualityOptions.map((item) => ({
+    value: item.value,
+    get label() {
+        return ({ auto: "自动", low: "低", medium: "中", high: "高", xhigh: "极高" } as Record<string, string>)[String(item.labelKey)] || String(item.labelKey);
+    },
+}));
 export const imageAspectOptions = mediaRatioOptions.map((item) => ({ value: item.value, label: item.value === "auto" ? "自动" : item.value }));
 export const imageScaleOptions = mediaScaleOptions.map((value) => ({ value, label: value === "auto" ? "自动" : value }));
 
@@ -27,7 +35,7 @@ type ImageSettingsPanelProps = {
     quickCount?: number;
 };
 
-export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = true, className = "w-[320px] space-y-4 rounded-2xl px-1 py-0.5", maxCount = 15, quickCount = 10 }: ImageSettingsPanelProps) {
+export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = true, className = "w-[320px] flex flex-col gap-4 rounded-2xl px-1 py-0.5", maxCount = 15, quickCount = 10 }: ImageSettingsPanelProps) {
     const [snapDimensionToStep, setSnapDimensionToStep] = useState(true);
     const quality = config.quality || "auto";
     const count = Math.max(1, Math.min(maxCount, Math.floor(Math.abs(Number(config.count)) || 1)));
@@ -47,106 +55,133 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
     };
 
     return (
-        <ImageSettingsTheme theme={theme}>
-            <div
-                className={className}
-                style={{ color: theme.node.text }}
-                onMouseDown={(event) => {
-                    event.stopPropagation();
-                    if (event.target instanceof HTMLInputElement) return;
-                    if (document.activeElement instanceof HTMLInputElement && event.currentTarget.contains(document.activeElement)) document.activeElement.blur();
-                }}
-            >
-                {showTitle ? <div className="text-lg font-semibold">{"图像设置"}</div> : null}
-                <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>{"质量"}</SettingTitle>
-                    <div className="grid grid-cols-4 gap-2.5">
-                        {qualityOptions.map((item) => (
-                            <OptionPill key={item.value} selected={quality === item.value} theme={theme} onClick={() => onConfigChange("quality", item.value)}>
-                                {(({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(item.labelKey)] || String(item.labelKey))}
-                            </OptionPill>
-                        ))}
-                    </div>
-                </div>
-                <div className="space-y-2.5">
-                    <div className="flex items-center justify-between gap-3">
-                        <SettingTitle color={theme.node.muted}>{"尺寸"}</SettingTitle>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium" style={{ color: theme.node.muted }}>
-                                {"16 倍数对齐"}
-                            </span>
-                            <span title={"输入完成后自动向上补成 16 的倍数"} onMouseDown={(event) => event.stopPropagation()}>
-                                <Switch size="small" checked={snapDimensionToStep} onChange={setSnapDimensionToStep} />
-                            </span>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
-                        <DimensionInput prefix="W" value={dimensions.width} disabled={selectedRatio === "auto"} theme={theme} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("width", value)} />
-                        <span className="text-lg opacity-45">↔</span>
-                        <DimensionInput prefix="H" value={dimensions.height} disabled={selectedRatio === "auto"} theme={theme} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("height", value)} />
-                    </div>
-                </div>
-                <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>{"分辨率"}</SettingTitle>
-                    <div className="grid grid-cols-4 gap-2.5">
-                        {mediaScaleOptions.map((value) => (
-                            <OptionPill key={value} selected={selectedScale === value} theme={theme} onClick={() => selectScale(value)}>
-                                {value === "auto" ? "自动" : value}
-                            </OptionPill>
-                        ))}
-                    </div>
-                </div>
-                <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>{"宽高比"}</SettingTitle>
-                    <div className="grid grid-cols-4 gap-2.5">
-                        {mediaRatioOptions.map((item) => (
-                            <button
-                                key={item.value}
-                                type="button"
-                                className="flex h-[72px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border bg-transparent text-sm transition hover:opacity-80"
-                                style={{ borderColor: selectedRatio === item.value ? theme.node.text : theme.node.stroke, background: "transparent", color: theme.node.text }}
-                                onMouseDown={(event) => event.stopPropagation()}
-                                onClick={() => selectRatio(item.value)}
-                            >
-                                <AspectIcon width={item.width} height={item.height} color={theme.node.text} />
-                                <span>{item.value === "auto" ? "自动" : item.value}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
+        <FieldGroup
+            className={className}
+            style={{ color: theme.node.text }}
+            onMouseDown={(event) => {
+                event.stopPropagation();
+                if (event.target instanceof HTMLInputElement) return;
+                if (document.activeElement instanceof HTMLInputElement && event.currentTarget.contains(document.activeElement)) document.activeElement.blur();
+            }}
+        >
+            {showTitle ? <div className="text-lg font-semibold">{"图像设置"}</div> : null}
+            <div className="flex flex-col gap-2.5">
+                <FieldLabel>{"质量"}</FieldLabel>
+                <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    spacing={2}
+                    value={String(quality)}
+                    onValueChange={(value) => {
+                        if (value) onConfigChange("quality", value);
+                    }}
+                    className="grid grid-cols-4 gap-2.5 w-full"
+                    aria-label="图像质量"
+                >
+                    {qualityOptions.map((item) => (
+                        <ToggleGroupItem key={item.value} value={String(item.value)} className="min-w-0">
+                            {({ auto: "自动", low: "低", medium: "中", high: "高", xhigh: "极高" } as Record<string, string>)[String(item.labelKey)] || String(item.labelKey)}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
+            </div>
+            <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between gap-3">
-                    <div className="space-y-0.5">
-                        <SettingTitle color={theme.node.muted}>{"透明背景"}</SettingTitle>
-                        <div className="text-xs" style={{ color: theme.node.muted, opacity: 0.75 }}>
-                            {"开启后生成无背景的透明图像（仅部分模型可用）"}
-                        </div>
+                    <FieldLabel>{"尺寸"}</FieldLabel>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium" style={{ color: theme.node.muted }}>
+                            {"16 倍数对齐"}
+                        </span>
+                        <span title={"输入完成后自动向上补成 16 的倍数"} onMouseDown={(event) => event.stopPropagation()}>
+                            <Switch aria-label="16 倍数对齐" checked={snapDimensionToStep} onCheckedChange={setSnapDimensionToStep} />
+                        </span>
                     </div>
-                    <span onMouseDown={(event) => event.stopPropagation()}>
-                        <Switch size="small" checked={transparentBackground} onChange={(checked) => onConfigChange("background", checked ? "transparent" : "")} />
-                    </span>
                 </div>
-                <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>{"生成张数"}</SettingTitle>
-                    <div className="grid grid-cols-4 gap-2.5">
-                        {Array.from({ length: quickCount }, (_, index) => index + 1).map((value) => (
-                            <OptionPill key={value} selected={count === value} theme={theme} onClick={() => onConfigChange("count", String(value))}>
-                                {`${value} 张`}
-                            </OptionPill>
-                        ))}
-                        <CountInput value={count} max={maxCount} theme={theme} onChange={(value) => onConfigChange("count", String(value || 1))} />
-                    </div>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
+                    <DimensionInput prefix="W" value={dimensions.width} disabled={selectedRatio === "auto"} theme={theme} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("width", value)} />
+                    <span className="text-lg opacity-45">↔</span>
+                    <DimensionInput prefix="H" value={dimensions.height} disabled={selectedRatio === "auto"} theme={theme} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("height", value)} />
                 </div>
             </div>
-        </ImageSettingsTheme>
+            <div className="flex flex-col gap-2.5">
+                <FieldLabel>{"分辨率"}</FieldLabel>
+                <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    spacing={2}
+                    value={String(selectedScale)}
+                    onValueChange={(value) => {
+                        if (value) selectScale(value);
+                    }}
+                    className="grid grid-cols-4 gap-2.5 w-full"
+                    aria-label="图像分辨率"
+                >
+                    {mediaScaleOptions.map((value) => (
+                        <ToggleGroupItem key={value} value={String(value)} className="min-w-0">
+                            {value === "auto" ? "自动" : value}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
+            </div>
+            <div className="flex flex-col gap-2.5">
+                <FieldLabel>{"宽高比"}</FieldLabel>
+                <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    spacing={2}
+                    value={String(selectedRatio)}
+                    onValueChange={(value) => {
+                        if (value) selectRatio(value);
+                    }}
+                    className="grid grid-cols-4 gap-2.5 w-full"
+                    aria-label="图像宽高比"
+                >
+                    {mediaRatioOptions.map((item) => (
+                        <ToggleGroupItem key={item.value} value={String(item.value)} className="h-18 min-w-0 flex-col gap-1.5">
+                            <AspectIcon width={item.width} height={item.height} color={theme.node.text} />
+                            <span>{item.value === "auto" ? "自动" : item.value}</span>
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-0.5">
+                    <FieldLabel>{"透明背景"}</FieldLabel>
+                    <div className="text-xs" style={{ color: theme.node.muted, opacity: 0.75 }}>
+                        {"开启后生成无背景的透明图像（仅部分模型可用）"}
+                    </div>
+                </div>
+                <span onMouseDown={(event) => event.stopPropagation()}>
+                    <Switch aria-label="透明背景" checked={transparentBackground} onCheckedChange={(checked) => onConfigChange("background", checked ? "transparent" : "")} />
+                </span>
+            </div>
+            <div className="flex flex-col gap-2.5">
+                <FieldLabel>{"生成张数"}</FieldLabel>
+                <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    spacing={2}
+                    value={String(count)}
+                    onValueChange={(value) => {
+                        if (value) onConfigChange("count", value);
+                    }}
+                    className="grid grid-cols-4 gap-2.5 w-full"
+                    aria-label="生成张数"
+                >
+                    {Array.from({ length: quickCount }, (_, index) => index + 1).map((value) => (
+                        <ToggleGroupItem key={value} value={String(value)} className="min-w-0">
+                            {`${value} 张`}
+                        </ToggleGroupItem>
+                    ))}
+                    <CountInput value={count} max={maxCount} theme={theme} onChange={(value) => onConfigChange("count", String(value || 1))} />
+                </ToggleGroup>
+            </div>
+        </FieldGroup>
     );
 }
 
-export function ImageSettingsTheme({ theme, children }: { theme: CanvasTheme; children: ReactNode }) {
-    return <div style={{ color: theme.node.text }}>{children}</div>;
-}
-
 export function imageQualityLabel(value: string) {
-    return (["auto", "high", "medium", "low"].includes(value) ? (({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(value)] || String(value)) : value);
+    return ["auto", "high", "medium", "low"].includes(value) ? ({ auto: "自动", low: "低", medium: "中", high: "高", xhigh: "极高" } as Record<string, string>)[String(value)] || String(value) : value;
 }
 
 export function imageSizeLabel(size: string) {
@@ -157,20 +192,6 @@ export function imageSizeLabel(size: string) {
     return `${scale} · ${ratio}`;
 }
 
-function OptionPill({ selected, theme, onClick, children }: { selected: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {
-    return (
-        <button
-            type="button"
-            className="h-9 cursor-pointer rounded-full border px-2 text-sm transition hover:opacity-80"
-            style={{ background: "transparent", borderColor: selected ? theme.node.text : theme.node.stroke, color: theme.node.text }}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={onClick}
-        >
-            {children}
-        </button>
-    );
-}
-
 function DimensionInput({ prefix, value, disabled, theme, alignToStep, onChange }: { prefix: string; value: number; disabled: boolean; theme: CanvasTheme; alignToStep: boolean; onChange: (value: number | null) => void }) {
     const commit = (input: HTMLInputElement) => {
         const next = alignDimension(Math.max(1, Math.floor(Number(input.value) || value || 1024)), alignToStep);
@@ -179,15 +200,13 @@ function DimensionInput({ prefix, value, disabled, theme, alignToStep, onChange 
     };
 
     return (
-        <label className="flex h-9 overflow-hidden rounded-xl text-sm" style={{ background: theme.node.fill, color: theme.node.text, opacity: disabled ? 0.55 : 1 }}>
-            <span className="grid w-9 place-items-center" style={{ color: theme.node.muted }}>
-                {prefix}
-            </span>
-            <input
+        <InputGroup>
+            <InputGroupAddon>{prefix}</InputGroupAddon>
+            <InputGroupInput
+                aria-label={prefix === "W" ? "图像宽度" : "图像高度"}
                 type="number"
                 min={1}
                 disabled={disabled}
-                className="min-w-0 flex-1 bg-transparent px-2 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 defaultValue={value || ""}
                 key={`${prefix}-${value}`}
                 onBlur={(event) => commit(event.currentTarget)}
@@ -196,24 +215,15 @@ function DimensionInput({ prefix, value, disabled, theme, alignToStep, onChange 
                 }}
                 onMouseDown={(event) => event.stopPropagation()}
             />
-        </label>
+        </InputGroup>
     );
 }
 
 function CountInput({ value, max, theme, onChange }: { value: number; max: number; theme: CanvasTheme; onChange: (value: number | null) => void }) {
     return (
-        <label className="col-span-2 flex h-9 overflow-hidden rounded-full border text-sm" style={{ borderColor: theme.node.stroke, color: theme.node.text }}>
-            <input
-                type="number"
-                min={1}
-                max={max}
-                className="min-w-0 flex-1 bg-transparent px-3 text-center outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                style={{ color: theme.node.text, WebkitTextFillColor: theme.node.text }}
-                value={value || ""}
-                onChange={(event) => onChange(Number(event.target.value) || null)}
-                onMouseDown={(event) => event.stopPropagation()}
-            />
-        </label>
+        <InputGroup>
+            <InputGroupInput aria-label="自定义生成张数" type="number" min={1} max={max} value={value || ""} onChange={(event) => onChange(Number(event.target.value) || null)} onMouseDown={(event) => event.stopPropagation()} />
+        </InputGroup>
     );
 }
 
@@ -226,14 +236,6 @@ function AspectIcon({ width, height, color }: { width: number; height: number; c
         <span className="grid h-7 w-9 place-items-center">
             <span className="border-2" style={{ width: boxWidth, height: boxHeight, borderColor: color }} />
         </span>
-    );
-}
-
-function SettingTitle({ children, color }: { children: string; color: string }) {
-    return (
-        <div className="text-xs font-medium" style={{ color }}>
-            {children}
-        </div>
     );
 }
 

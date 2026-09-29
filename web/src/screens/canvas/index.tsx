@@ -1,26 +1,31 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/app-primitives";
+import { Button } from "@/components/ui/button";
 import { Download, FileUp, Plus } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
+import { CanvasDeleteProjectsDialog } from "@/components/canvas/canvas-delete-projects-dialog";
+import { CanvasProjectCard } from "@/components/canvas/canvas-project-card";
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Button as ActionButton } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { hasAgentUrlBootstrap } from "@/lib/agent/agent-url-bootstrap";
+import { exportCanvasProjects } from "@/lib/canvas/canvas-export";
 import { readZip } from "@/lib/zip";
 import { setMediaBlob } from "@/services/file-storage";
 import { setImageBlob } from "@/services/image-storage";
-import { CanvasDeleteProjectsDialog } from "@/components/canvas/canvas-delete-projects-dialog";
-import { CanvasProjectCard } from "@/components/canvas/canvas-project-card";
-import type { CanvasExportFile } from "@/types/canvas-export";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useCanvasUiStore } from "@/stores/canvas/use-canvas-ui-store";
-import { exportCanvasProjects } from "@/lib/canvas/canvas-export";
-import { hasAgentUrlBootstrap } from "@/lib/agent/agent-url-bootstrap";
-import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import type { CanvasExportFile } from "@/types/canvas-export";
 
 export default function CanvasPage() {
     const { message } = useAppFeedback();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const [keyword, setKeyword] = useState("");
+    const [sort, setSort] = useState("updated");
     const inputRef = useRef<HTMLInputElement>(null);
     const autoOpenRef = useRef(false);
     const hydrated = useCanvasStore((state) => state.hydrated);
@@ -29,6 +34,8 @@ export default function CanvasPage() {
     const importProject = useCanvasStore((state) => state.importProject);
     const selectedIds = useCanvasUiStore((state) => state.selectedProjectIds);
     const setDeleteIds = useCanvasUiStore((state) => state.setDeleteProjectIds);
+
+    const visibleProjects = projects.filter((project) => project.title.toLowerCase().includes(keyword.toLowerCase())).sort((a, b) => (sort === "name" ? a.title.localeCompare(b.title, "zh-CN") : b.updatedAt.localeCompare(a.updatedAt)));
 
     const mode = searchParams.get("mode");
     const agentMode = mode === "new" || mode === "recent" || mode === "choose";
@@ -76,42 +83,78 @@ export default function CanvasPage() {
 
     return (
         <main className="h-full overflow-auto bg-background text-foreground ">
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
-                <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6 ">
+            <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 pb-10 pt-4 lg:px-10">
+                <header className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <p className="text-xs text-muted-foreground">{"画布库"}</p>
-                        <h1 className="mt-3 text-3xl font-semibold">{"Stephen Canvas"}</h1>
+                        <h1 className="mt-2 text-2xl font-semibold">{"Stephen Canvas"}</h1>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {selectedIds.length ? (
                             <>
-                                <Button disabled={!hydrated} icon={<Download className="size-4" />} onClick={() => void exportCanvasProjects(projects.filter((project) => selectedIds.includes(project.id)), `${"Stephen Canvas"}-${selectedIds.length}`)}>
+                                <Button
+                                    onClick={() =>
+                                        void exportCanvasProjects(
+                                            projects.filter((project) => selectedIds.includes(project.id)),
+                                            `${"Stephen Canvas"}-${selectedIds.length}`,
+                                        )
+                                    }
+                                    type={"button"}
+                                    variant={"secondary"}
+                                    size="default"
+                                    disabled={!hydrated}
+                                >
+                                    {<Download data-icon="inline-start" />}
                                     {"导出选中"}
                                 </Button>
-                                <Button disabled={!hydrated} onClick={() => setDeleteIds(selectedIds)}>
+                                <Button onClick={() => setDeleteIds(selectedIds)} type={"button"} variant={"secondary"} size="default" disabled={!hydrated}>
                                     {"删除选中"}
                                 </Button>
                             </>
                         ) : null}
                         {projects.length ? (
-                            <Button disabled={!hydrated} onClick={() => setDeleteIds(projects.map((project) => project.id))}>
+                            <Button onClick={() => setDeleteIds(projects.map((project) => project.id))} type={"button"} variant={"secondary"} size="default" disabled={!hydrated}>
                                 {"删除全部"}
                             </Button>
                         ) : null}
-                        <Button disabled={!hydrated} icon={<FileUp className="size-4" />} onClick={() => inputRef.current?.click()}>
+                        <Button onClick={() => inputRef.current?.click()} type={"button"} variant={"secondary"} size="default" disabled={!hydrated}>
+                            {<FileUp data-icon="inline-start" />}
                             {"导入画布"}
                         </Button>
-                        <Button disabled={!hydrated} type="primary" icon={<Plus className="size-4" />} onClick={createAndEnter}>
+                        <Button onClick={createAndEnter} type={"button"} variant={"default"} size="default" disabled={!hydrated}>
+                            {<Plus data-icon="inline-start" />}
                             {"新建画布"}
                         </Button>
                     </div>
                 </header>
 
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <Input placeholder="搜索项目" aria-label="搜索项目" value={keyword} onChange={(event) => setKeyword(event.target.value)} className="w-full sm:w-72" />
+                    <Select value={sort} onValueChange={setSort}>
+                        <SelectTrigger aria-label="项目排序">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectItem value="updated">最近更新</SelectItem>
+                                <SelectItem value="name">按名称排序</SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </div>
+
                 {!hydrated ? (
                     <section className="flex min-h-[360px] items-center justify-center border-y border-border text-sm text-muted-foreground ">{"正在加载画布..."}</section>
                 ) : projects.length ? (
-                    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                        {projects.map((project) => (
+                    <div className="grid gap-5 @min-[520px]:grid-cols-2 @min-[900px]:grid-cols-3 @min-[1200px]:grid-cols-4">
+                        {!keyword && (
+                            <ActionButton variant="outline" onClick={createAndEnter} className="h-auto min-h-60 flex-col gap-3 rounded-xl border-dashed">
+                                <Plus />
+                                新建画布创作
+                            </ActionButton>
+                        )}
+                        {!visibleProjects.length && <p className="col-span-full py-12 text-center text-sm text-muted-foreground">没有找到匹配的项目</p>}
+                        {visibleProjects.map((project) => (
                             <CanvasProjectCard key={project.id} project={project} />
                         ))}
                     </div>
@@ -119,7 +162,8 @@ export default function CanvasPage() {
                     <section className="flex min-h-[360px] flex-col items-center justify-center border-y border-border text-center ">
                         <h2 className="text-xl font-medium">{"还没有画布"}</h2>
                         <p className="mt-3 text-sm text-muted-foreground">{"新建一个画布后，就可以独立保存节点、连线和画布外观。"}</p>
-                        <Button type="primary" className="mt-6" icon={<Plus className="size-4" />} onClick={createAndEnter}>
+                        <Button onClick={createAndEnter} type={"button"} variant={"default"} size="default" className={"mt-6"}>
+                            {<Plus data-icon="inline-start" />}
                             {"新建画布"}
                         </Button>
                     </section>

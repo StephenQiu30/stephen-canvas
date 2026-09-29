@@ -1,6 +1,5 @@
 import { FileText, Group, Image as ImageIcon, Music2, Settings2, Video } from "lucide-react";
 
-
 import { NODE_SPECS } from "@/constant/canvas";
 import { registerNodeDefinitions } from "@/lib/canvas/node-registry";
 import { CanvasNodeType, type CanvasNodeData } from "@/types/canvas";

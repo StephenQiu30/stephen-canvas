@@ -1,19 +1,21 @@
-import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowUp, LoaderCircle, Maximize2, Square } from "lucide-react";
-import { Button, Modal, Tooltip } from "@/components/ui/app-primitives";
+import { useEffect, useState } from "react";
 
 import { ModelPicker } from "@/components/model-picker";
-import { defaultConfig, resolveModelForCapability, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
 import { canvasThemes } from "@/lib/canvas-theme";
-import { useThemeStore } from "@/stores/use-theme-store";
-import { CanvasImageSettingsPopover } from "./canvas-image-settings-popover";
-import { CanvasAudioSettingsPopover, type CanvasAudioSettingKey } from "./canvas-audio-settings-popover";
-import { CanvasPromptChipInput } from "./canvas-prompt-chip-input";
-import { CanvasVideoSettingsPopover } from "./canvas-video-settings-popover";
-import { CanvasTextSettingsPopover } from "./canvas-text-settings-popover";
-import { CanvasNodeType, type CanvasGenerationMode, type CanvasNodeData } from "@/types/canvas";
 import type { CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
+import { defaultConfig, resolveModelForCapability, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
+import { useThemeStore } from "@/stores/use-theme-store";
+import { CanvasNodeType, type CanvasGenerationMode, type CanvasNodeData } from "@/types/canvas";
+import { CanvasAudioSettingsPopover, type CanvasAudioSettingKey } from "./canvas-audio-settings-popover";
+import { CanvasImageSettingsPopover } from "./canvas-image-settings-popover";
 import { CanvasNodeReferenceBar } from "./canvas-node-reference-bar";
+import { CanvasPromptChipInput } from "./canvas-prompt-chip-input";
+import { CanvasTextSettingsPopover } from "./canvas-text-settings-popover";
+import { CanvasVideoSettingsPopover } from "./canvas-video-settings-popover";
 
 export type CanvasNodeGenerationMode = CanvasGenerationMode;
 
@@ -33,7 +35,21 @@ type CanvasNodePromptPanelProps = {
     modeOverride?: CanvasNodeGenerationMode; // Plugin nodes set their generation type through useBuiltinPanel.mode.
 };
 
-export function CanvasNodePromptPanel({ node, nodes, isRunning, onPromptChange, onConfigChange, onGenerate, onStop, mentionReferences = [], connectedNodes = [], onDisconnectReference, onStartReferenceSelection, onImageSettingsOpenChange, modeOverride }: CanvasNodePromptPanelProps) {
+export function CanvasNodePromptPanel({
+    node,
+    nodes,
+    isRunning,
+    onPromptChange,
+    onConfigChange,
+    onGenerate,
+    onStop,
+    mentionReferences = [],
+    connectedNodes = [],
+    onDisconnectReference,
+    onStartReferenceSelection,
+    onImageSettingsOpenChange,
+    modeOverride,
+}: CanvasNodePromptPanelProps) {
     const globalConfig = useEffectiveConfig();
     const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
@@ -42,7 +58,18 @@ export function CanvasNodePromptPanel({ node, nodes, isRunning, onPromptChange, 
     const hasTextContent = node.type === CanvasNodeType.Text && Boolean(node.metadata?.content?.trim());
     const hasImageContent = node.type === CanvasNodeType.Image && Boolean(node.metadata?.content);
     const isEditingExistingContent = hasTextContent || hasImageContent;
-    const promptPlaceholder = mode === "image" ? (hasImageContent ? "请输入你想要把这张图修改成什么" : "描述要生成的图片内容") : mode === "text" ? (hasTextContent ? "请输入你想要将本段文本修改成什么" : "请输入你想要生成的文本内容") : mode === "video" ? "描述要生成的视频内容" : "描述要生成的音频内容";
+    const promptPlaceholder =
+        mode === "image"
+            ? hasImageContent
+                ? "请输入你想要把这张图修改成什么"
+                : "描述要生成的图片内容"
+            : mode === "text"
+              ? hasTextContent
+                  ? "请输入你想要将本段文本修改成什么"
+                  : "请输入你想要生成的文本内容"
+              : mode === "video"
+                ? "描述要生成的视频内容"
+                : "描述要生成的音频内容";
     const [prompt, setPrompt] = useState(node.metadata?.composerContent ?? node.metadata?.prompt ?? "");
     const [expanded, setExpanded] = useState(false);
 
@@ -90,8 +117,13 @@ export function CanvasNodePromptPanel({ node, nodes, isRunning, onPromptChange, 
 
             <div className="mt-2 flex min-w-0 items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
-                    <Tooltip title={"放大编辑"}>
-                        <Button type="text" className="!h-8 !w-8 !min-w-8 shrink-0 !rounded-full !bg-transparent !p-0" style={{ color: theme.node.text }} icon={<Maximize2 className="size-3.5" />} onClick={openExpandedEditor} aria-label={"放大编辑"} />
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button style={{ color: theme.node.text }} onClick={openExpandedEditor} aria-label={"放大编辑"} type={"button"} variant={"ghost"} size="icon" className={"!h-8 !w-8 !min-w-8 shrink-0 !rounded-full !bg-transparent !p-0"}>
+                                {<Maximize2 data-icon="inline-start" />}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{"放大编辑"}</TooltipContent>
                     </Tooltip>
                     {mode === "image" ? (
                         <>
@@ -118,17 +150,23 @@ export function CanvasNodePromptPanel({ node, nodes, isRunning, onPromptChange, 
                     ) : (
                         <>
                             <ModelPicker config={config} value={config.model} onChange={(model) => onConfigChange(node.id, { model })} capability="text" onMissingConfig={() => openConfigDialog(true)} className="max-w-[190px]" />
-                            <CanvasTextSettingsPopover config={config} count={node.metadata?.textCount || 1} onConfigChange={(_, value) => onConfigChange(node.id, { reasoningEffort: value })} onCountChange={(textCount) => onConfigChange(node.id, { textCount })} />
+                            <CanvasTextSettingsPopover
+                                config={config}
+                                count={node.metadata?.textCount || 1}
+                                onConfigChange={(_, value) => onConfigChange(node.id, { reasoningEffort: value })}
+                                onCountChange={(textCount) => onConfigChange(node.id, { textCount })}
+                            />
                         </>
                     )}
                 </div>
                 <Button
-                    type="primary"
-                    className="!h-10 !min-w-16 shrink-0 !rounded-full !px-3"
-                    danger={isRunning}
-                    disabled={!isRunning && !prompt.trim()}
                     onClick={() => (isRunning ? onStop(node.id) : submit())}
-                    aria-label={(isRunning ? "停止生成" : "生成")}
+                    aria-label={isRunning ? "停止生成" : "生成"}
+                    type={"button"}
+                    variant={isRunning ? "destructive" : "default"}
+                    size="default"
+                    disabled={!isRunning && !prompt.trim()}
+                    className={"!h-10 !min-w-16 shrink-0 !rounded-full !px-3"}
                 >
                     <span className="flex items-center gap-1.5">
                         {isRunning ? (
@@ -143,19 +181,40 @@ export function CanvasNodePromptPanel({ node, nodes, isRunning, onPromptChange, 
                     </span>
                 </Button>
             </div>
-            <Modal title={"编辑提示词"} open={expanded} centered width={760} footer={null} onCancel={() => setExpanded(false)} destroyOnHidden>
-                <div data-canvas-no-zoom className="pt-2" onWheelCapture={(event) => event.stopPropagation()}>
-                    <CanvasNodeReferenceBar nodeId={node.id} nodes={nodes} connectedNodes={connectedNodes} onDisconnect={onDisconnectReference} onStartSelection={(nodeId) => { setExpanded(false); onStartReferenceSelection?.(nodeId); }} />
-                    <CanvasPromptChipInput
-                        value={prompt}
-                        references={mentionReferences}
-                        onChange={updatePrompt}
-                        className="thin-scrollbar h-[52dvh] min-h-80 w-full cursor-text overflow-y-auto rounded-xl border p-4 text-[15px] leading-6 outline-none"
-                        style={{ background: "transparent", borderColor: theme.toolbar.border, color: theme.node.text }}
-                        placeholder={promptPlaceholder}
-                    />
-                </div>
-            </Modal>
+            <Dialog
+                open={expanded}
+                onOpenChange={(open) => {
+                    if (!open) (() => setExpanded(false))();
+                }}
+            >
+                <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"} style={{ width: 760, maxWidth: "calc(100vw - 2rem)" }}>
+                    <DialogHeader>
+                        <DialogTitle>{"编辑提示词"}</DialogTitle>
+                    </DialogHeader>
+                    <div>
+                        <div data-canvas-no-zoom className="pt-2" onWheelCapture={(event) => event.stopPropagation()}>
+                            <CanvasNodeReferenceBar
+                                nodeId={node.id}
+                                nodes={nodes}
+                                connectedNodes={connectedNodes}
+                                onDisconnect={onDisconnectReference}
+                                onStartSelection={(nodeId) => {
+                                    setExpanded(false);
+                                    onStartReferenceSelection?.(nodeId);
+                                }}
+                            />
+                            <CanvasPromptChipInput
+                                value={prompt}
+                                references={mentionReferences}
+                                onChange={updatePrompt}
+                                className="thin-scrollbar h-[52dvh] min-h-80 w-full cursor-text overflow-y-auto rounded-xl border p-4 text-[15px] leading-6 outline-none"
+                                style={{ background: "transparent", borderColor: theme.toolbar.border, color: theme.node.text }}
+                                placeholder={promptPlaceholder}
+                            />
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

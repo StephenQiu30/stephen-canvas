@@ -1,8 +1,8 @@
 "use client";
 
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
 
 export function AppFooter() {
     const pathname = usePathname();
@@ -10,8 +10,8 @@ export function AppFooter() {
     if (/^\/canvas\/[^/]+$/.test(pathname)) return null;
 
     return (
-        <footer className="h-10 shrink-0 border-t border-border bg-background">
-            <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-4 px-6 text-xs text-muted-foreground">
+        <footer className="h-10 shrink-0 bg-background">
+            <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-4 px-4 lg:px-10 text-xs text-muted-foreground">
                 <div className="flex min-w-0 items-center gap-2">
                     <Link href="/" className="shrink-0 font-medium text-foreground transition hover:text-muted-foreground">
                         {"Stephen Canvas"}
@@ -19,13 +19,7 @@ export function AppFooter() {
                     <span aria-hidden="true">·</span>
                     <span className="hidden truncate sm:inline">{"开源 AI 创作工作台"}</span>
                 </div>
-                <a
-                    href="https://github.com/StephenQiu30/stephen-canvas"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex shrink-0 items-center gap-1 transition hover:text-foreground"
-                    aria-label={"项目仓库"}
-                >
+                <a href="https://github.com/StephenQiu30/stephen-canvas" target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 transition hover:text-foreground" aria-label={"项目仓库"}>
                     {"项目仓库"}
                     <ArrowUpRight className="size-3.5" aria-hidden="true" />
                 </a>

@@ -3,9 +3,10 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast, Toaster } from "sonner";
 
-import { useThemeStore } from "@/stores/use-theme-store";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { useThemeStore } from "@/stores/use-theme-store";
 
 export type ConfirmOptions = {
     title: ReactNode;
@@ -28,6 +29,7 @@ let nextConfirmId = 0;
 export function AppFeedbackProvider({ children }: { children: ReactNode }) {
     const theme = useThemeStore((state) => state.theme);
     const [pending, setPending] = useState<PendingConfirm | null>(null);
+    const [accepting, setAccepting] = useState(false);
     const pendingRef = useRef<PendingConfirm | null>(null);
 
     const closeConfirm = useCallback((id: number) => {
@@ -53,12 +55,15 @@ export function AppFeedbackProvider({ children }: { children: ReactNode }) {
     const danger = options?.okButtonProps?.danger || options?.okType === "danger";
 
     const accept = async () => {
-        if (!pending) return;
+        if (!pending || accepting) return;
+        setAccepting(true);
         try {
             await options?.onOk?.();
             closeConfirm(pending.id);
         } catch {
             // Keep the confirmation open when the requested action fails.
+        } finally {
+            setAccepting(false);
         }
     };
 
@@ -66,7 +71,7 @@ export function AppFeedbackProvider({ children }: { children: ReactNode }) {
         <FeedbackContext.Provider value={contextValue}>
             {children}
             <Toaster position="top-right" theme={theme} />
-            <AlertDialog open={Boolean(pending)} onOpenChange={(open) => !open && pending && closeConfirm(pending.id)}>
+            <AlertDialog open={Boolean(pending)} onOpenChange={(open) => !open && !accepting && pending && closeConfirm(pending.id)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{options?.title}</AlertDialogTitle>
@@ -74,18 +79,20 @@ export function AppFeedbackProvider({ children }: { children: ReactNode }) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel asChild>
-                            <Button variant="outline" onClick={() => options?.onCancel?.()}>
+                            <Button variant="outline" disabled={accepting} onClick={() => options?.onCancel?.()}>
                                 {options?.cancelText || "取消"}
                             </Button>
                         </AlertDialogCancel>
                         <AlertDialogAction asChild>
                             <Button
                                 variant={danger ? "destructive" : "default"}
+                                disabled={accepting}
                                 onClick={(event) => {
                                     event.preventDefault();
                                     void accept();
                                 }}
                             >
+                                {accepting && <Spinner data-icon="inline-start" />}
                                 {options?.okText || "确定"}
                             </Button>
                         </AlertDialogAction>

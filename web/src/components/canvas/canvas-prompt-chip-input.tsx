@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from "react";
-import { createPortal } from "react-dom";
-import { Image } from "@/components/ui/app-primitives";
+import { MediaPreview } from "@/components/media-preview";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { FileText, Image as ImageIcon, Music2, Video } from "lucide-react";
+import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { canvasThemes } from "@/lib/canvas-theme";
+import type { CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
 import { isImeComposing, isPlainEnterKey } from "@/lib/keyboard-event";
 import { useThemeStore } from "@/stores/use-theme-store";
-import type { CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
 
 type Props = {
     value: string;
@@ -24,9 +26,7 @@ type MentionState = {
     rect: DOMRect | null;
 };
 
-type Token =
-    | { type: "text"; value: string }
-    | { type: "reference"; label: string };
+type Token = { type: "text"; value: string } | { type: "reference"; label: string };
 
 // Prompt-panel contentEditable input: @ references embed thumbnail chips instead of plain label text.
 // Serialization converts chips back to reference labels so the generated value matches the former textarea semantics.
@@ -189,15 +189,27 @@ export function CanvasPromptChipInput({ value, references, onChange, onSubmit, c
                 }}
                 onBlur={() => window.setTimeout(closeMention, 120)}
             />
-            {mention && candidates.length ? (
-                <MentionMenu rect={mention.rect} references={candidates} activeIndex={Math.min(activeIndex, candidates.length - 1)} theme={theme} onSelect={insertReference} />
-            ) : null}
-            {imagePreview ? <Image src={imagePreview} alt={"引用图片预览"} style={{ display: "none" }} preview={{ visible: true, src: imagePreview, onVisibleChange: (visible) => !visible && setImagePreview(null) }} /> : null}
+            {mention && candidates.length ? <MentionMenu onClose={closeMention} rect={mention.rect} references={candidates} activeIndex={Math.min(activeIndex, candidates.length - 1)} theme={theme} onSelect={insertReference} /> : null}
+            {imagePreview ? <MediaPreview src={imagePreview} alt={"引用图片预览"} style={{ display: "none" }} previewSrc={imagePreview} open={true} onOpenChange={(visible) => !visible && setImagePreview(null)} /> : null}
         </div>
     );
 }
 
-function MentionMenu({ rect, references, activeIndex, theme, onSelect }: { rect: DOMRect | null; references: CanvasResourceReference[]; activeIndex: number; theme: (typeof canvasThemes)[keyof typeof canvasThemes]; onSelect: (reference: CanvasResourceReference) => void }) {
+function MentionMenu({
+    rect,
+    references,
+    activeIndex,
+    theme,
+    onSelect,
+    onClose,
+}: {
+    rect: DOMRect | null;
+    references: CanvasResourceReference[];
+    activeIndex: number;
+    theme: (typeof canvasThemes)[keyof typeof canvasThemes];
+    onClose: () => void;
+    onSelect: (reference: CanvasResourceReference) => void;
+}) {
     const selectedRef = useRef(false);
     const activeItemRef = useRef<HTMLButtonElement | null>(null);
 
@@ -222,40 +234,55 @@ function MentionMenu({ rect, references, activeIndex, theme, onSelect }: { rect:
     const top = showAbove ? anchor.top - gap - maxMenuHeight : anchor.bottom + gap;
 
     return createPortal(
-        <div
-            data-canvas-resource-mention-menu="true"
-            className="fixed z-[1100] max-h-56 w-64 overflow-y-auto rounded-xl border p-1 shadow-2xl backdrop-blur-md"
-            style={{ left, top, background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.node.text }}
-            onPointerDown={stopCanvasInteraction}
-            onMouseDown={stopCanvasInteraction}
-            onClick={(event) => event.stopPropagation()}
+        <Popover
+            open
+            onOpenChange={(open) => {
+                if (!open) onClose();
+            }}
         >
-            {references.map((reference, index) => (
-                <button
-                    key={reference.id}
-                    ref={index === activeIndex ? activeItemRef : undefined}
-                    type="button"
-                    className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition"
-                    style={{ background: index === activeIndex ? theme.toolbar.activeBg : "transparent", color: index === activeIndex ? theme.toolbar.activeText : theme.node.text }}
-                    onPointerDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        selectReference(reference);
-                    }}
-                    onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        selectReference(reference);
-                    }}
-                >
-                    <ReferencePreview reference={reference} />
-                    <span className="min-w-0 flex-1">
-                        <span className="block font-medium">{reference.label}</span>
-                        <span className="block truncate opacity-65">{reference.text || reference.title}</span>
-                    </span>
-                </button>
-            ))}
-        </div>,
+            <PopoverAnchor asChild>
+                <span className="fixed size-px" style={{ left, top }} />
+            </PopoverAnchor>
+            <PopoverContent
+                data-canvas-resource-mention-menu="true"
+                aria-label="选择画布素材"
+                align="start"
+                sideOffset={0}
+                className="max-h-56 w-64 overflow-y-auto p-1"
+                onOpenAutoFocus={(event) => event.preventDefault()}
+                onCloseAutoFocus={(event) => event.preventDefault()}
+                onPointerDown={stopCanvasInteraction}
+                onMouseDown={stopCanvasInteraction}
+                onClick={(event) => event.stopPropagation()}
+            >
+                {references.map((reference, index) => (
+                    <Button
+                        variant="ghost"
+                        key={reference.id}
+                        ref={index === activeIndex ? activeItemRef : undefined}
+                        type="button"
+                        className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition"
+                        style={{ background: index === activeIndex ? theme.toolbar.activeBg : "transparent", color: index === activeIndex ? theme.toolbar.activeText : theme.node.text }}
+                        onPointerDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            selectReference(reference);
+                        }}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            selectReference(reference);
+                        }}
+                    >
+                        <ReferencePreview reference={reference} />
+                        <span className="min-w-0 flex-1">
+                            <span className="block font-medium">{reference.label}</span>
+                            <span className="block truncate opacity-65">{reference.text || reference.title}</span>
+                        </span>
+                    </Button>
+                ))}
+            </PopoverContent>
+        </Popover>,
         document.body,
     );
 }

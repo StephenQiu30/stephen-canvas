@@ -1,6 +1,10 @@
-import { useRef, useState, type ReactNode } from "react";
-import { Button, Dropdown, Tooltip } from "@/components/ui/app-primitives";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { SelectGroup } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { ArrowUp, Check, ChevronUp, Cpu, Gauge, Hand, ImagePlus, LoaderCircle, RefreshCw, ShieldAlert, ShieldCheck, ShieldOff, Square, X } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -65,38 +69,92 @@ export function AgentChatComposer({
                             <div key={item.id} className="group relative size-14 shrink-0 overflow-hidden rounded-xl border" style={{ borderColor: theme.node.stroke }} title={item.name}>
                                 <img src={item.url} alt={item.name} className="size-full object-cover" />
                                 {onRemoveAttachment ? (
-                                    <button type="button" className="absolute right-1 top-1 grid size-5 place-items-center rounded-full border opacity-0 shadow-sm transition group-hover:opacity-100" style={{ background: theme.toolbar.panel, borderColor: theme.node.stroke, color: theme.node.text }} onClick={() => onRemoveAttachment(item.id)} aria-label={"移除图片"}>
+                                    <Button
+                                        variant="ghost"
+                                        type="button"
+                                        className="absolute right-1 top-1 grid size-5 place-items-center rounded-full border opacity-0 shadow-sm transition group-hover:opacity-100"
+                                        style={{ background: theme.toolbar.panel, borderColor: theme.node.stroke, color: theme.node.text }}
+                                        onClick={() => onRemoveAttachment(item.id)}
+                                        aria-label={"移除图片"}
+                                    >
                                         <X className="size-3" />
-                                    </button>
+                                    </Button>
                                 ) : null}
                             </div>
                         ))}
                     </div>
                 ) : null}
-                <AgentChatPromptInput value={prompt} disabled={disabled || sending} placeholder={placeholder} theme={theme} onChange={onPromptChange} onSubmit={() => { if (canSubmit) void onSubmit(); }} onAddFiles={onAddFiles} />
+                <AgentChatPromptInput
+                    value={prompt}
+                    disabled={disabled || sending}
+                    placeholder={placeholder}
+                    theme={theme}
+                    onChange={onPromptChange}
+                    onSubmit={() => {
+                        if (canSubmit) void onSubmit();
+                    }}
+                    onAddFiles={onAddFiles}
+                />
                 <div className="@container mt-2 flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-1">
                         {onAddFiles ? (
                             <>
-                                <input ref={fileInputRef} hidden type="file" accept="image/*" multiple onChange={(event) => {
-                                    void onAddFiles(event.target.files);
-                                    event.target.value = "";
-                                }} />
-                                <Tooltip title={"上传图片"}>
-                                    <Button type="text" shape="circle" className="!h-9 !w-9 !min-w-9" disabled={disabled || sending} style={{ color: theme.node.muted }} icon={<ImagePlus className="size-4" />} onClick={() => fileInputRef.current?.click()} aria-label={"上传图片"} />
+                                <input
+                                    ref={fileInputRef}
+                                    hidden
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(event) => {
+                                        void onAddFiles(event.target.files);
+                                        event.target.value = "";
+                                    }}
+                                />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            style={{ color: theme.node.muted }}
+                                            onClick={() => fileInputRef.current?.click()}
+                                            aria-label={"上传图片"}
+                                            type={"button"}
+                                            variant={"ghost"}
+                                            size="icon"
+                                            disabled={disabled || sending}
+                                            className={"!h-9 !w-9 !min-w-9"}
+                                        >
+                                            {<ImagePlus data-icon="inline-start" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">{"上传图片"}</TooltipContent>
                                 </Tooltip>
                             </>
                         ) : null}
                         {onConfirmToolsChange ? <ToolConfirmationMenu confirmTools={Boolean(confirmTools)} theme={theme} onChange={onConfirmToolsChange} /> : null}
                         {permissionMode && onPermissionModeChange ? <PermissionModeMenu permissionMode={permissionMode} theme={theme} onChange={onPermissionModeChange} /> : null}
-                        {models?.length && model && reasoningEffort && onModelChange && onReasoningEffortChange ? <AgentModelControls models={models} model={model} reasoningEffort={reasoningEffort} onModelChange={onModelChange} onReasoningEffortChange={onReasoningEffortChange} /> : null}
+                        {models?.length && model && reasoningEffort && onModelChange && onReasoningEffortChange ? (
+                            <AgentModelControls models={models} model={model} reasoningEffort={reasoningEffort} onModelChange={onModelChange} onReasoningEffortChange={onReasoningEffortChange} />
+                        ) : null}
                         {left}
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
                         {sending && onStop ? (
-                            <Tooltip title={"停止"} placement="top"><Button danger shape="circle" className="!h-10 !w-10 !min-w-10" icon={<Square className="size-4" />} onClick={() => void onStop()} aria-label={"停止"} /></Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button onClick={() => void onStop()} aria-label={"停止"} type={"button"} variant={"destructive"} size="icon" className={"!h-10 !w-10 !min-w-10"}>
+                                        {<Square data-icon="inline-start" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">{"停止"}</TooltipContent>
+                            </Tooltip>
                         ) : (
-                            <Tooltip title={"发送"} placement="top"><Button type="primary" shape="circle" className="!h-10 !w-10 !min-w-10" disabled={!canSubmit} icon={sending ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowUp className="size-4" />} onClick={() => void onSubmit()} aria-label={"发送"} /></Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button onClick={() => void onSubmit()} aria-label={"发送"} type={"button"} variant={"default"} size="icon" disabled={!canSubmit} className={"!h-10 !w-10 !min-w-10"}>
+                                        {sending ? <LoaderCircle data-icon="inline-start" /> : <ArrowUp data-icon="inline-start" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">{"发送"}</TooltipContent>
+                            </Tooltip>
                         )}
                     </div>
                 </div>
@@ -105,40 +163,78 @@ export function AgentChatComposer({
     );
 }
 
-function AgentModelControls({ models, model, reasoningEffort, onModelChange, onReasoningEffortChange }: { models: AgentModel[]; model: string; reasoningEffort: AgentReasoningEffort; onModelChange: (model: string) => void; onReasoningEffortChange: (effort: AgentReasoningEffort) => void }) {
+function AgentModelControls({
+    models,
+    model,
+    reasoningEffort,
+    onModelChange,
+    onReasoningEffortChange,
+}: {
+    models: AgentModel[];
+    model: string;
+    reasoningEffort: AgentReasoningEffort;
+    onModelChange: (model: string) => void;
+    onReasoningEffortChange: (effort: AgentReasoningEffort) => void;
+}) {
     const current = models.find((item) => item.model === model) || models[0];
-    const effortLabel = (effort: AgentReasoningEffort) => (({ "minimal":"最低", "low":"轻度", "medium":"中", "high":"高", "xhigh":"极高", "max":"最高", "ultra":"Ultra" } as Record<string, string>)[String(effort)] || String(effort));
+    const effortLabel = (effort: AgentReasoningEffort) => (({ minimal: "最低", low: "轻度", medium: "中", high: "高", xhigh: "极高", max: "最高", ultra: "Ultra" }) as Record<string, string>)[String(effort)] || String(effort);
     const [modelOpen, setModelOpen] = useState(false);
     const [reasoningOpen, setReasoningOpen] = useState(false);
     return (
         <div className="flex min-w-0 items-center gap-1">
-            <Tooltip title={`模型：${current.displayName || current.model}`} placement="top" open={modelOpen ? false : undefined}>
-                <span className="inline-flex shrink-0">
-                    <Select value={model} open={modelOpen} onOpenChange={setModelOpen} onValueChange={onModelChange}>
-                        <SelectTrigger hideChevron className="h-9 w-9 min-w-9 justify-center gap-0 rounded-full border-0 bg-transparent px-0 text-xs font-medium shadow-none hover:bg-black/5 focus:ring-0 @min-[660px]:w-auto @min-[660px]:min-w-36 @min-[660px]:max-w-36 @min-[660px]:justify-start @min-[660px]:gap-1.5 @min-[660px]:px-2.5 dark:bg-transparent dark:hover:bg-white/10" aria-label={`选择 Codex 模型，当前为 ${current.displayName || current.model}`}>
-                            <Cpu className="size-3.5 shrink-0 opacity-70" />
-                            <span className="hidden min-w-0 flex-1 truncate text-left @min-[660px]:inline">{current.displayName || current.model}</span>
-                            <ChevronUp className="hidden size-3 opacity-50 @min-[660px]:block" />
-                        </SelectTrigger>
-                        <SelectContent data-canvas-no-zoom position="popper" side="top" align="start" sideOffset={6} className="z-[1200] w-64 rounded-xl border border-border/70 bg-popover p-1 shadow-xl">
-                            {models.map((item) => <SelectItem key={item.model} value={item.model}>{item.displayName || item.model}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </span>
+            <Tooltip open={modelOpen ? false : undefined}>
+                <TooltipTrigger asChild>
+                    <span className="inline-flex shrink-0">
+                        <Select value={model} open={modelOpen} onOpenChange={setModelOpen} onValueChange={onModelChange}>
+                            <SelectTrigger
+                                hideChevron
+                                className="h-9 w-9 min-w-9 justify-center gap-0 rounded-full border-0 bg-transparent px-0 text-xs font-medium shadow-none hover:bg-black/5 focus:ring-0 @min-[660px]:w-auto @min-[660px]:min-w-36 @min-[660px]:max-w-36 @min-[660px]:justify-start @min-[660px]:gap-1.5 @min-[660px]:px-2.5 dark:bg-transparent dark:hover:bg-white/10"
+                                aria-label={`选择 Codex 模型，当前为 ${current.displayName || current.model}`}
+                            >
+                                <Cpu className="size-3.5 shrink-0 opacity-70" />
+                                <span className="hidden min-w-0 flex-1 truncate text-left @min-[660px]:inline">{current.displayName || current.model}</span>
+                                <ChevronUp className="hidden size-3 opacity-50 @min-[660px]:block" />
+                            </SelectTrigger>
+                            <SelectContent data-canvas-no-zoom position="popper" side="top" align="start" sideOffset={6} className="w-64 rounded-xl border border-border/70 bg-popover p-1 shadow-xl">
+                                <SelectGroup>
+                                    {models.map((item) => (
+                                        <SelectItem key={item.model} value={item.model}>
+                                            {item.displayName || item.model}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">{`模型：${current.displayName || current.model}`}</TooltipContent>
             </Tooltip>
-            <Tooltip title={`思考程度：${effortLabel(reasoningEffort)}`} placement="top" open={reasoningOpen ? false : undefined}>
-                <span className="inline-flex shrink-0">
-                    <Select value={reasoningEffort} open={reasoningOpen} onOpenChange={setReasoningOpen} onValueChange={(value) => onReasoningEffortChange(value as AgentReasoningEffort)}>
-                        <SelectTrigger hideChevron className="h-9 w-9 min-w-9 justify-center gap-0 rounded-full border-0 bg-transparent px-0 text-xs font-medium shadow-none hover:bg-black/5 focus:ring-0 @min-[660px]:w-auto @min-[660px]:min-w-[4.5rem] @min-[660px]:justify-start @min-[660px]:gap-1.5 @min-[660px]:px-2.5 dark:bg-transparent dark:hover:bg-white/10" aria-label={`选择思考程度，当前为 ${effortLabel(reasoningEffort)}`}>
-                            <Gauge className="size-3.5 opacity-70" />
-                            <span className="hidden @min-[660px]:inline">{effortLabel(reasoningEffort)}</span>
-                            <ChevronUp className="hidden size-3 opacity-50 @min-[660px]:block" />
-                        </SelectTrigger>
-                        <SelectContent data-canvas-no-zoom position="popper" side="top" align="start" sideOffset={6} className="z-[1200] min-w-32 rounded-xl border border-border/70 bg-popover p-1 shadow-xl">
-                            {current.supportedReasoningEfforts.map((item) => <SelectItem key={item.reasoningEffort} value={item.reasoningEffort}>{effortLabel(item.reasoningEffort)}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </span>
+            <Tooltip open={reasoningOpen ? false : undefined}>
+                <TooltipTrigger asChild>
+                    <span className="inline-flex shrink-0">
+                        <Select value={reasoningEffort} open={reasoningOpen} onOpenChange={setReasoningOpen} onValueChange={(value) => onReasoningEffortChange(value as AgentReasoningEffort)}>
+                            <SelectTrigger
+                                hideChevron
+                                className="h-9 w-9 min-w-9 justify-center gap-0 rounded-full border-0 bg-transparent px-0 text-xs font-medium shadow-none hover:bg-black/5 focus:ring-0 @min-[660px]:w-auto @min-[660px]:min-w-[4.5rem] @min-[660px]:justify-start @min-[660px]:gap-1.5 @min-[660px]:px-2.5 dark:bg-transparent dark:hover:bg-white/10"
+                                aria-label={`选择思考程度，当前为 ${effortLabel(reasoningEffort)}`}
+                            >
+                                <Gauge className="size-3.5 opacity-70" />
+                                <span className="hidden @min-[660px]:inline">{effortLabel(reasoningEffort)}</span>
+                                <ChevronUp className="hidden size-3 opacity-50 @min-[660px]:block" />
+                            </SelectTrigger>
+                            <SelectContent data-canvas-no-zoom position="popper" side="top" align="start" sideOffset={6} className="min-w-32 rounded-xl border border-border/70 bg-popover p-1 shadow-xl">
+                                <SelectGroup>
+                                    {current.supportedReasoningEfforts.map((item) => (
+                                        <SelectItem key={item.reasoningEffort} value={item.reasoningEffort}>
+                                            {effortLabel(item.reasoningEffort)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">{`思考程度：${effortLabel(reasoningEffort)}`}</TooltipContent>
             </Tooltip>
         </div>
     );
@@ -153,65 +249,99 @@ function PermissionModeMenu({ permissionMode, theme, onChange }: { permissionMod
     const current = permissionOptions.find((item) => item.key === permissionMode) || permissionOptions[0];
     const [open, setOpen] = useState(false);
     return (
-        <Tooltip title={`权限：${current.shortTitle}`} placement="top" open={open ? false : undefined}>
-            <span className="inline-flex shrink-0">
-                <Dropdown
-                    trigger={["click"]}
-                    placement="topLeft"
-                    open={open}
-                    onOpenChange={setOpen}
-                    menu={{
-                        items: permissionOptions.map((item) => ({
-                            key: item.key,
-                            label: <ConfirmationOption icon={item.icon} title={item.title} description={item.description} selected={permissionMode === item.key} />,
-                            onClick: () => onChange(item.key),
-                        })),
-                    }}
-                >
-                    <button type="button" className="flex h-9 w-9 min-w-9 shrink-0 items-center justify-center gap-0 rounded-full px-0 text-xs font-medium transition hover:bg-black/5 @min-[660px]:h-9 @min-[660px]:w-auto @min-[660px]:min-w-0 @min-[660px]:justify-start @min-[660px]:gap-1.5 @min-[660px]:px-2.5 dark:hover:bg-white/10" style={{ color: permissionMode === "full" ? "#ea580c" : theme.node.text }} aria-label={`选择 Codex 权限模式，当前为 ${current.title}`}>
-                        {current.icon}
-                        <span className="hidden @min-[660px]:inline">{current.shortTitle}</span>
-                        <ChevronUp className="hidden size-3 opacity-50 @min-[660px]:block" />
-                    </button>
-                </Dropdown>
-            </span>
+        <Tooltip open={open ? false : undefined}>
+            <TooltipTrigger asChild>
+                <span className="inline-flex shrink-0">
+                    <DropdownMenu open={open} onOpenChange={setOpen}>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                type="button"
+                                className="flex h-9 w-9 min-w-9 shrink-0 items-center justify-center gap-0 rounded-full px-0 text-xs font-medium transition hover:bg-black/5 @min-[660px]:h-9 @min-[660px]:w-auto @min-[660px]:min-w-0 @min-[660px]:justify-start @min-[660px]:gap-1.5 @min-[660px]:px-2.5 dark:hover:bg-white/10"
+                                style={{ color: permissionMode === "full" ? "#ea580c" : theme.node.text }}
+                                aria-label={`选择 Codex 权限模式，当前为 ${current.title}`}
+                            >
+                                {current.icon}
+                                <span className="hidden @min-[660px]:inline">{current.shortTitle}</span>
+                                <ChevronUp className="hidden size-3 opacity-50 @min-[660px]:block" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="top" align="start">
+                            <DropdownMenuGroup>
+                                {permissionOptions
+                                    .map((item) => ({
+                                        key: item.key,
+                                        label: <ConfirmationOption icon={item.icon} title={item.title} description={item.description} selected={permissionMode === item.key} />,
+                                        onClick: () => onChange(item.key),
+                                    }))
+                                    .map((item, index) =>
+                                        "type" in item && item.type === "divider" ? (
+                                            <DropdownMenuSeparator key={index} />
+                                        ) : (
+                                            <DropdownMenuItem
+                                                key={item.key}
+                                                disabled={false}
+                                                onSelect={() => {
+                                                    if ("onClick" in item) item.onClick?.();
+                                                }}
+                                            >
+                                                {item.label}
+                                            </DropdownMenuItem>
+                                        ),
+                                    )}
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">{`权限：${current.shortTitle}`}</TooltipContent>
         </Tooltip>
     );
 }
 
 function ToolConfirmationMenu({ confirmTools, theme, onChange }: { confirmTools: boolean; theme: (typeof canvasThemes)[keyof typeof canvasThemes]; onChange: (confirmTools: boolean) => void }) {
     const [open, setOpen] = useState(false);
-    const mode = (confirmTools ? "手动确认" : "自动确认");
+    const mode = confirmTools ? "手动确认" : "自动确认";
     return (
-        <Tooltip title={`工具确认：${mode}`} placement="top" open={open ? false : undefined}>
-            <span className="inline-flex shrink-0">
-                <Dropdown
-                    trigger={["click"]}
-                    placement="topLeft"
-                    open={open}
-                    onOpenChange={setOpen}
-                    menu={{
-                        items: [
-                            {
-                                key: "manual",
-                                label: <ConfirmationOption icon={<Hand className="size-4" />} title={"手动确认"} description={"Agent 执行画布写入前会请求确认"} selected={confirmTools} />,
-                                onClick: () => onChange(true),
-                            },
-                            {
-                                key: "automatic",
-                                label: <ConfirmationOption icon={<RefreshCw className="size-4" />} title={"自动确认"} description={"Agent 会自动执行画布写入操作"} selected={!confirmTools} />,
-                                onClick: () => onChange(false),
-                            },
-                        ],
-                    }}
-                >
-                    <button type="button" className="flex h-9 w-9 min-w-9 shrink-0 items-center justify-center gap-0 rounded-full px-0 text-xs font-medium transition hover:bg-black/5 @min-[660px]:w-auto @min-[660px]:min-w-0 @min-[660px]:justify-start @min-[660px]:gap-1.5 @min-[660px]:px-2.5 dark:hover:bg-white/10" style={{ color: theme.node.text }} aria-label={`选择工具确认模式，当前为 ${mode}`}>
-                        {confirmTools ? <Hand className="size-3.5" /> : <RefreshCw className="size-3.5" />}
-                        <span className="hidden @min-[660px]:inline">{mode}</span>
-                        <ChevronUp className="hidden size-3 opacity-50 @min-[660px]:block" />
-                    </button>
-                </Dropdown>
-            </span>
+        <Tooltip open={open ? false : undefined}>
+            <TooltipTrigger asChild>
+                <span className="inline-flex shrink-0">
+                    <DropdownMenu open={open} onOpenChange={setOpen}>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                type="button"
+                                className="flex h-9 w-9 min-w-9 shrink-0 items-center justify-center gap-0 rounded-full px-0 text-xs font-medium transition hover:bg-black/5 @min-[660px]:w-auto @min-[660px]:min-w-0 @min-[660px]:justify-start @min-[660px]:gap-1.5 @min-[660px]:px-2.5 dark:hover:bg-white/10"
+                                style={{ color: theme.node.text }}
+                                aria-label={`选择工具确认模式，当前为 ${mode}`}
+                            >
+                                {confirmTools ? <Hand className="size-3.5" /> : <RefreshCw className="size-3.5" />}
+                                <span className="hidden @min-[660px]:inline">{mode}</span>
+                                <ChevronUp className="hidden size-3 opacity-50 @min-[660px]:block" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="top" align="start">
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        (() => onChange(true))();
+                                    }}
+                                >
+                                    {<ConfirmationOption icon={<Hand className="size-4" />} title={"手动确认"} description={"Agent 执行画布写入前会请求确认"} selected={confirmTools} />}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        (() => onChange(false))();
+                                    }}
+                                >
+                                    {<ConfirmationOption icon={<RefreshCw className="size-4" />} title={"自动确认"} description={"Agent 会自动执行画布写入操作"} selected={!confirmTools} />}
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">{`工具确认：${mode}`}</TooltipContent>
         </Tooltip>
     );
 }

@@ -1,5 +1,9 @@
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
-import { Button, Form, Input, Switch } from "@/components/ui/app-primitives";
+import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import { Copy, Network, Wifi } from "lucide-react";
 import { useState } from "react";
 
@@ -27,7 +31,7 @@ export function ConfigLocalProxy() {
     };
 
     return (
-        <Form layout="vertical" requiredMark={false}>
+        <FieldGroup>
             <section className="rounded-lg border border-border p-3 ">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -37,7 +41,7 @@ export function ConfigLocalProxy() {
                         </div>
                         <div className="mt-1 text-xs text-muted-foreground">{"开启后，拉取模型列表、生图、生视频、生成文本、生成音频和 WebDAV 同步等请求都会先发给本机代理再转发出去，用来绕开浏览器跨域限制。"}</div>
                     </div>
-                    <Switch checked={config.proxyEnabled} onChange={(checked) => updateConfig("proxyEnabled", checked)} />
+                    <Switch checked={config.proxyEnabled} onCheckedChange={(checked) => updateConfig("proxyEnabled", checked)} />
                 </div>
                 {config.proxyEnabled ? (
                     <>
@@ -45,25 +49,30 @@ export function ConfigLocalProxy() {
                             <div className="mb-1 text-xs text-muted-foreground">{"先在终端运行下面的命令，并在使用画布期间保持运行："}</div>
                             <div className="flex items-center justify-between gap-3">
                                 <code className="min-w-0 truncate text-xs">{command}</code>
-                                <Button size="small" type="text" icon={<Copy className="size-3.5" />} onClick={() => copyText(command)} />
+                                <Button onClick={() => copyText(command)} type={"button"} variant={"ghost"} size="icon-sm">
+                                    {<Copy data-icon="inline-start" />}
+                                </Button>
                             </div>
                         </div>
-                        <Form.Item label={"代理地址"} extra={"需要和上面命令启动后打印的地址一致。"} className="mt-3 mb-0">
+                        <Field className="mt-3 mb-0">
+                            <FieldLabel>{"代理地址"}</FieldLabel>
                             <Input
                                 value={config.proxyUrl}
                                 placeholder={DEFAULT_LOCAL_PROXY_URL}
                                 onChange={(event) => updateConfig("proxyUrl", event.target.value)}
                                 onBlur={(event) => updateConfig("proxyUrl", normalizeLocalProxyUrl(event.target.value) || DEFAULT_LOCAL_PROXY_URL)}
                             />
-                        </Form.Item>
-                        <Button className="mt-3" icon={<Wifi className="size-4" />} loading={testing} onClick={() => void testProxy()}>
+                            <FieldDescription>{"需要和上面命令启动后打印的地址一致。"}</FieldDescription>
+                        </Field>
+                        <Button onClick={() => void testProxy()} type={"button"} variant={"secondary"} size="default" disabled={Boolean(testing) || false} className={"mt-3"}>
+                            {testing ? <Spinner data-icon="inline-start" /> : <Wifi data-icon="inline-start" />}
                             {"测试连接"}
                         </Button>
                         <div className="mt-3 text-xs text-muted-foreground">{"渠道和 WebDAV 仍填写真实地址，不要填代理地址；关闭开关即可恢复直连。"}</div>
                     </>
                 ) : null}
             </section>
-        </Form>
+        </FieldGroup>
     );
 }
 

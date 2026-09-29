@@ -1,14 +1,13 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MessageScroller, MessageScrollerButton, MessageScrollerContent, MessageScrollerItem, MessageScrollerProvider, MessageScrollerViewport } from "@/components/ui/message-scroller";
 import { motion, useSpring, useTransform } from "motion/react";
+import { memo, useEffect, useMemo } from "react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
 import { summarizeCanvasAgentOps } from "@/lib/canvas/canvas-agent-ops";
 import { useAgentStore, type AgentChatItem, type AgentPendingApproval, type AgentPendingToolCall, type AgentTokenUsage } from "@/stores/use-agent-store";
 import { AgentApprovalCard, AgentChatMessage, AgentCommandGroup, AgentPendingToolCard, AgentToolCard, AgentWorkingMessage } from "./agent-chat-message";
 import { agentMessageToChatMessage, currentPlanMessage, isPlanMessage, latestPlanMessage, toolCallDetail, toolName, workingActivity } from "./agent-event-formatters";
-import { AgentScrollToBottom } from "./agent-scroll-to-bottom";
 
-const SCROLL_BOTTOM_THRESHOLD = 48;
 const historyMessageStyle = { contentVisibility: "auto", containIntrinsicSize: "0 80px" } as const;
 
 export function AgentChatTimeline({
@@ -34,74 +33,52 @@ export function AgentChatTimeline({
     const bootstrapStatus = useAgentStore((state) => state.bootstrapStatus);
     const mcpStartupStatuses = useAgentStore((state) => state.mcpStartupStatuses);
     const timeline = useMemo(() => groupTimelineMessages(messages), [messages]);
-    const listRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef<HTMLDivElement>(null);
-    const followMessagesRef = useRef(true);
-    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+    const threadId = useAgentStore((state) => state.activeThreadId);
     const streaming = messages.some((message) => message.streamId);
     const showBootstrap = Boolean(bootstrapStatus && !messages.some((message) => message.role === "user" || message.role === "assistant"));
     const working = showBootstrap ? bootstrapStatus! : workingActivity(messages.at(-1));
-    const updateScrollState = useCallback(() => {
-        const list = listRef.current;
-        if (!list) return;
-        const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight <= SCROLL_BOTTOM_THRESHOLD;
-        followMessagesRef.current = atBottom;
-        setShowScrollToBottom(!atBottom);
-    }, []);
-    const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-        const list = listRef.current;
-        if (!list) return;
-        followMessagesRef.current = true;
-        list.scrollTo({ top: list.scrollHeight, behavior });
-        setShowScrollToBottom(false);
-    }, []);
-    useEffect(() => {
-        const frame = requestAnimationFrame(() => (followMessagesRef.current ? scrollToBottom("auto") : updateScrollState()));
-        return () => cancelAnimationFrame(frame);
-    }, [messages, pendingApprovals, pendingTool, scrollToBottom, updateScrollState, waiting]);
-    useEffect(() => {
-        const content = contentRef.current;
-        if (!content) return;
-        let frame = 0;
-        const observer = new ResizeObserver(() => {
-            cancelAnimationFrame(frame);
-            frame = requestAnimationFrame(() => (followMessagesRef.current ? scrollToBottom("auto") : updateScrollState()));
-        });
-        observer.observe(content);
-        return () => {
-            observer.disconnect();
-            cancelAnimationFrame(frame);
-        };
-    }, [scrollToBottom, updateScrollState]);
     return (
-        <div className="relative min-h-0 flex-1">
-            <div ref={listRef} className="thin-scrollbar h-full select-text overflow-y-auto" onScroll={updateScrollState}>
-                <div ref={contentRef} className="space-y-4 px-4 pt-4">
-                    {timeline.map((entry) => entry.type === "commands"
-                        ? <AgentCommandGroupRow key={entry.id} items={entry.items} theme={theme} />
-                        : <AgentChatMessageRow key={entry.item.id} item={entry.item} theme={theme} />)}
-                    {pendingTool ? (
-                        <AgentPendingToolCard
-                            summary={summarizeCanvasAgentOps(pendingTool.input?.ops || []) || toolName(pendingTool.name)}
-                            detail={toolCallDetail(pendingTool.name, pendingTool.input, "pending")}
-                            theme={theme}
-                            onReject={onRejectTool}
-                            onApprove={onApproveTool}
-                        />
-                    ) : null}
-                    {pendingApprovals.map((approval) => <AgentApprovalCard key={approval.requestId} approval={approval} theme={theme} onDecision={(decision) => onApprovalDecision(approval, decision)} />)}
-                    {(sending || waiting || showBootstrap) && !streaming && !pendingTool && !pendingApprovals.length ? <AgentWorkingMessage text={working.text} detail={"detail" in working && typeof working.detail === "string" ? working.detail : undefined} status={showBootstrap ? bootstrapStatus?.status : undefined} mcpStatuses={showBootstrap ? Object.entries(mcpStartupStatuses).map(([name, item]) => ({ name, ...item })) : []} activityKey={working.key} theme={theme} /> : null}
-                </div>
-            </div>
-            {showScrollToBottom ? (
-                <AgentScrollToBottom theme={theme} title={"查看最新消息"} onClick={() => scrollToBottom()} />
-            ) : null}
-        </div>
+        <MessageScrollerProvider key={threadId || "new"} autoScroll defaultScrollPosition="end">
+            <MessageScroller className="min-h-0 flex-1">
+                <MessageScrollerViewport aria-label="对话消息">
+                    <MessageScrollerContent className="gap-4 p-4">
+                        {timeline.map((entry) => (
+                            <MessageScrollerItem key={entry.type === "commands" ? entry.id : entry.item.id} messageId={entry.type === "commands" ? entry.id : entry.item.id} scrollAnchor={entry.type === "message" && entry.item.role === "user"}>
+                                {entry.type === "commands" ? <AgentCommandGroupRow items={entry.items} theme={theme} /> : <AgentChatMessageRow item={entry.item} theme={theme} />}
+                            </MessageScrollerItem>
+                        ))}
+                        {pendingTool ? (
+                            <AgentPendingToolCard
+                                summary={summarizeCanvasAgentOps(pendingTool.input?.ops || []) || toolName(pendingTool.name)}
+                                detail={toolCallDetail(pendingTool.name, pendingTool.input, "pending")}
+                                theme={theme}
+                                onReject={onRejectTool}
+                                onApprove={onApproveTool}
+                            />
+                        ) : null}
+                        {pendingApprovals.map((approval) => (
+                            <AgentApprovalCard key={approval.requestId} approval={approval} theme={theme} onDecision={(decision) => onApprovalDecision(approval, decision)} />
+                        ))}
+                        {(sending || waiting || showBootstrap) && !streaming && !pendingTool && !pendingApprovals.length ? (
+                            <AgentWorkingMessage
+                                text={working.text}
+                                detail={"detail" in working && typeof working.detail === "string" ? working.detail : undefined}
+                                status={showBootstrap ? bootstrapStatus?.status : undefined}
+                                mcpStatuses={showBootstrap ? Object.entries(mcpStartupStatuses).map(([name, item]) => ({ name, ...item })) : []}
+                                activityKey={working.key}
+                                theme={theme}
+                            />
+                        ) : null}
+                    </MessageScrollerContent>
+                </MessageScrollerViewport>
+                <MessageScrollerButton aria-label="查看最新消息" />
+            </MessageScroller>
+        </MessageScrollerProvider>
     );
 }
 
 export function AgentTaskProgress({ theme, busy }: { theme: (typeof canvasThemes)[keyof typeof canvasThemes]; busy: boolean }) {
-    const plan = useAgentStore((state) => busy ? currentPlanMessage(state.messages) : latestPlanMessage(state.messages));
+    const plan = useAgentStore((state) => (busy ? currentPlanMessage(state.messages) : latestPlanMessage(state.messages)));
     if (!plan) return null;
     return (
         <div className="shrink-0 px-4 pt-2">

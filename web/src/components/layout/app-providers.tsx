@@ -1,13 +1,14 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useEffect } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
+import { MotionConfig } from "motion/react";
+import type { ReactNode } from "react";
+import { useEffect } from "react";
 
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppFeedbackProvider } from "@/components/ui/app-feedback-provider";
 import { ClientRootInit } from "@/components/layout/client-root-init";
+import { AppFeedbackProvider } from "@/components/ui/app-feedback-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useThemeStore } from "@/stores/use-theme-store";
 
 export function AppProviders({ children }: { children: ReactNode }) {
@@ -19,17 +20,16 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }, [dark, theme]);
 
     useEffect(() => {
-        document.documentElement.lang = "zh-CN";
-        document.title = "Stephen Canvas";
-        document.querySelector('meta[name="description"]')?.setAttribute("content", "一个无限画布创作工具");
         dayjs.locale("zh-cn");
     }, []);
 
     return (
-        <TooltipProvider>
-            <AppFeedbackProvider>
-                <ClientRootInit>{children}</ClientRootInit>
-            </AppFeedbackProvider>
-        </TooltipProvider>
+        <MotionConfig reducedMotion="user">
+            <TooltipProvider>
+                <AppFeedbackProvider>
+                    <ClientRootInit>{children}</ClientRootInit>
+                </AppFeedbackProvider>
+            </TooltipProvider>
+        </MotionConfig>
     );
 }

@@ -72,7 +72,7 @@
     --brand-violet: #7928ca;
     --brand-cyan: #50e3c2;
     --brand-pink: #ff0080;
-    --elevation-card: 0 1px 1px #00000005, 0 2px 2px #0000000a;
+    --elevation-card: none;
     --elevation-overlay: 0 2px 4px #00000008, 0 10px 28px #00000012;
     --border: #ebebeb;
     --ring: #0070f3;
@@ -97,7 +97,7 @@
     --chart-3: #ff0080;
     --chart-4: #ff4d4d;
     --chart-5: #50e3c2;
-    --sidebar: #ffffff;
+    --sidebar: #fafafa;
     --sidebar-foreground: #171717;
     --sidebar-primary: #171717;
     --sidebar-primary-foreground: #ffffff;
@@ -111,9 +111,9 @@
     color-scheme: dark;
     --brand-body: #d4d4d4;
     --brand-muted: #a3a3a3;
-    --elevation-card: 0 1px 1px #00000040, 0 2px 8px #00000020;
+    --elevation-card: none;
     --elevation-overlay: 0 2px 6px #00000040, 0 14px 36px #00000060;
-    --background: #171717;
+    --background: #0a0a0a;
     --foreground: #fafafa;
     --border: #333333;
     --ring: #50a8ff;
@@ -121,8 +121,8 @@
     --card-foreground: #fafafa;
     --popover: #1f1f1f;
     --popover-foreground: #fafafa;
-    --primary: #fafafa;
-    --primary-foreground: #171717;
+    --primary: #ededed;
+    --primary-foreground: #0a0a0a;
     --secondary: #262626;
     --secondary-foreground: #fafafa;
     --muted: #262626;
@@ -136,10 +136,10 @@
     --chart-3: #ff4d9d;
     --chart-4: #ff7875;
     --chart-5: #50e3c2;
-    --sidebar: #1f1f1f;
+    --sidebar: #161616;
     --sidebar-foreground: #fafafa;
-    --sidebar-primary: #50a8ff;
-    --sidebar-primary-foreground: #171717;
+    --sidebar-primary: #ededed;
+    --sidebar-primary-foreground: #0a0a0a;
     --sidebar-accent: #262626;
     --sidebar-accent-foreground: #fafafa;
     --sidebar-border: #333333;
@@ -178,20 +178,6 @@
 }
 
 @layer utilities {
-    .home-mesh {
-        background:
-            radial-gradient(ellipse at 18% 38%, rgb(0 124 240 / 16%), transparent 42%),
-            radial-gradient(ellipse at 49% 18%, rgb(121 40 202 / 16%), transparent 40%),
-            radial-gradient(ellipse at 76% 48%, rgb(255 0 128 / 14%), transparent 38%),
-            radial-gradient(ellipse at 50% 82%, rgb(249 203 40 / 13%), transparent 40%);
-        filter: blur(44px);
-    }
-
-    .dark .home-mesh {
-        filter: blur(56px);
-        opacity: 0.55;
-    }
-
     .shadow-card {
         box-shadow: var(--elevation-card);
     }
@@ -207,35 +193,6 @@
 
     .hide-scrollbar::-webkit-scrollbar {
         display: none;
-    }
-
-    .prompt-filter-tag {
-        margin: 0;
-        border: 1px solid transparent;
-        border-radius: 6px;
-        padding: 5px 10px;
-        background: transparent;
-        color: var(--muted-foreground);
-        font-size: 14px;
-        line-height: 1;
-        transition:
-            background 0.15s ease,
-            border-color 0.15s ease,
-            box-shadow 0.15s ease,
-            color 0.15s ease;
-    }
-
-    .prompt-filter-tag:hover {
-        background: var(--accent);
-        color: var(--accent-foreground);
-    }
-
-    .prompt-filter-tag.is-active,
-    .prompt-filter-tag[aria-pressed="true"] {
-        background: var(--primary);
-        border-color: var(--primary);
-        color: var(--primary-foreground);
-        font-weight: 600;
     }
 
     .thin-scrollbar {
@@ -301,119 +258,6 @@
 
     .hover-scrollbar-hint:hover::after {
         opacity: 1;
-    }
-
-    .canvas-control-select,
-    .canvas-control-number {
-        border-color: var(--border) !important;
-        box-shadow: none !important;
-    }
-
-    .canvas-compact-control.canvas-control-select {
-        height: 100%;
-    }
-
-    .canvas-compact-control.canvas-control-number {
-        height: 100%;
-    }
-
-    .canvas-composer-icon {
-        flex: 0 0 32px;
-        width: 32px;
-    }
-
-    .canvas-composer-tools {
-        container-type: inline-size;
-    }
-
-    .canvas-composer-mode-button {
-        width: 32px;
-    }
-
-    .canvas-composer-tools .canvas-composer-mode-button span,
-    .canvas-composer-tools .canvas-model-picker-text,
-    .canvas-composer-tools .canvas-select-chevron,
-    .canvas-composer-tools .canvas-composer-icon > .ui-button-content {
-        display: none;
-    }
-
-    .canvas-composer-tools .canvas-composer-model-picker {
-        width: 32px;
-        min-width: 32px;
-        justify-content: center;
-        gap: 0;
-        padding-inline: 0;
-    }
-
-    @container (min-width: 440px) {
-        .canvas-composer-mode-button {
-            padding-inline: 8px;
-            width: auto;
-        }
-
-        .canvas-composer-tools .canvas-composer-mode-button span {
-            display: inline;
-            font-size: 12px;
-            line-height: 1;
-        }
-
-        .canvas-composer-icon {
-            flex: 0 1 auto;
-            max-width: 170px;
-            width: auto !important;
-        }
-
-        .canvas-composer-tools .canvas-composer-icon > .ui-button-content {
-            display: inline-flex;
-            min-width: 0;
-        }
-
-        .canvas-composer-tools .canvas-composer-model-picker {
-            width: auto;
-            min-width: 9rem;
-            justify-content: flex-start;
-            gap: 0.5rem;
-            padding-inline: 0.75rem;
-        }
-
-        .canvas-composer-tools .canvas-model-picker-text,
-        .canvas-composer-tools .canvas-select-chevron {
-            display: inline;
-        }
-    }
-
-    .canvas-control-select:focus-visible,
-    .canvas-control-number:focus-visible {
-        border-color: var(--ring) !important;
-    }
-
-    .canvas-image-settings-popover {
-        border-radius: 18px;
-        box-shadow: 0 18px 54px rgb(0 0 0 / 16%);
-        padding: 18px;
-        max-height: calc(100vh - 96px);
-        overflow-y: auto;
-    }
-
-    .canvas-image-settings-popover [role="group"] {
-        border-radius: 999px;
-        padding: 3px;
-    }
-
-    .canvas-image-settings-popover [role="group"] button {
-        border-radius: 999px;
-    }
-
-    .canvas-node-info-modal [data-slot="dialog-header"] {
-        padding-right: 0;
-    }
-
-    .canvas-node-info-modal [data-slot="dialog-title"] {
-        line-height: 1;
-    }
-
-    .canvas-node-info-modal [data-slot="dialog-close"] {
-        top: 21px;
     }
 
     @keyframes canvas-batch-child-in {
@@ -585,4 +429,15 @@
     padding: 0.5rem 0.8rem;
     border-radius: 0.6rem;
     font-size: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

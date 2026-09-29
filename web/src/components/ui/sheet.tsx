@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
 import { cn } from "cn";
 import { Dialog as SheetPrimitive } from "radix-ui";
+import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import { XIcon } from "lucide-react";
@@ -60,7 +60,7 @@ function SheetContent({
                     <SheetPrimitive.Close data-slot="sheet-close" asChild>
                         <Button variant="ghost" className="absolute top-3 right-3" size="icon-sm">
                             <XIcon />
-                            <span className="sr-only">Close</span>
+                            <span className="sr-only">关闭</span>
                         </Button>
                     </SheetPrimitive.Close>
                 )}
@@ -85,4 +85,4 @@ function SheetDescription({ className, ...props }: React.ComponentProps<typeof S
     return <SheetPrimitive.Description data-slot="sheet-description" className={cn("text-sm text-muted-foreground", className)} {...props} />;
 }
 
-export { Sheet, SheetTrigger, SheetClose, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription };
+export { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger };

@@ -19,7 +19,11 @@ export function AgentCanvasReferencePreview({ reference, previewUrl, previewText
                     {previewText}
                 </div>
             ) : null}
-            {!previewUrl && !(reference.kind === "text" && previewText) ? <div className="py-3 text-center text-xs" style={{ color: theme.node.muted }}>{"当前无法预览该素材"}</div> : null}
+            {!previewUrl && !(reference.kind === "text" && previewText) ? (
+                <div className="py-3 text-center text-xs" style={{ color: theme.node.muted }}>
+                    {"当前无法预览该素材"}
+                </div>
+            ) : null}
         </div>
     );
 }
@@ -29,5 +33,5 @@ export function canvasReferenceIcon(kind: AgentCanvasReference["kind"]) {
 }
 
 export function canvasReferenceKindLabel(kind: AgentCanvasReference["kind"]) {
-    return (({ "image":"图片", "video":"视频", "audio":"音频", "text":"文本" } as Record<string, string>)[String(kind)] || String(kind));
+    return ({ image: "图片", video: "视频", audio: "音频", text: "文本" } as Record<string, string>)[String(kind)] || String(kind);
 }

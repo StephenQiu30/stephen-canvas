@@ -1,6 +1,12 @@
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
-import { Button, Checkbox, Input, Modal, Tabs } from "@/components/ui/app-primitives";
-import { RefreshCw, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
+import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RefreshCw, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { fetchChannelModels } from "@/services/api/image";
@@ -84,71 +90,97 @@ export function ModelSelectModal({ open, channel, selectedNames, onConfirm, onCl
     };
 
     return (
-        <Modal
+        <Dialog
             open={open}
-            width={880}
-            centered
-            onCancel={onClose}
-            title={
-                <span>
-                    {"选择渠道模型"} <span className="ml-2 text-xs font-normal text-muted-foreground">{`已选择 ${selected.size} / ${new Set([...existing, ...fetched]).size}`}</span>
-                </span>
-            }
-            styles={{ body: { maxHeight: "62vh", overflowY: "auto" } }}
-            footer={[
-                <Button key="cancel" onClick={onClose}>
-                    {"取消"}
-                </Button>,
-                <Button key="confirm" type="primary" onClick={confirm}>
-                    {"确定"}
-                </Button>,
-            ]}
+            onOpenChange={(open) => {
+                if (!open) onClose();
+            }}
         >
-            <div className="flex flex-wrap items-center gap-3">
-                <Input className="min-w-[200px] flex-1" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={"搜索模型"} prefix={<Search className="size-4 text-muted-foreground" />} allowClear />
-                <Input className="min-w-[180px] flex-1" value={manual} onChange={(event) => setManual(event.target.value)} onPressEnter={addManual} placeholder={"输入模型名称"} />
-                <Button onClick={addManual}>{"增加模型"}</Button>
-                <Button icon={<RefreshCw className="size-4" />} loading={loading} onClick={() => void fetchModels()}>
-                    {"拉取模型列表"}
-                </Button>
-            </div>
-            <div className="mt-2 text-xs text-muted-foreground">{"如果上游不提供 OpenAI /models 模型列表接口，请在这里手动增加模型名称。"}</div>
-
-            <Tabs
-                className="mt-3"
-                activeKey={activeTab}
-                onChange={setActiveTab}
-                items={[
-                    { key: "new", label: `新获取的模型 (${fetched.length})` },
-                    { key: "existing", label: `已有的模型 (${existing.length})` },
-                ]}
-            />
-
-            <div className="mb-3 flex items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">{`当前列表已选择 ${visibleSelectedCount} / ${visibleList.length}`}</span>
-                <div className="flex gap-2">
-                    <Button size="small" disabled={!visibleList.length} onClick={() => selectVisible(true)}>
-                        {"全选当前列表"}
-                    </Button>
-                    <Button size="small" disabled={!visibleSelectedCount} onClick={() => selectVisible(false)}>
-                        {"取消当前列表"}
-                    </Button>
-                </div>
-            </div>
-
-            {visibleList.length ? (
-                <div className="grid grid-cols-1 gap-x-8 gap-y-3 md:grid-cols-2">
-                    {visibleList.map((name) => (
-                        <Checkbox key={name} checked={selected.has(name)} onChange={(event) => toggle(name, event.target.checked)}>
-                            <span className="truncate" title={name}>
-                                {name}
+            <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"} style={{ width: 880, maxWidth: "calc(100vw - 2rem)" }}>
+                <DialogHeader>
+                    <DialogTitle>
+                        {
+                            <span>
+                                {"选择渠道模型"} <span className="ml-2 text-xs font-normal text-muted-foreground">{`已选择 ${selected.size} / ${new Set([...existing, ...fetched]).size}`}</span>
                             </span>
-                        </Checkbox>
-                    ))}
+                        }
+                    </DialogTitle>
+                </DialogHeader>
+                <div style={{ maxHeight: "62vh", overflowY: "auto" }}>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <InputGroup className={"min-w-[200px] flex-1"}>
+                            <InputGroupAddon>{<Search className="size-4 text-muted-foreground" />}</InputGroupAddon>
+                            <InputGroupInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder={"搜索模型"} />
+                            <InputGroupAddon align="inline-end">
+                                <InputGroupButton aria-label="清空" onClick={() => setSearch("")}>
+                                    <X />
+                                </InputGroupButton>
+                            </InputGroupAddon>
+                        </InputGroup>
+                        <Input
+                            className="min-w-[180px] flex-1"
+                            value={manual}
+                            onChange={(event) => setManual(event.target.value)}
+                            placeholder={"输入模型名称"}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    addManual();
+                                }
+                            }}
+                        />
+                        <Button onClick={addManual} type={"button"} variant={"secondary"} size="default">
+                            {"增加模型"}
+                        </Button>
+                        <Button onClick={() => void fetchModels()} type={"button"} variant={"secondary"} size="default" disabled={Boolean(loading) || false}>
+                            {loading ? <Spinner data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}
+                            {"拉取模型列表"}
+                        </Button>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">{"如果上游不提供 OpenAI /models 模型列表接口，请在这里手动增加模型名称。"}</div>
+                    <Tabs className="mt-3" value={activeTab} defaultValue={"new"} onValueChange={setActiveTab}>
+                        <TabsList>
+                            <TabsTrigger value={"new"}>{`新获取的模型 (${fetched.length})`}</TabsTrigger>
+                            <TabsTrigger value={"existing"}>{`已有的模型 (${existing.length})`}</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">{`当前列表已选择 ${visibleSelectedCount} / ${visibleList.length}`}</span>
+                        <div className="flex gap-2">
+                            <Button onClick={() => selectVisible(true)} type={"button"} variant={"secondary"} size="sm" disabled={!visibleList.length}>
+                                {"全选当前列表"}
+                            </Button>
+                            <Button onClick={() => selectVisible(false)} type={"button"} variant={"secondary"} size="sm" disabled={!visibleSelectedCount}>
+                                {"取消当前列表"}
+                            </Button>
+                        </div>
+                    </div>
+                    {visibleList.length ? (
+                        <div className="grid grid-cols-1 gap-x-8 gap-y-3 md:grid-cols-2">
+                            {visibleList.map((name) => (
+                                <label key={name} className="flex items-center gap-2">
+                                    <Checkbox checked={selected.has(name)} onCheckedChange={(checked) => toggle(name, checked === true)} />
+                                    <span className="truncate" title={name}>
+                                        {name}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-8 text-center text-sm text-muted-foreground">{activeTab === "new" ? "点击「拉取模型列表」获取上游模型，或手动增加模型名称。" : "暂无已选择的模型。"}</div>
+                    )}
                 </div>
-            ) : (
-                <div className="py-8 text-center text-sm text-muted-foreground">{(activeTab === "new" ? "点击「拉取模型列表」获取上游模型，或手动增加模型名称。" : "暂无已选择的模型。")}</div>
-            )}
-        </Modal>
+                <DialogFooter>
+                    {[
+                        <Button key="cancel" onClick={onClose} type={"button"} variant={"secondary"} size="default">
+                            {"取消"}
+                        </Button>,
+                        <Button key="confirm" onClick={confirm} type={"button"} variant={"default"} size="default">
+                            {"确定"}
+                        </Button>,
+                    ]}
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

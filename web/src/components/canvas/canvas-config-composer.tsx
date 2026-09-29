@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from "react";
-import { Button, Image } from "@/components/ui/app-primitives";
+import { MediaPreview } from "@/components/media-preview";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { FileText, Group, Image as ImageIcon, Music2, Video, X } from "lucide-react";
+import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
+import type { CanvasNodeData } from "@/types/canvas";
 import type { NodeGenerationInput } from "./canvas-node-generation";
 import { CanvasNodeReferenceBar } from "./canvas-node-reference-bar";
-import type { CanvasNodeData } from "@/types/canvas";
 
 type CanvasConfigComposerProps = {
     nodeId: string;
@@ -21,9 +23,7 @@ type CanvasConfigComposerProps = {
     onStartReferenceSelection?: (nodeId: string) => void;
 };
 
-type Token =
-    | { type: "text"; value: string }
-    | { type: "reference"; nodeId: string };
+type Token = { type: "text"; value: string } | { type: "reference"; nodeId: string };
 
 type MentionState = {
     query: string;
@@ -125,11 +125,17 @@ export function CanvasConfigComposer({ nodeId, nodes, value, inputs, connectedNo
                     <div className="shrink-0 text-xs font-semibold">{"组装提示词"}</div>
                     <div className="truncate text-[11px] opacity-55">{"@ 引用已连接资产，发送前按当前连接重新编号"}</div>
                 </div>
-                <Button size="small" type="text" className="!h-7 !w-7 !min-w-7 !p-0" icon={<X className="size-3.5" />} onClick={onClose} />
+                <Button onClick={onClose} type={"button"} variant={"ghost"} size="icon-sm" className={"!h-7 !w-7 !min-w-7 !p-0"}>
+                    {<X data-icon="inline-start" />}
+                </Button>
             </div>
             <CanvasNodeReferenceBar nodeId={nodeId} nodes={nodes} connectedNodes={connectedNodes} onDisconnect={onDisconnectReference} onStartSelection={onStartReferenceSelection} />
             <div className="relative rounded-xl">
-                {!value.trim() ? <div className="pointer-events-none absolute left-3 top-2 text-sm leading-7" style={{ color: theme.node.placeholder }}>{"输入提示词，按 @ 引用连接的图片、文本或组"}</div> : null}
+                {!value.trim() ? (
+                    <div className="pointer-events-none absolute left-3 top-2 text-sm leading-7" style={{ color: theme.node.placeholder }}>
+                        {"输入提示词，按 @ 引用连接的图片、文本或组"}
+                    </div>
+                ) : null}
                 <div
                     ref={editorRef}
                     contentEditable
@@ -179,15 +185,28 @@ export function CanvasConfigComposer({ nodeId, nodes, value, inputs, connectedNo
                     }}
                     onBlur={() => window.setTimeout(closeMention, 120)}
                 />
-                {mention && candidates.length ? <MentionMenu inputs={candidates} allInputs={inputs} activeIndex={Math.min(activeIndex, candidates.length - 1)} theme={theme} onSelect={insertReference} /> : null}
+                {mention && candidates.length ? <MentionMenu onClose={closeMention} inputs={candidates} allInputs={inputs} activeIndex={Math.min(activeIndex, candidates.length - 1)} theme={theme} onSelect={insertReference} /> : null}
             </div>
-            {imagePreview ? <Image src={imagePreview} alt={"引用图片预览"} style={{ display: "none" }} preview={{ visible: true, src: imagePreview, onVisibleChange: (visible) => !visible && setImagePreview(null) }} /> : null}
+            {imagePreview ? <MediaPreview src={imagePreview} alt={"引用图片预览"} style={{ display: "none" }} previewSrc={imagePreview} open={true} onOpenChange={(visible) => !visible && setImagePreview(null)} /> : null}
         </div>
     );
-
 }
 
-function MentionMenu({ inputs, allInputs, activeIndex, theme, onSelect }: { inputs: NodeGenerationInput[]; allInputs: NodeGenerationInput[]; activeIndex: number; theme: (typeof canvasThemes)[keyof typeof canvasThemes]; onSelect: (input: NodeGenerationInput) => void }) {
+function MentionMenu({
+    inputs,
+    allInputs,
+    activeIndex,
+    theme,
+    onSelect,
+    onClose,
+}: {
+    inputs: NodeGenerationInput[];
+    allInputs: NodeGenerationInput[];
+    activeIndex: number;
+    theme: (typeof canvasThemes)[keyof typeof canvasThemes];
+    onClose: () => void;
+    onSelect: (input: NodeGenerationInput) => void;
+}) {
     const selectedRef = useRef(false);
     const activeItemRef = useRef<HTMLButtonElement | null>(null);
 
@@ -202,33 +221,59 @@ function MentionMenu({ inputs, allInputs, activeIndex, theme, onSelect }: { inpu
     };
 
     return (
-        <div className="absolute left-2 top-[calc(100%+6px)] z-[90] max-h-56 w-64 overflow-y-auto rounded-xl border p-1 shadow-2xl" style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border }}>
-            {inputs.map((input, index) => (
-                <button
-                    key={input.nodeId}
-                    ref={index === activeIndex ? activeItemRef : undefined}
-                    type="button"
-                    className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition"
-                    style={{ background: index === activeIndex ? theme.toolbar.activeBg : "transparent", color: index === activeIndex ? theme.toolbar.activeText : theme.node.text }}
-                    onMouseDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        selectInput(input);
-                    }}
-                >
-                    <ResourcePreview input={input} />
-                    <span className="min-w-0 flex-1">
-                        <span className="block font-medium">{resourceLabel(input, allInputs)}</span>
-                        <span className="block truncate opacity-65">{input.type === "group" ? `${input.children.length} 个节点` : input.text || input.title}</span>
-                    </span>
-                </button>
-            ))}
-        </div>
+        <Popover
+            open
+            onOpenChange={(open) => {
+                if (!open) onClose();
+            }}
+        >
+            <PopoverAnchor asChild>
+                <span className="absolute left-2 top-full size-px" />
+            </PopoverAnchor>
+            <PopoverContent
+                aria-label="选择参考节点"
+                align="start"
+                side="bottom"
+                sideOffset={6}
+                className="max-h-56 w-64 overflow-y-auto p-1"
+                onOpenAutoFocus={(event) => event.preventDefault()}
+                onCloseAutoFocus={(event) => event.preventDefault()}
+                onPointerDown={(event) => event.stopPropagation()}
+                onMouseDown={(event) => event.stopPropagation()}
+            >
+                {inputs.map((input, index) => (
+                    <Button
+                        variant="ghost"
+                        key={input.nodeId}
+                        ref={index === activeIndex ? activeItemRef : undefined}
+                        type="button"
+                        className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition"
+                        style={{ background: index === activeIndex ? theme.toolbar.activeBg : "transparent", color: index === activeIndex ? theme.toolbar.activeText : theme.node.text }}
+                        onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            selectInput(input);
+                        }}
+                    >
+                        <ResourcePreview input={input} />
+                        <span className="min-w-0 flex-1">
+                            <span className="block font-medium">{resourceLabel(input, allInputs)}</span>
+                            <span className="block truncate opacity-65">{input.type === "group" ? `${input.children.length} 个节点` : input.text || input.title}</span>
+                        </span>
+                    </Button>
+                ))}
+            </PopoverContent>
+        </Popover>
     );
 }
 
 function ResourcePreview({ input }: { input: NodeGenerationInput }) {
-    if (input.type === "group") return <span className="grid size-9 shrink-0 place-items-center"><Group className="size-4" /></span>;
+    if (input.type === "group")
+        return (
+            <span className="grid size-9 shrink-0 place-items-center">
+                <Group className="size-4" />
+            </span>
+        );
     if (input.type === "image" && input.image) return <img src={input.image.dataUrl} alt="" className="size-9 rounded-md object-cover" />;
     if (input.type === "video" && input.video) return <video src={input.video.url} className="size-9 rounded-md bg-black object-cover" muted preload="metadata" />;
     const Icon = input.type === "audio" ? Music2 : input.type === "video" ? Video : input.type === "image" ? ImageIcon : FileText;
@@ -368,8 +413,11 @@ function parseComposerTokens(value: string): Token[] {
 
 function resourceLabel(input: NodeGenerationInput, inputs: NodeGenerationInput[]) {
     const sameTypeInputs = inputs.filter((item) => item.type === input.type);
-    const index = Math.max(0, sameTypeInputs.findIndex((item) => item.nodeId === input.nodeId));
-    return (({ "image":`图片${index + 1}`, "video":`视频${index + 1}`, "audio":`音频${index + 1}`, "text":`文本${index + 1}`, "group":`组${index + 1}` } as Record<string, string>)[String(input.type)] || String(input.type));
+    const index = Math.max(
+        0,
+        sameTypeInputs.findIndex((item) => item.nodeId === input.nodeId),
+    );
+    return ({ image: `图片${index + 1}`, video: `视频${index + 1}`, audio: `音频${index + 1}`, text: `文本${index + 1}`, group: `组${index + 1}` } as Record<string, string>)[String(input.type)] || String(input.type);
 }
 
 function chipStyle(theme: (typeof canvasThemes)[keyof typeof canvasThemes]): CSSProperties {

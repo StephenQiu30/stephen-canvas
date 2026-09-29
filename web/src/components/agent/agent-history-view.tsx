@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Button, Checkbox } from "@/components/ui/app-primitives";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FolderOpen, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
 import type { AgentThreadSummary } from "@/stores/use-agent-store";
@@ -43,7 +44,7 @@ export function AgentHistoryView({
     };
     return (
         <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto p-3">
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
                 <div className="flex min-w-0 items-center gap-2 text-xs" style={{ color: theme.node.muted }}>
                     <FolderOpen className="size-3.5 shrink-0" />
                     <span className="shrink-0">{"工作空间"}</span>
@@ -53,24 +54,33 @@ export function AgentHistoryView({
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-sm" style={{ color: theme.node.muted }}>
-                        {threads.length ? <Checkbox checked={allSelected} indeterminate={Boolean(selectedThreads.length) && !allSelected} disabled={loading || busy} onChange={() => setSelectedIds(allSelected ? new Set() : new Set(threads.map((thread) => thread.id)))} /> : null}
+                        {threads.length ? (
+                            <Checkbox
+                                disabled={loading || busy}
+                                checked={Boolean(selectedThreads.length) && !allSelected ? "indeterminate" : allSelected}
+                                onCheckedChange={(checked) => setSelectedIds(allSelected ? new Set() : new Set(threads.map((thread) => thread.id)))}
+                            />
+                        ) : null}
                         <span>{selectedThreads.length ? `已选 ${selectedThreads.length} 条` : threads.length ? `${threads.length} 条历史` : connected ? "暂无历史" : "未连接"}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         {selectedThreads.length ? (
-                            <Button size="small" danger type="text" icon={<Trash2 className="size-3.5" />} disabled={loading || busy} onClick={() => onDeleteThreads(selectedThreads.map((thread) => thread.id))}>
+                            <Button onClick={() => onDeleteThreads(selectedThreads.map((thread) => thread.id))} type={"button"} variant={"destructive"} size="sm" disabled={loading || busy}>
+                                {<Trash2 data-icon="inline-start" />}
                                 {`删除 ${selectedThreads.length} 条`}
                             </Button>
                         ) : null}
-                        <Button size="small" icon={<RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />} disabled={!connected || loading} onClick={onRefresh}>
+                        <Button onClick={onRefresh} type={"button"} variant={"secondary"} size="sm" disabled={!connected || loading}>
+                            {<RefreshCw data-icon="inline-start" className={`size-3.5 ${loading ? "animate-spin" : ""}`} />}
                             {"刷新"}
                         </Button>
-                        <Button size="small" type="primary" icon={<Plus className="size-3.5" />} disabled={!connected || loading || busy} onClick={onNewThread}>
+                        <Button onClick={onNewThread} type={"button"} variant={"default"} size="sm" disabled={!connected || loading || busy}>
+                            {<Plus data-icon="inline-start" />}
                             {"新对话"}
                         </Button>
                     </div>
                 </div>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                     {threads.map((thread) => {
                         const active = thread.id === activeThreadId;
                         return (
@@ -92,12 +102,12 @@ export function AgentHistoryView({
                             >
                                 <div className="flex items-center gap-2">
                                     <Checkbox
-                                        checked={selectedIds.has(thread.id)}
                                         disabled={loading || busy}
                                         aria-label={`选择${thread.name || thread.preview || "未命名对话"}`}
                                         onClick={(event) => event.stopPropagation()}
                                         onKeyDown={(event) => event.stopPropagation()}
-                                        onChange={() => toggleThread(thread.id)}
+                                        checked={selectedIds.has(thread.id)}
+                                        onCheckedChange={(checked) => toggleThread(thread.id)}
                                     />
                                     <div className="min-w-0 flex-1">
                                         <div className="flex min-w-0 items-center gap-1.5">
@@ -117,7 +127,7 @@ export function AgentHistoryView({
                     })}
                     {!threads.length ? (
                         <div className="px-3 py-8 text-center text-sm" style={{ color: theme.node.muted }}>
-                            {(connected ? "当前工作空间还没有对话记录" : "连接本地 Agent 后显示历史记录")}
+                            {connected ? "当前工作空间还没有对话记录" : "连接本地 Agent 后显示历史记录"}
                         </div>
                     ) : null}
                 </div>

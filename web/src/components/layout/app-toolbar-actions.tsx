@@ -1,8 +1,8 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Keyboard, Moon, Puzzle, Settings2, Sun } from "lucide-react";
+import type { CSSProperties } from "react";
 
 import { GitHubLink } from "@/components/layout/github-link";
 import { VersionReleaseModal } from "@/components/layout/version-release-modal";
@@ -42,8 +42,8 @@ export function AppToolbarActions({ variant = "default", onOpenShortcuts, onOpen
                 className="transition-none active:translate-y-0"
                 style={iconStyle}
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                aria-label={(theme === "dark" ? "切换到浅色主题" : "切换到深色主题")}
-                title={(theme === "dark" ? "切换到浅色主题" : "切换到深色主题")}
+                aria-label={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"}
+                title={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"}
             >
                 {theme === "dark" ? <Sun /> : <Moon />}
             </Button>

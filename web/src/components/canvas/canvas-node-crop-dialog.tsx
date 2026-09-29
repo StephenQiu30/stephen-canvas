@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Button, Modal, Segmented, Tooltip } from "@/components/ui/app-primitives";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Check, X, ZoomIn, ZoomOut } from "lucide-react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 import { useImageEditorViewport } from "@/components/canvas/use-image-editor-viewport";
 import { readImageMeta } from "@/lib/image-utils";
@@ -67,92 +70,125 @@ export function CanvasNodeCropDialog({ dataUrl, open, onClose, onConfirm }: { da
     };
 
     return (
-        <Modal title={"裁剪图片"} open={open && Boolean(dataUrl)} onCancel={onClose} footer={null} width={780} centered destroyOnHidden transitionName="" maskTransitionName="">
-            <div className="space-y-4">
-                <div
-                    ref={viewport.viewportRef}
-                    {...viewport.panHandlers}
-                    className={`relative h-[min(62vh,620px)] min-h-[340px] rounded-lg bg-black/5 ${viewport.scrollClassName} ${viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : ""}`}
-                >
-                    <div className="relative" style={viewport.contentStyle}>
-                        <div ref={boxRef} className="absolute isolate overflow-hidden rounded-lg bg-black select-none [backface-visibility:hidden] [contain:layout_paint] [transform:translateZ(0)]" style={viewport.stageStyle}>
-                            <div className="absolute left-0 top-0 [backface-visibility:hidden]" style={viewport.mediaStyle}>
-                                <img src={dataUrl} alt="" className="block h-full w-full object-contain opacity-90" draggable={false} />
+        <Dialog
+            open={open && Boolean(dataUrl)}
+            onOpenChange={(open) => {
+                if (!open) onClose();
+            }}
+        >
+            <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"} style={{ width: 780, maxWidth: "calc(100vw - 2rem)" }}>
+                <DialogHeader>
+                    <DialogTitle>{"裁剪图片"}</DialogTitle>
+                </DialogHeader>
+                <div>
+                    <div className="flex flex-col gap-4">
+                        <div
+                            ref={viewport.viewportRef}
+                            {...viewport.panHandlers}
+                            className={`relative h-[min(62vh,620px)] min-h-[340px] rounded-lg bg-black/5 ${viewport.scrollClassName} ${viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : ""}`}
+                        >
+                            <div className="relative" style={viewport.contentStyle}>
+                                <div ref={boxRef} className="absolute isolate overflow-hidden rounded-lg bg-black select-none [backface-visibility:hidden] [contain:layout_paint] [transform:translateZ(0)]" style={viewport.stageStyle}>
+                                    <div className="absolute left-0 top-0 [backface-visibility:hidden]" style={viewport.mediaStyle}>
+                                        <img src={dataUrl} alt="" className="block h-full w-full object-contain opacity-90" draggable={false} />
+                                    </div>
+                                    <CropMask crop={crop} />
+                                    <div className="absolute cursor-move border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,.3),0_0_28px_rgba(0,0,0,.28)]" style={cropStyle(crop)} onPointerDown={(event) => startDrag("move", event)}>
+                                        <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-white/50" />
+                                        <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-white/50" />
+                                        <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-white/50" />
+                                        <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-white/50" />
+                                        {handles.map((handle) => (
+                                            <Button
+                                                variant="ghost"
+                                                key={handle}
+                                                type="button"
+                                                className="absolute size-3 rounded-full border border-black bg-white"
+                                                style={handleStyle(handle)}
+                                                onPointerDown={(event) => startDrag("resize", event, handle)}
+                                                aria-label={"调整裁剪框"}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
-                            <CropMask crop={crop} />
-                            <div className="absolute cursor-move border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,.3),0_0_28px_rgba(0,0,0,.28)]" style={cropStyle(crop)} onPointerDown={(event) => startDrag("move", event)}>
-                                <div className="pointer-events-none absolute inset-x-0 top-1/3 border-t border-white/50" />
-                                <div className="pointer-events-none absolute inset-x-0 top-2/3 border-t border-white/50" />
-                                <div className="pointer-events-none absolute inset-y-0 left-1/3 border-l border-white/50" />
-                                <div className="pointer-events-none absolute inset-y-0 left-2/3 border-l border-white/50" />
-                                {handles.map((handle) => (
-                                    <button
-                                        key={handle}
-                                        type="button"
-                                        className="absolute size-3 rounded-full border border-black bg-white"
-                                        style={handleStyle(handle)}
-                                        onPointerDown={(event) => startDrag("resize", event, handle)}
-                                        aria-label={"调整裁剪框"}
-                                    />
-                                ))}
+                        </div>
+
+                        <div className="flex items-center justify-center gap-1">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button aria-label={"缩小"} onClick={viewport.zoomOut} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomOut}>
+                                        {<ZoomOut data-icon="inline-start" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">{"缩小"}</TooltipContent>
+                            </Tooltip>
+                            <Button variant="ghost" type="button" className="min-w-14 text-center text-xs font-semibold tabular-nums opacity-70" onClick={viewport.resetZoom}>
+                                {Math.round(viewport.zoom * 100)}%
+                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button aria-label={"放大"} onClick={viewport.zoomIn} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomIn}>
+                                        {<ZoomIn data-icon="inline-start" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">{"放大"}</TooltipContent>
+                            </Tooltip>
+                            <span className="ml-2 text-xs opacity-55">{"滚轮缩放 · 中键或空格+左键拖动画面"}</span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                            <div className="flex flex-wrap items-center gap-3 text-sm opacity-80">
+                                <span>{`裁剪尺寸 ${cropSize ? `${cropSize.width} x ${cropSize.height}` : "未知"}`}</span>
+                                <span>{`比例 ${cropSize ? formatRatio(cropSize.width, cropSize.height) : "未知"}`}</span>
+                                {image ? <span>{`原图 ${image.width} x ${image.height}`}</span> : null}
                             </div>
+                            <ToggleGroup
+                                type="single"
+                                variant="outline"
+                                value={String(ratioPreset)}
+                                size="sm"
+                                onValueChange={(value) => {
+                                    if (value)
+                                        ((value) => {
+                                            const preset = String(value);
+                                            setRatioPreset(preset);
+                                            const currentRatio = image ? (crop.width * image.width) / Math.max(1, crop.height * image.height) : null;
+                                            const nextFixedRatio = preset === "fixed" ? currentRatio : null;
+                                            setFixedRatio(nextFixedRatio);
+                                            const ratio = resolveRatio(preset, image, nextFixedRatio);
+                                            if (ratio && image) setCrop((current) => fitCropToRatio(current, ratio, image));
+                                        })(value);
+                                }}
+                            >
+                                {[{ label: "自由", value: "free" }, { label: "固定", value: "fixed" }, { label: "原图", value: "original" }, ...["1:1", "4:3", "16:9", "9:16"]].map((item) => {
+                                    const option = typeof item === "object" ? item : { value: item, label: item };
+                                    return (
+                                        <ToggleGroupItem key={String(option.value)} value={String(option.value)}>
+                                            {option.label}
+                                        </ToggleGroupItem>
+                                    );
+                                })}
+                            </ToggleGroup>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2">
+                            <Button onClick={() => setCrop(defaultCrop)} type={"button"} variant={"secondary"} size="default">
+                                {"重置"}
+                            </Button>
+                            <Button onClick={onClose} type={"button"} variant={"secondary"} size="default">
+                                {<X data-icon="inline-start" />}
+                                {"取消"}
+                            </Button>
+                            <Button onClick={() => onConfirm(crop)} type={"button"} variant={"default"} size="default">
+                                {<Check data-icon="inline-start" />}
+                                {"确认裁剪"}
+                            </Button>
                         </div>
                     </div>
                 </div>
-
-                <div className="flex items-center justify-center gap-1">
-                    <Tooltip title={"缩小"}>
-                        <Button type="text" icon={<ZoomOut className="size-4" />} disabled={!viewport.canZoomOut} aria-label={"缩小"} onClick={viewport.zoomOut} />
-                    </Tooltip>
-                    <button type="button" className="min-w-14 text-center text-xs font-semibold tabular-nums opacity-70" onClick={viewport.resetZoom}>
-                        {Math.round(viewport.zoom * 100)}%
-                    </button>
-                    <Tooltip title={"放大"}>
-                        <Button type="text" icon={<ZoomIn className="size-4" />} disabled={!viewport.canZoomIn} aria-label={"放大"} onClick={viewport.zoomIn} />
-                    </Tooltip>
-                    <span className="ml-2 text-xs opacity-55">{"滚轮缩放 · 中键或空格+左键拖动画面"}</span>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2">
-                    <div className="flex flex-wrap items-center gap-3 text-sm opacity-80">
-                        <span>{`裁剪尺寸 ${cropSize ? `${cropSize.width} x ${cropSize.height}` : "未知"}`}</span>
-                        <span>{`比例 ${cropSize ? formatRatio(cropSize.width, cropSize.height) : "未知"}`}</span>
-                        {image ? (
-                            <span>{`原图 ${image.width} x ${image.height}`}</span>
-                        ) : null}
-                    </div>
-                    <Segmented
-                        size="small"
-                        options={[
-                            { label: "自由", value: "free" },
-                            { label: "固定", value: "fixed" },
-                            { label: "原图", value: "original" },
-                            ...["1:1", "4:3", "16:9", "9:16"],
-                        ]}
-                        value={ratioPreset}
-                        onChange={(value) => {
-                            const preset = String(value);
-                            setRatioPreset(preset);
-                            const currentRatio = image ? (crop.width * image.width) / Math.max(1, crop.height * image.height) : null;
-                            const nextFixedRatio = preset === "fixed" ? currentRatio : null;
-                            setFixedRatio(nextFixedRatio);
-                            const ratio = resolveRatio(preset, image, nextFixedRatio);
-                            if (ratio && image) setCrop((current) => fitCropToRatio(current, ratio, image));
-                        }}
-                    />
-                </div>
-
-                <div className="flex items-center justify-end gap-2">
-                    <Button onClick={() => setCrop(defaultCrop)}>{"重置"}</Button>
-                    <Button icon={<X className="size-4" />} onClick={onClose}>
-                        {"取消"}
-                    </Button>
-                    <Button type="primary" icon={<Check className="size-4" />} onClick={() => onConfirm(crop)}>
-                        {"确认裁剪"}
-                    </Button>
-                </div>
-            </div>
-        </Modal>
+            </DialogContent>
+        </Dialog>
     );
 }
 

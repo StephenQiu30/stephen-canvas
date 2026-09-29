@@ -1,8 +1,9 @@
-import { Button, Modal } from "@/components/ui/app-primitives";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-import { useAssetStore } from "@/stores/use-asset-store";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useCanvasUiStore } from "@/stores/canvas/use-canvas-ui-store";
+import { useAssetStore } from "@/stores/use-asset-store";
 
 export function CanvasDeleteProjectsDialog() {
     const ids = useCanvasUiStore((state) => state.deleteProjectIds);
@@ -18,21 +19,32 @@ export function CanvasDeleteProjectsDialog() {
     };
 
     return (
-        <Modal
-            title={"删除画布？"}
+        <Dialog
             open={ids.length > 0}
-            centered
-            onCancel={() => setDeleteIds([])}
-            footer={
-                <>
-                    <Button onClick={() => setDeleteIds([])}>{"取消"}</Button>
-                    <Button danger type="primary" onClick={confirm}>
-                        {"删除"}
-                    </Button>
-                </>
-            }
+            onOpenChange={(open) => {
+                if (!open) (() => setDeleteIds([]))();
+            }}
         >
-            <p className="text-sm text-muted-foreground">{`将删除 ${ids.length} 个画布，里面的节点和连线也会一起移除。`}</p>
-        </Modal>
+            <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"}>
+                <DialogHeader>
+                    <DialogTitle>{"删除画布？"}</DialogTitle>
+                </DialogHeader>
+                <div>
+                    <p className="text-sm text-muted-foreground">{`将删除 ${ids.length} 个画布，里面的节点和连线也会一起移除。`}</p>
+                </div>
+                <DialogFooter>
+                    {
+                        <>
+                            <Button onClick={() => setDeleteIds([])} type={"button"} variant={"secondary"} size="default">
+                                {"取消"}
+                            </Button>
+                            <Button onClick={confirm} type={"button"} variant={"destructive"} size="default">
+                                {"删除"}
+                            </Button>
+                        </>
+                    }
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

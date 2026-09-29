@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Segmented, Tooltip } from "@/components/ui/app-primitives";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import copyToClipboard from "copy-to-clipboard";
 import { CheckCircle2, ChevronDown, CircleAlert, CircleDot, Copy, Trash2, TriangleAlert } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
 import type { AgentEventLog } from "@/stores/use-agent-store";
@@ -65,14 +69,17 @@ export function AgentLogView({
         setShowScrollToBottom(false);
         setNewLogCount(0);
     }, []);
-    const handleLastLogToggle = useCallback((open: boolean) => {
-        if (!open) {
-            requestAnimationFrame(updateScrollState);
-            return;
-        }
-        if (!followLogsRef.current) return;
-        requestAnimationFrame(() => requestAnimationFrame(() => scrollToBottom("auto")));
-    }, [scrollToBottom, updateScrollState]);
+    const handleLastLogToggle = useCallback(
+        (open: boolean) => {
+            if (!open) {
+                requestAnimationFrame(updateScrollState);
+                return;
+            }
+            if (!followLogsRef.current) return;
+            requestAnimationFrame(() => requestAnimationFrame(() => scrollToBottom("auto")));
+        },
+        [scrollToBottom, updateScrollState],
+    );
     useEffect(() => {
         if (mode !== "text") return;
         const frame = requestAnimationFrame(() => scrollToBottom("auto"));
@@ -100,23 +107,35 @@ export function AgentLogView({
         }
         textareaRef.current?.focus();
         textareaRef.current?.select();
-        onCopyBlocked((mode === "json" ? "已选中日志，请手动复制" : "复制失败，请切换到原始 JSON 后手动复制"));
+        onCopyBlocked(mode === "json" ? "已选中日志，请手动复制" : "复制失败，请切换到原始 JSON 后手动复制");
     };
-    const connectionLabel = (context.connected ? "在线" : (context.enabled ? "连接中" : "未启用"));
+    const connectionLabel = context.connected ? "在线" : context.enabled ? "连接中" : "未启用";
     return (
         <div className="min-h-0 flex-1 overflow-hidden px-4 py-3">
             <div className="flex h-full min-h-0 flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
                     <div className="text-base font-semibold leading-6">{"运行日志"}</div>
-                    <Segmented
-                        size="small"
-                        value={mode}
-                        onChange={(value) => setMode(value as "text" | "json")}
-                        options={[
+                    <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        value={String(mode)}
+                        size="sm"
+                        onValueChange={(value) => {
+                            if (value) ((value) => setMode(value as "text" | "json"))(value);
+                        }}
+                    >
+                        {[
                             { label: "排查日志", value: "text" },
                             { label: "原始 JSON", value: "json" },
-                        ]}
-                    />
+                        ].map((item) => {
+                            const option = typeof item === "object" ? item : { value: item, label: item };
+                            return (
+                                <ToggleGroupItem key={String(option.value)} value={String(option.value)}>
+                                    {option.label}
+                                </ToggleGroupItem>
+                            );
+                        })}
+                    </ToggleGroup>
                 </div>
 
                 <div className="border-y py-2.5" style={{ borderColor: theme.node.stroke }}>
@@ -143,17 +162,29 @@ export function AgentLogView({
                 {mode === "text" ? (
                     <>
                         <div className="flex items-center justify-between gap-2">
-                            <Segmented
-                                size="small"
-                                value={filter}
-                                onChange={(value) => setFilter(value as LogFilter)}
-                                options={[
+                            <ToggleGroup
+                                type="single"
+                                variant="outline"
+                                value={String(filter)}
+                                size="sm"
+                                onValueChange={(value) => {
+                                    if (value) ((value) => setFilter(value as LogFilter))(value);
+                                }}
+                            >
+                                {[
                                     { label: `全部 ${counts.all}`, value: "all" },
                                     { label: `错误 ${counts.error}`, value: "error" },
                                     { label: `警告 ${counts.warning}`, value: "warning" },
                                     { label: `信息 ${counts.info}`, value: "info" },
-                                ]}
-                            />
+                                ].map((item) => {
+                                    const option = typeof item === "object" ? item : { value: item, label: item };
+                                    return (
+                                        <ToggleGroupItem key={String(option.value)} value={String(option.value)}>
+                                            {option.label}
+                                        </ToggleGroupItem>
+                                    );
+                                })}
+                            </ToggleGroup>
                             <LogActions logs={logs} lastError={lastError} onClear={onClear} onCopy={(value, tip) => void copy(value, tip)} context={context} />
                         </div>
                         <div className="relative min-h-0 flex-1">
@@ -163,7 +194,7 @@ export function AgentLogView({
                                 ))}
                                 {!visibleLogs.length ? (
                                     <div className="px-3 py-10 text-center text-sm" style={{ color: theme.node.muted }}>
-                                        {(logs.length ? "当前筛选下没有日志" : "暂无事件日志")}
+                                        {logs.length ? "当前筛选下没有日志" : "暂无事件日志"}
                                     </div>
                                 ) : null}
                             </div>
@@ -186,7 +217,7 @@ export function AgentLogView({
                             </span>
                             <LogActions logs={logs} lastError={lastError} onClear={onClear} onCopy={(value, tip) => void copy(value, tip)} context={context} />
                         </div>
-                        <textarea
+                        <Textarea
                             ref={textareaRef}
                             readOnly
                             value={content}
@@ -204,14 +235,29 @@ export function AgentLogView({
 function LogActions({ logs, lastError, context, onClear, onCopy }: { logs: AgentEventLog[]; lastError?: AgentEventLog; context: AgentLogContext; onClear: () => void; onCopy: (value?: string, tip?: string) => void }) {
     return (
         <div className="flex shrink-0 items-center gap-0.5">
-            <Tooltip title={"复制全部日志"}>
-                <Button type="text" size="small" shape="circle" aria-label={"复制全部日志"} icon={<Copy className="size-3.5" />} onClick={() => onCopy()} />
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button aria-label={"复制全部日志"} onClick={() => onCopy()} type={"button"} variant={"ghost"} size="icon-sm">
+                        {<Copy data-icon="inline-start" />}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{"复制全部日志"}</TooltipContent>
             </Tooltip>
-            <Tooltip title={"复制最近错误"}>
-                <Button type="text" size="small" shape="circle" aria-label={"复制最近错误"} disabled={!lastError} icon={<CircleAlert className="size-3.5" />} onClick={() => lastError && onCopy(formatLogText([lastError], context), "最近错误已复制")} />
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button aria-label={"复制最近错误"} onClick={() => lastError && onCopy(formatLogText([lastError], context), "最近错误已复制")} type={"button"} variant={"ghost"} size="icon-sm" disabled={!lastError}>
+                        {<CircleAlert data-icon="inline-start" />}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{"复制最近错误"}</TooltipContent>
             </Tooltip>
-            <Tooltip title={"清空日志"}>
-                <Button danger type="text" size="small" shape="circle" aria-label={"清空日志"} disabled={!logs.length} icon={<Trash2 className="size-3.5" />} onClick={onClear} />
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button aria-label={"清空日志"} onClick={onClear} type={"button"} variant={"destructive"} size="icon-sm" disabled={!logs.length}>
+                        {<Trash2 data-icon="inline-start" />}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{"清空日志"}</TooltipContent>
             </Tooltip>
         </div>
     );
@@ -221,8 +267,8 @@ function LogRow({ item, theme, onToggle }: { item: DisplayLog; theme: (typeof ca
     const tone = item.level === "error" ? "text-red-600 dark:text-red-400" : item.level === "warning" ? "text-amber-600 dark:text-amber-400" : item.success ? "text-emerald-600 dark:text-emerald-400" : "";
     const Icon = item.level === "error" ? CircleAlert : item.level === "warning" ? TriangleAlert : item.success ? CheckCircle2 : CircleDot;
     return (
-        <details className="group border-b last:border-b-0" style={{ borderColor: theme.node.stroke }} onToggle={(event) => onToggle?.(event.currentTarget.open)}>
-            <summary className="cursor-pointer list-none px-1 py-2.5 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-current/20 dark:hover:bg-white/10 [&::-webkit-details-marker]:hidden">
+        <Collapsible className="group border-b last:border-b-0" style={{ borderColor: theme.node.stroke }} onOpenChange={onToggle}>
+            <CollapsibleTrigger className="w-full text-left cursor-pointer list-none px-1 py-2.5 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-current/20 dark:hover:bg-white/10 [&::-webkit-details-marker]:hidden">
                 <div className="flex items-start gap-2.5">
                     <Icon className={`mt-0.5 size-4 shrink-0 ${tone}`} style={tone ? undefined : { color: theme.node.muted }} />
                     <div className="min-w-0 flex-1">
@@ -243,18 +289,23 @@ function LogRow({ item, theme, onToggle }: { item: DisplayLog; theme: (typeof ca
                             </div>
                         ) : null}
                     </div>
-                    <ChevronDown className="mt-1 size-3.5 shrink-0 transition-transform group-open:rotate-180" style={{ color: theme.node.faint }} />
+                    <ChevronDown className="mt-1 size-3.5 shrink-0 transition-transform group-data-[state=open]:rotate-180" style={{ color: theme.node.faint }} />
                 </div>
-            </summary>
-            <div className="pb-3 pl-[34px] pr-2">
-                <div className="mb-1 text-[10px] font-medium" style={{ color: theme.node.faint }}>
-                    {"详细信息"}
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <div className="pb-3 pl-[34px] pr-2">
+                    <div className="mb-1 text-[10px] font-medium" style={{ color: theme.node.faint }}>
+                        {"详细信息"}
+                    </div>
+                    <pre
+                        className="thin-scrollbar max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-md border p-2.5 font-mono text-[11px] leading-5"
+                        style={{ borderColor: theme.node.stroke, background: theme.node.panel, color: theme.node.text }}
+                    >
+                        {item.detail}
+                    </pre>
                 </div>
-                <pre className="thin-scrollbar max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-md border p-2.5 font-mono text-[11px] leading-5" style={{ borderColor: theme.node.stroke, background: theme.node.panel, color: theme.node.text }}>
-                    {item.detail}
-                </pre>
-            </div>
-        </details>
+            </CollapsibleContent>
+        </Collapsible>
     );
 }
 
@@ -323,7 +374,7 @@ function declaredLogLevel(value: unknown): DisplayLog["level"] | "" {
 }
 
 function logTitle(fallback: string, value: unknown) {
-    if (fallback !== "日志" && fallback !== "Log" || !value || typeof value !== "object" || Array.isArray(value)) return fallback;
+    if ((fallback !== "日志" && fallback !== "Log") || !value || typeof value !== "object" || Array.isArray(value)) return fallback;
     const target = String((value as Record<string, unknown>).target || "").toLowerCase();
     if (target.includes("skill")) return "技能加载";
     if (target.includes("plugin")) return "插件";

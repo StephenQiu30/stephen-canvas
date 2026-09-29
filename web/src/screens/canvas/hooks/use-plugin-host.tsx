@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
-import { requestEdit, requestGeneration, requestImageQuestion, type AiTextMessage } from "@/services/api/image";
-import { imageToDataUrl } from "@/services/image-storage";
-import { requestVideoGeneration, storeGeneratedVideo } from "@/services/api/video";
-import { decodeChannelModel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
+import { canvasThemes } from "@/lib/canvas-theme";
+import type { CanvasAgentOp } from "@/lib/canvas/canvas-agent-ops";
 import { buildGenerationConfig } from "@/lib/canvas/canvas-generation-helpers";
-import { buildNodeContext } from "@/lib/canvas/plugin-node-context";
 import { getNodeDefinition } from "@/lib/canvas/node-registry";
 import { ensurePluginsLoaded } from "@/lib/canvas/plugin-loader";
-import { canvasThemes } from "@/lib/canvas-theme";
+import { buildNodeContext } from "@/lib/canvas/plugin-node-context";
+import { requestEdit, requestGeneration, requestImageQuestion, type AiTextMessage } from "@/services/api/image";
+import { requestVideoGeneration, storeGeneratedVideo } from "@/services/api/video";
+import { imageToDataUrl } from "@/services/image-storage";
+import { decodeChannelModel, selectableModelsByCapability, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
+import type { CanvasConnection, CanvasNodeData, ViewportTransform } from "@/types/canvas";
 import type { CanvasNodeToolbarItem, CanvasPluginAi, CanvasPluginHost } from "@/types/canvas-plugin";
 import type { ReferenceImage } from "@/types/image";
-import type { CanvasAgentOp } from "@/lib/canvas/canvas-agent-ops";
-import type { CanvasConnection, CanvasNodeData, ViewportTransform } from "@/types/canvas";
 
 type CanvasTheme = (typeof canvasThemes)[keyof typeof canvasThemes];
 
@@ -53,14 +53,16 @@ export function usePluginHost(params: PluginHostParams) {
                 ensureReady(config);
                 const references = toReferences(options?.references);
                 const items = references.length ? await requestEdit(config, prompt, references, { signal: options?.signal }) : await requestGeneration(config, prompt, { signal: options?.signal });
-                const images = await Promise.all(items.map(async (item) => {
-                    try {
-                        return await imageToDataUrl({ dataUrl: item.dataUrl }, { signal: options?.signal });
-                    } catch (error) {
-                        if (options?.signal?.aborted) throw error;
-                        return item.dataUrl;
-                    }
-                }));
+                const images = await Promise.all(
+                    items.map(async (item) => {
+                        try {
+                            return await imageToDataUrl({ dataUrl: item.dataUrl }, { signal: options?.signal });
+                        } catch (error) {
+                            if (options?.signal?.aborted) throw error;
+                            return item.dataUrl;
+                        }
+                    }),
+                );
                 return { images };
             },
             generateVideo: async (prompt, options) => {
@@ -133,8 +135,8 @@ export function usePluginHost(params: PluginHostParams) {
             const interactive = Boolean(node.metadata?.interactive);
             const toggle: CanvasNodeToolbarItem = {
                 id: "node-interaction-toggle",
-                title: (interactive ? "当前：交互中。点击切回「移动」——拖动可移动节点" : "当前：可移动。点击切到「交互」——可操作节点内容（如转动全景）"),
-                label: (interactive ? "移动" : "交互"),
+                title: interactive ? "当前：交互中。点击切回「移动」——拖动可移动节点" : "当前：可移动。点击切到「交互」——可操作节点内容（如转动全景）",
+                label: interactive ? "移动" : "交互",
                 icon: interactive ? "✋" : "🖐",
                 active: interactive,
                 onClick: () => pluginHost.updateMetadata(node.id, { interactive: !interactive }),

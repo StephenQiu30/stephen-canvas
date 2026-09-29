@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Group, Ungroup } from "lucide-react";
-import { Tooltip } from "@/components/ui/app-primitives";
+import type { ReactNode } from "react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
 import { nodeBounds } from "@/lib/canvas/canvas-node-geometry";
@@ -72,13 +73,16 @@ export function CanvasSelectionToolbar({
 function SelectionAction({ title, label, icon, onClick }: { title: string; label: string; icon: ReactNode; onClick: () => void }) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     return (
-        <Tooltip title={title} placement="top" mouseEnterDelay={0.2} color={theme.toolbar.panel} styles={{ root: { color: theme.node.text, boxShadow: "var(--elevation-overlay)", fontSize: 13, fontWeight: 500, border: `1px solid ${theme.toolbar.border}` } }}>
-            <button type="button" className="group relative flex h-12 items-center whitespace-nowrap px-1.5" onClick={onClick} aria-label={title}>
-                <span className="flex h-9 items-center gap-2 rounded-lg px-2.5 transition group-hover:bg-black/5 dark:group-hover:bg-white/10">
-                    {icon}
-                    <span>{label}</span>
-                </span>
-            </button>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button variant="ghost" type="button" className="group relative flex h-12 items-center whitespace-nowrap px-1.5" onClick={onClick} aria-label={title}>
+                    <span className="flex h-9 items-center gap-2 rounded-lg px-2.5 transition group-hover:bg-black/5 dark:group-hover:bg-white/10">
+                        {icon}
+                        <span>{label}</span>
+                    </span>
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">{title}</TooltipContent>
         </Tooltip>
     );
 }

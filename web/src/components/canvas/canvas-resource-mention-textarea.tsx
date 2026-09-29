@@ -1,12 +1,15 @@
-import { forwardRef, useMemo, useRef, useState } from "react";
-import type { CSSProperties, MouseEvent, PointerEvent, TextareaHTMLAttributes } from "react";
-import { createPortal } from "react-dom";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import { FileText, Image as ImageIcon, Music2, Video } from "lucide-react";
+import type { CSSProperties, MouseEvent, PointerEvent, TextareaHTMLAttributes } from "react";
+import { forwardRef, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { canvasThemes } from "@/lib/canvas-theme";
+import type { CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
 import { isImeComposing, isPlainEnterKey } from "@/lib/keyboard-event";
 import { useThemeStore } from "@/stores/use-theme-store";
-import type { CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
 
 type MentionState = {
     start: number;
@@ -22,7 +25,10 @@ type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "val
     highlightLabels?: boolean;
 };
 
-export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Props>(function CanvasResourceMentionTextarea({ value, references, onChange, onSubmit, onKeyDown, className, containerClassName, style, highlightLabels = true, ...props }, forwardedRef) {
+export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Props>(function CanvasResourceMentionTextarea(
+    { value, references, onChange, onSubmit, onKeyDown, className, containerClassName, style, highlightLabels = true, ...props },
+    forwardedRef,
+) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -93,7 +99,10 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
         // The highlight layer covers the textarea when showOverlay is active, so keep the textarea above it to preserve the native caret.
         ...(showOverlay ? { position: "relative", zIndex: 1, background: "transparent", backgroundColor: "transparent" } : {}),
     } as CSSProperties;
-    const menu = mention && candidates.length && textareaRef.current ? <MentionMenu textarea={textareaRef.current} caretIndex={mention.start} references={candidates} activeIndex={Math.min(activeIndex, candidates.length - 1)} theme={theme} onSelect={insertReference} /> : null;
+    const menu =
+        mention && candidates.length && textareaRef.current ? (
+            <MentionMenu onClose={closeMention} textarea={textareaRef.current} caretIndex={mention.start} references={candidates} activeIndex={Math.min(activeIndex, candidates.length - 1)} theme={theme} onSelect={insertReference} />
+        ) : null;
 
     return (
         <div className={`relative h-full w-full ${containerClassName || ""}`}>
@@ -102,7 +111,7 @@ export const CanvasResourceMentionTextarea = forwardRef<HTMLTextAreaElement, Pro
                     <MentionHighlightText value={value || props.placeholder?.toString() || ""} labels={activeLabels} placeholder={!value} />
                 </div>
             ) : null}
-            <textarea
+            <Textarea
                 {...props}
                 ref={(node) => {
                     textareaRef.current = node;
@@ -213,7 +222,23 @@ function MentionHighlightText({ value, labels, placeholder }: { value: string; l
     );
 }
 
-function MentionMenu({ textarea, caretIndex, references, activeIndex, theme, onSelect }: { textarea: HTMLTextAreaElement; caretIndex: number; references: CanvasResourceReference[]; activeIndex: number; theme: (typeof canvasThemes)[keyof typeof canvasThemes]; onSelect: (reference: CanvasResourceReference) => void }) {
+function MentionMenu({
+    textarea,
+    caretIndex,
+    references,
+    activeIndex,
+    theme,
+    onSelect,
+    onClose,
+}: {
+    textarea: HTMLTextAreaElement;
+    caretIndex: number;
+    references: CanvasResourceReference[];
+    activeIndex: number;
+    theme: (typeof canvasThemes)[keyof typeof canvasThemes];
+    onClose: () => void;
+    onSelect: (reference: CanvasResourceReference) => void;
+}) {
     const selectedRef = useRef(false);
     const rect = textarea.getBoundingClientRect();
     const boundary = textarea.closest('[data-slot="dialog-content"]')?.getBoundingClientRect() || { left: 8, top: 8, right: window.innerWidth - 8, bottom: window.innerHeight - 8 };
@@ -242,39 +267,54 @@ function MentionMenu({ textarea, caretIndex, references, activeIndex, theme, onS
     };
 
     return createPortal(
-        <div
-            data-canvas-resource-mention-menu="true"
-            className="fixed z-[120] max-h-56 w-64 overflow-y-auto rounded-xl border p-1 shadow-2xl backdrop-blur-md"
-            style={{ left, top, background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.node.text }}
-            onPointerDown={stopCanvasInteraction}
-            onMouseDown={stopCanvasInteraction}
-            onClick={(event) => event.stopPropagation()}
+        <Popover
+            open
+            onOpenChange={(open) => {
+                if (!open) onClose();
+            }}
         >
-            {references.map((reference, index) => (
-                <button
-                    key={reference.id}
-                    type="button"
-                    className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition"
-                    style={{ background: index === activeIndex ? theme.toolbar.activeBg : "transparent", color: index === activeIndex ? theme.toolbar.activeText : theme.node.text }}
-                    onPointerDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        selectReference(reference);
-                    }}
-                    onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        selectReference(reference);
-                    }}
-                >
-                    <ReferencePreview reference={reference} />
-                    <span className="min-w-0 flex-1">
-                        <span className="block font-medium">{reference.label}</span>
-                        <span className="block truncate opacity-65">{reference.text || reference.title}</span>
-                    </span>
-                </button>
-            ))}
-        </div>,
+            <PopoverAnchor asChild>
+                <span className="fixed size-px" style={{ left, top }} />
+            </PopoverAnchor>
+            <PopoverContent
+                data-canvas-resource-mention-menu="true"
+                aria-label="选择画布素材"
+                align="start"
+                sideOffset={0}
+                className="max-h-56 w-64 overflow-y-auto p-1"
+                onOpenAutoFocus={(event) => event.preventDefault()}
+                onCloseAutoFocus={(event) => event.preventDefault()}
+                onPointerDown={stopCanvasInteraction}
+                onMouseDown={stopCanvasInteraction}
+                onClick={(event) => event.stopPropagation()}
+            >
+                {references.map((reference, index) => (
+                    <Button
+                        variant="ghost"
+                        key={reference.id}
+                        type="button"
+                        className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition"
+                        style={{ background: index === activeIndex ? theme.toolbar.activeBg : "transparent", color: index === activeIndex ? theme.toolbar.activeText : theme.node.text }}
+                        onPointerDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            selectReference(reference);
+                        }}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            selectReference(reference);
+                        }}
+                    >
+                        <ReferencePreview reference={reference} />
+                        <span className="min-w-0 flex-1">
+                            <span className="block font-medium">{reference.label}</span>
+                            <span className="block truncate opacity-65">{reference.text || reference.title}</span>
+                        </span>
+                    </Button>
+                ))}
+            </PopoverContent>
+        </Popover>,
         document.body,
     );
 }
@@ -296,7 +336,31 @@ function clamp(value: number, min: number, max: number) {
 }
 
 // Mirror the textarea layout in a div to measure the caret at index in unscaled layout coordinates.
-const MIRROR_STYLE_PROPS = ["boxSizing", "width", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth", "fontStyle", "fontVariant", "fontWeight", "fontStretch", "fontSize", "lineHeight", "fontFamily", "textAlign", "textIndent", "letterSpacing", "wordSpacing", "tabSize", "textTransform"] as const;
+const MIRROR_STYLE_PROPS = [
+    "boxSizing",
+    "width",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+    "borderTopWidth",
+    "borderRightWidth",
+    "borderBottomWidth",
+    "borderLeftWidth",
+    "fontStyle",
+    "fontVariant",
+    "fontWeight",
+    "fontStretch",
+    "fontSize",
+    "lineHeight",
+    "fontFamily",
+    "textAlign",
+    "textIndent",
+    "letterSpacing",
+    "wordSpacing",
+    "tabSize",
+    "textTransform",
+] as const;
 
 function getCaretPoint(textarea: HTMLTextAreaElement, index: number) {
     const computed = window.getComputedStyle(textarea);

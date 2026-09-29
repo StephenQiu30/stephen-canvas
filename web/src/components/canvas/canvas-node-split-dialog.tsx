@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Button, InputNumber, Modal, Tooltip } from "@/components/ui/app-primitives";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Grid2x2, ListRestart, PanelTop, Redo2, Rows3, Trash2, Undo2, ZoomIn, ZoomOut } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
-import { readImageMeta } from "@/lib/image-utils";
-import type { ImageSplitParams } from "@/lib/canvas/canvas-image-data";
 import { useImageEditorViewport } from "@/components/canvas/use-image-editor-viewport";
+import type { ImageSplitParams } from "@/lib/canvas/canvas-image-data";
+import { readImageMeta } from "@/lib/image-utils";
 
 export type CanvasImageSplitParams = ImageSplitParams;
 
@@ -146,92 +149,129 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
     const confirmParams = { ...params, horizontalLines, verticalLines, rows, columns };
 
     return (
-        <Modal title={null} open={open && Boolean(dataUrl)} onCancel={onClose} footer={null} width={780} centered destroyOnHidden transitionName="" maskTransitionName="">
-            <div className="space-y-5" data-canvas-no-zoom>
+        <Dialog
+            open={open && Boolean(dataUrl)}
+            onOpenChange={(open) => {
+                if (!open) onClose();
+            }}
+        >
+            <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"} style={{ width: 780, maxWidth: "calc(100vw - 2rem)" }}>
+                <DialogHeader>
+                    <DialogTitle className="sr-only">拆分图片</DialogTitle>
+                </DialogHeader>
                 <div>
-                    <h2 className="text-xl font-semibold">{"切分图片"}</h2>
-                    <p className="mt-1 text-sm opacity-60">{`生成 ${total} 个图片子节点，并按原图网格排列到画布右侧`}</p>
-                    <p className="mt-2 text-xs leading-5 opacity-55">{"滚轮缩放 · 中键或空格+左键拖动画面 · Delete 删除选中线 · Ctrl/Cmd+Z 撤回 · Ctrl/Cmd+Shift+Z 重做"}</p>
-                </div>
-                <div className="grid gap-6 md:grid-cols-[minmax(260px,1fr)_280px]">
-                    <div className="rounded-xl border p-4">
-                        <div
-                            ref={viewport.viewportRef}
-                            {...viewport.panHandlers}
-                            className={`relative isolate h-[340px] min-h-[300px] rounded-lg bg-black/5 ${viewport.scrollClassName} ${viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : ""}`}
-                        >
-                            <div className="relative" style={viewport.contentStyle}>
-                                <div ref={previewRef} className="absolute isolate overflow-hidden rounded-lg bg-black [backface-visibility:hidden] [contain:layout_paint] [transform:translateZ(0)]" style={viewport.stageStyle}>
-                                    <div className="absolute left-0 top-0 [backface-visibility:hidden]" style={viewport.mediaStyle}>
-                                        <img src={dataUrl} alt="" className="block h-full w-full object-contain" draggable={false} />
+                    <div className="flex flex-col gap-5" data-canvas-no-zoom>
+                        <div>
+                            <h2 className="text-xl font-semibold">{"切分图片"}</h2>
+                            <p className="mt-1 text-sm opacity-60">{`生成 ${total} 个图片子节点，并按原图网格排列到画布右侧`}</p>
+                            <p className="mt-2 text-xs leading-5 opacity-55">{"滚轮缩放 · 中键或空格+左键拖动画面 · Delete 删除选中线 · Ctrl/Cmd+Z 撤回 · Ctrl/Cmd+Shift+Z 重做"}</p>
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-[minmax(260px,1fr)_280px]">
+                            <div className="rounded-xl border p-4">
+                                <div
+                                    ref={viewport.viewportRef}
+                                    {...viewport.panHandlers}
+                                    className={`relative isolate h-[340px] min-h-[300px] rounded-lg bg-black/5 ${viewport.scrollClassName} ${viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : ""}`}
+                                >
+                                    <div className="relative" style={viewport.contentStyle}>
+                                        <div ref={previewRef} className="absolute isolate overflow-hidden rounded-lg bg-black [backface-visibility:hidden] [contain:layout_paint] [transform:translateZ(0)]" style={viewport.stageStyle}>
+                                            <div className="absolute left-0 top-0 [backface-visibility:hidden]" style={viewport.mediaStyle}>
+                                                <img src={dataUrl} alt="" className="block h-full w-full object-contain" draggable={false} />
+                                            </div>
+                                            <SplitGrid horizontalLines={horizontalLines} verticalLines={verticalLines} active={active} onPointerDown={startDrag} />
+                                        </div>
                                     </div>
-                                    <SplitGrid horizontalLines={horizontalLines} verticalLines={verticalLines} active={active} onPointerDown={startDrag} />
+                                </div>
+                                <div className="mt-3 flex items-center justify-between text-sm">
+                                    <div className="flex items-center gap-1">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button aria-label={"撤回切图调整"} onClick={undoSplit} type={"button"} variant={"ghost"} size="icon" disabled={!historySize}>
+                                                    {<Undo2 data-icon="inline-start" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">{"撤回切图调整 (Ctrl/Cmd+Z)"}</TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button aria-label={"重做切图调整"} onClick={redoSplit} type={"button"} variant={"ghost"} size="icon" disabled={!redoSize}>
+                                                    {<Redo2 data-icon="inline-start" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">{"重做切图调整 (Ctrl/Cmd+Shift+Z)"}</TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button aria-label={"缩小"} onClick={viewport.zoomOut} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomOut}>
+                                                    {<ZoomOut data-icon="inline-start" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">{"缩小"}</TooltipContent>
+                                        </Tooltip>
+                                        <Button variant="ghost" type="button" className="min-w-14 text-center text-xs font-semibold tabular-nums opacity-70" onClick={viewport.resetZoom}>
+                                            {Math.round(viewport.zoom * 100)}%
+                                        </Button>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button aria-label={"放大"} onClick={viewport.zoomIn} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomIn}>
+                                                    {<ZoomIn data-icon="inline-start" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">{"放大"}</TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                    <span className="font-semibold">{image ? `${image.width} x ${image.height} px` : "读取中"}</span>
                                 </div>
                             </div>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-1">
-                                <Tooltip title={"撤回切图调整 (Ctrl/Cmd+Z)"}>
-                                    <Button type="text" icon={<Undo2 className="size-4" />} disabled={!historySize} aria-label={"撤回切图调整"} onClick={undoSplit} />
-                                </Tooltip>
-                                <Tooltip title={"重做切图调整 (Ctrl/Cmd+Shift+Z)"}>
-                                    <Button type="text" icon={<Redo2 className="size-4" />} disabled={!redoSize} aria-label={"重做切图调整"} onClick={redoSplit} />
-                                </Tooltip>
-                                <Tooltip title={"缩小"}>
-                                    <Button type="text" icon={<ZoomOut className="size-4" />} disabled={!viewport.canZoomOut} aria-label={"缩小"} onClick={viewport.zoomOut} />
-                                </Tooltip>
-                                <button type="button" className="min-w-14 text-center text-xs font-semibold tabular-nums opacity-70" onClick={viewport.resetZoom}>
-                                    {Math.round(viewport.zoom * 100)}%
-                                </button>
-                                <Tooltip title={"放大"}>
-                                    <Button type="text" icon={<ZoomIn className="size-4" />} disabled={!viewport.canZoomIn} aria-label={"放大"} onClick={viewport.zoomIn} />
-                                </Tooltip>
-                            </div>
-                            <span className="font-semibold">{image ? `${image.width} x ${image.height} px` : "读取中"}</span>
-                        </div>
-                    </div>
-                    <div className="space-y-5 py-2">
-                        <NumberField label={"行数"} value={rows} onChange={(value) => update("rows", value)} />
-                        <NumberField label={"列数"} value={columns} onChange={(value) => update("columns", value)} />
-                        <div className="grid grid-cols-2 gap-2">
-                            <Button icon={<Rows3 className="size-4" />} onClick={() => addLine("horizontal")}>
-                                {"横向线"}
-                            </Button>
-                            <Button icon={<PanelTop className="size-4 rotate-90" />} onClick={() => addLine("vertical")}>
-                                {"纵向线"}
-                            </Button>
-                            <Button icon={<Trash2 className="size-4" />} disabled={!active} onClick={deleteLine}>
-                                {"删除线"}
-                            </Button>
-                            <Button icon={<ListRestart className="size-4" />} onClick={resetLines}>
-                                {"重置线"}
-                            </Button>
-                        </div>
-                        <div className="rounded-xl border px-4 py-3 text-sm">
-                            <div className="flex items-center justify-between">
-                                <span className="opacity-60">{"切片数量"}</span>
-                                <span className="font-semibold">{`${total} 个`}</span>
-                            </div>
-                            <div className="mt-2 flex items-center justify-between">
-                                <span className="opacity-60">{"平均约"}</span>
-                                <span className="font-semibold">{pieceSize ? `${pieceSize.width} x ${pieceSize.height}` : "未知"}</span>
+                            <div className="flex flex-col gap-5 py-2">
+                                <NumberField label={"行数"} value={rows} onChange={(value) => update("rows", value)} />
+                                <NumberField label={"列数"} value={columns} onChange={(value) => update("columns", value)} />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Button onClick={() => addLine("horizontal")} type={"button"} variant={"secondary"} size="default">
+                                        {<Rows3 data-icon="inline-start" />}
+                                        {"横向线"}
+                                    </Button>
+                                    <Button onClick={() => addLine("vertical")} type={"button"} variant={"secondary"} size="default">
+                                        {<PanelTop data-icon="inline-start" />}
+                                        {"纵向线"}
+                                    </Button>
+                                    <Button onClick={deleteLine} type={"button"} variant={"secondary"} size="default" disabled={!active}>
+                                        {<Trash2 data-icon="inline-start" />}
+                                        {"删除线"}
+                                    </Button>
+                                    <Button onClick={resetLines} type={"button"} variant={"secondary"} size="default">
+                                        {<ListRestart data-icon="inline-start" />}
+                                        {"重置线"}
+                                    </Button>
+                                </div>
+                                <div className="rounded-xl border px-4 py-3 text-sm">
+                                    <div className="flex items-center justify-between">
+                                        <span className="opacity-60">{"切片数量"}</span>
+                                        <span className="font-semibold">{`${total} 个`}</span>
+                                    </div>
+                                    <div className="mt-2 flex items-center justify-between">
+                                        <span className="opacity-60">{"平均约"}</span>
+                                        <span className="font-semibold">{pieceSize ? `${pieceSize.width} x ${pieceSize.height}` : "未知"}</span>
+                                    </div>
+                                </div>
+                                <Button onClick={() => onConfirm(confirmParams)} type={"button"} variant={"default"} size="lg" className={"w-full"}>
+                                    {<Grid2x2 data-icon="inline-start" />}
+                                    {"生成子节点"}
+                                </Button>
                             </div>
                         </div>
-                        <Button type="primary" size="large" className="w-full" icon={<Grid2x2 className="size-4" />} onClick={() => onConfirm(confirmParams)}>
-                            {"生成子节点"}
-                        </Button>
                     </div>
                 </div>
-            </div>
-        </Modal>
+            </DialogContent>
+        </Dialog>
     );
 }
 
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: string | number | null) => void }) {
     return (
-        <label className="block space-y-2">
+        <label className="block flex flex-col gap-2">
             <span className="font-medium opacity-75">{label}</span>
-            <InputNumber className="w-full" min={1} max={maxGridSize} precision={0} value={value} onChange={onChange} />
+            <Input className="w-full" min={1} max={maxGridSize} type="number" value={value ?? ""} onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))} />
         </label>
     );
 }

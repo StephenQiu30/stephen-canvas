@@ -1,6 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { Bot, Download, Home, Images, Menu, PanelLeftClose, PanelLeftOpen, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
-import { Button, Dropdown, Modal, Tooltip } from "@/components/ui/app-primitives";
+import { useEffect, useRef, useState } from "react";
 
 import { AppToolbarActions } from "@/components/layout/app-toolbar-actions";
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -72,43 +77,106 @@ export function CanvasTopBar({
         <>
             <div className="pointer-events-none absolute left-0 right-0 top-0 z-50 flex h-16 items-center justify-between pl-1 pr-4">
                 <div className="pointer-events-auto flex min-w-0 items-center gap-2">
-                    <Tooltip title={sidePanelOpen ? "收起面板" : "展开面板"}>
-                        <button
-                            type="button"
-                            onClick={toggleSidePanel}
-                            aria-label={sidePanelOpen ? "收起面板" : "展开面板"}
-                            className="grid size-7 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
-                            style={{ color: theme.node.text }}
-                        >
-                            {sidePanelOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
-                        </button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                type="button"
+                                onClick={toggleSidePanel}
+                                aria-label={sidePanelOpen ? "收起面板" : "展开面板"}
+                                className="grid size-7 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
+                                style={{ color: theme.node.text }}
+                            >
+                                {sidePanelOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{sidePanelOpen ? "收起面板" : "展开面板"}</TooltipContent>
                     </Tooltip>
-                    <Dropdown
-                        trigger={["click"]}
-                        menu={{
-                            items: [
-                                { key: "home", icon: <Home className="size-4" />, label: "主页", onClick: onHome },
-                                { key: "projects", icon: <Images className="size-4" />, label: "我的画布", onClick: onProjects },
-                                { type: "divider" },
-                                { key: "new", icon: <Plus className="size-4" />, label: "新建画布", onClick: onCreateProject },
-                                { key: "delete", danger: true, icon: <Trash2 className="size-4" />, label: "删除当前画布", onClick: onDeleteProject },
-                                { type: "divider" },
-                                { key: "import", icon: <Upload className="size-4" />, label: "导入资产", onClick: onImportImage },
-                                { key: "export", icon: <Download className="size-4" />, label: "导出当前画布", onClick: onExportProject },
-                                { type: "divider" },
-                                { key: "undo", disabled: !canUndo, icon: <Undo2 className="size-4" />, label: <MenuLabel text={"撤销"} shortcut="⌘ Z" />, onClick: onUndo },
-                                { key: "redo", disabled: !canRedo, icon: <Redo2 className="size-4" />, label: <MenuLabel text={"重做"} shortcut="⌘ ⇧ Z / ⌘ Y" />, onClick: onRedo },
-                            ],
-                        }}
-                    >
-                        <button type="button" className="grid size-7 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10" style={{ color: theme.node.text }} aria-label={"打开画布菜单"}>
-                            <Menu className="size-4" />
-                        </button>
-                    </Dropdown>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" type="button" className="grid size-7 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10" style={{ color: theme.node.text }} aria-label={"打开画布菜单"}>
+                                <Menu className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="bottom" align="start">
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        onHome();
+                                    }}
+                                >
+                                    {<Home className="size-4" />}
+                                    {"主页"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        onProjects();
+                                    }}
+                                >
+                                    {<Images className="size-4" />}
+                                    {"我的画布"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        onCreateProject();
+                                    }}
+                                >
+                                    {<Plus className="size-4" />}
+                                    {"新建画布"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    onSelect={() => {
+                                        onDeleteProject();
+                                    }}
+                                >
+                                    {<Trash2 className="size-4" />}
+                                    {"删除当前画布"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        onImportImage();
+                                    }}
+                                >
+                                    {<Upload className="size-4" />}
+                                    {"导入资产"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        onExportProject();
+                                    }}
+                                >
+                                    {<Download className="size-4" />}
+                                    {"导出当前画布"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    disabled={!canUndo}
+                                    onSelect={() => {
+                                        onUndo();
+                                    }}
+                                >
+                                    {<Undo2 className="size-4" />}
+                                    {<MenuLabel text={"撤销"} shortcut="⌘ Z" />}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    disabled={!canRedo}
+                                    onSelect={() => {
+                                        onRedo();
+                                    }}
+                                >
+                                    {<Redo2 className="size-4" />}
+                                    {<MenuLabel text={"重做"} shortcut="⌘ ⇧ Z / ⌘ Y" />}
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
                     <div ref={titleRef} className="flex min-w-0 items-center gap-2">
                         {isTitleEditing ? (
-                            <input
+                            <Input
                                 autoFocus
                                 value={titleDraft}
                                 onChange={(event) => onTitleDraftChange(event.target.value)}
@@ -121,14 +189,15 @@ export function CanvasTopBar({
                                 style={{ color: theme.node.text }}
                             />
                         ) : (
-                            <button
+                            <Button
+                                variant="ghost"
                                 type="button"
                                 className="max-w-[280px] truncate border-b border-dashed border-transparent text-left text-lg font-semibold tracking-normal transition hover:border-current"
                                 onDoubleClick={onStartTitleEditing}
                                 title={"双击修改画布名称"}
                             >
                                 {title}
-                            </button>
+                            </Button>
                         )}
                     </div>
                     <CompactAgentStatus status={compactAgentStatus} onClick={onToggleAgent} />
@@ -137,36 +206,42 @@ export function CanvasTopBar({
                 <div className="pointer-events-auto flex items-center gap-1.5">
                     <AppToolbarActions variant="canvas" onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
                     <span className="h-6 w-px" style={{ background: theme.toolbar.border }} />
-                    <Button
-                        type="text"
-                        className="!h-10 !rounded-xl !px-3 !font-medium"
-                        style={{ background: agentOpen ? theme.toolbar.activeBg : theme.toolbar.panel, color: theme.node.text, boxShadow: "0 10px 30px rgba(28,25,23,.10)" }}
-                        icon={<Bot className="size-4" />}
-                        onClick={onToggleAgent}
-                    >
-                        Agent
+                    <Button style={{ background: agentOpen ? theme.toolbar.activeBg : "transparent", color: theme.node.text }} onClick={onToggleAgent} type={"button"} variant={"ghost"} size="default" className={"!h-10 !rounded-xl !px-3 !font-medium"}>
+                        {<Bot data-icon="inline-start" />}Agent
                     </Button>
                 </div>
             </div>
-            <Modal title={"快捷键"} open={shortcutsOpen} onCancel={() => setShortcutsOpen(false)} footer={null} centered>
-                <div className="space-y-2 border-t pt-4 text-sm" style={{ borderColor: theme.node.stroke }}>
-                    <Shortcut keys={["Ctrl / Space", "拖动"]} value={"临时切换选择 / 移动"} />
-                    <Shortcut keys={["滚轮"]} value={"缩放画布"} />
-                    <Shortcut keys={["缩放滑杆"]} value={"精确调整缩放"} />
-                    <Shortcut keys={["拖动"]} value={"框选多个节点"} />
-                    <Shortcut keys={["Shift / Cmd", "点击"]} value={"追加选择节点"} />
-                    <Shortcut keys={["Ctrl / Cmd", "A"]} value={"全选节点"} />
-                    <Shortcut keys={["Ctrl / Cmd", "C / V"]} value={"复制 / 粘贴节点，或粘贴剪切板文本/图片"} />
-                    <Shortcut keys={["Ctrl / Cmd", "G"]} value={"将选中节点打组"} />
-                    <Shortcut keys={["Ctrl / Cmd", "Shift", "G"]} value={"解散选中的组"} />
-                    <Shortcut keys={["Ctrl / Cmd", "Z"]} value={"撤销"} />
-                    <Shortcut keys={["Ctrl / Cmd", "Shift", "Z"]} value={"重做"} />
-                    <Shortcut keys={["Ctrl / Cmd", "Y"]} value={"重做"} />
-                    <Shortcut keys={["Delete / Backspace"]} value={"删除选中"} />
-                    <Shortcut keys={["Esc"]} value={"取消选择并关闭浮层"} />
-                    <Shortcut keys={["拖入图片/视频/音频"]} value={"上传到画布"} />
-                </div>
-            </Modal>
+            <Dialog
+                open={shortcutsOpen}
+                onOpenChange={(open) => {
+                    if (!open) (() => setShortcutsOpen(false))();
+                }}
+            >
+                <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"}>
+                    <DialogHeader>
+                        <DialogTitle>{"快捷键"}</DialogTitle>
+                    </DialogHeader>
+                    <div>
+                        <div className="flex flex-col gap-2 border-t pt-4 text-sm" style={{ borderColor: theme.node.stroke }}>
+                            <Shortcut keys={["Ctrl / Space", "拖动"]} value={"临时切换选择 / 移动"} />
+                            <Shortcut keys={["滚轮"]} value={"缩放画布"} />
+                            <Shortcut keys={["缩放滑杆"]} value={"精确调整缩放"} />
+                            <Shortcut keys={["拖动"]} value={"框选多个节点"} />
+                            <Shortcut keys={["Shift / Cmd", "点击"]} value={"追加选择节点"} />
+                            <Shortcut keys={["Ctrl / Cmd", "A"]} value={"全选节点"} />
+                            <Shortcut keys={["Ctrl / Cmd", "C / V"]} value={"复制 / 粘贴节点，或粘贴剪切板文本/图片"} />
+                            <Shortcut keys={["Ctrl / Cmd", "G"]} value={"将选中节点打组"} />
+                            <Shortcut keys={["Ctrl / Cmd", "Shift", "G"]} value={"解散选中的组"} />
+                            <Shortcut keys={["Ctrl / Cmd", "Z"]} value={"撤销"} />
+                            <Shortcut keys={["Ctrl / Cmd", "Shift", "Z"]} value={"重做"} />
+                            <Shortcut keys={["Ctrl / Cmd", "Y"]} value={"重做"} />
+                            <Shortcut keys={["Delete / Backspace"]} value={"删除选中"} />
+                            <Shortcut keys={["Esc"]} value={"取消选择并关闭浮层"} />
+                            <Shortcut keys={["拖入图片/视频/音频"]} value={"上传到画布"} />
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
@@ -186,10 +261,17 @@ function CompactAgentStatus({ status, onClick }: { status: { connected: boolean;
     const label = status.connected ? "Codex 已连接" : status.enabled ? `Codex ${status.activity || "连接中"}` : "Codex 未连接";
     const dotColor = status.connected ? "#22c55e" : status.enabled ? "#f59e0b" : theme.node.muted;
     return (
-        <button type="button" className="flex h-8 items-center gap-1.5 text-xs transition hover:opacity-75" style={{ color: status.connected ? "#16a34a" : status.enabled ? "#d97706" : theme.node.muted }} onClick={onClick} title={"打开本地 Codex 面板"}>
+        <Button
+            variant="ghost"
+            type="button"
+            className="flex h-8 items-center gap-1.5 text-xs transition hover:opacity-75"
+            style={{ color: status.connected ? "#16a34a" : status.enabled ? "#d97706" : theme.node.muted }}
+            onClick={onClick}
+            title={"打开本地 Codex 面板"}
+        >
             <span className="size-2 rounded-full" style={{ background: dotColor }} />
             <span className="max-w-[140px] truncate">{label}</span>
-        </button>
+        </Button>
     );
 }
 

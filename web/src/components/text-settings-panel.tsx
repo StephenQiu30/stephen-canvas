@@ -1,6 +1,6 @@
-import { type ReactNode } from "react";
+import { FieldGroup } from "@/components/ui/field";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-import { ImageSettingsTheme } from "@/components/image-settings-panel";
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import type { AiConfig, ReasoningEffort } from "@/stores/use-config-store";
 
@@ -13,42 +13,36 @@ type TextSettingsPanelProps = {
     className?: string;
 };
 
-export function TextSettingsPanel({ config, onConfigChange, theme, className = "space-y-4" }: TextSettingsPanelProps) {
+export function TextSettingsPanel({ config, onConfigChange, theme, className = "flex flex-col gap-4" }: TextSettingsPanelProps) {
     return (
-        <ImageSettingsTheme theme={theme}>
-            <div className={className} style={{ color: theme.node.text }} onMouseDown={(event) => event.stopPropagation()}>
-                <div className="text-lg font-semibold">{"文本设置"}</div>
-                <div className="space-y-2.5">
-                    <div className="text-sm font-medium" style={{ color: theme.node.muted }}>
-                        {"推理强度"}
-                    </div>
-                    <div className="grid grid-cols-5 gap-2">
-                        {reasoningEffortOptions.map((value) => (
-                            <OptionPill key={value} selected={config.reasoningEffort === value} theme={theme} onClick={() => onConfigChange("reasoningEffort", value)}>
-                                {(({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(value)] || String(value))}
-                            </OptionPill>
-                        ))}
-                    </div>
+        <FieldGroup className={className} style={{ color: theme.node.text }} onMouseDown={(event) => event.stopPropagation()}>
+            <div className="text-lg font-semibold">{"文本设置"}</div>
+            <div className="flex flex-col gap-2.5">
+                <div className="text-sm font-medium" style={{ color: theme.node.muted }}>
+                    {"推理强度"}
                 </div>
+                <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    spacing={2}
+                    value={String(config.reasoningEffort)}
+                    onValueChange={(value) => {
+                        if (value) onConfigChange("reasoningEffort", value as ReasoningEffort);
+                    }}
+                    className="grid grid-cols-5 gap-2 w-full"
+                    aria-label="推理强度"
+                >
+                    {reasoningEffortOptions.map((value) => (
+                        <ToggleGroupItem key={value} value={String(value)} className="min-w-0">
+                            {({ auto: "自动", low: "低", medium: "中", high: "高", xhigh: "极高" } as Record<string, string>)[String(value)] || String(value)}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
             </div>
-        </ImageSettingsTheme>
+        </FieldGroup>
     );
 }
 
 export function reasoningEffortLabel(value: ReasoningEffort) {
-    return reasoningEffortOptions.includes(value) ? (({ "auto":"自动", "low":"低", "medium":"中", "high":"高", "xhigh":"极高" } as Record<string, string>)[String(value)] || String(value)) : value;
-}
-
-function OptionPill({ selected, theme, onClick, children }: { selected: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {
-    return (
-        <button
-            type="button"
-            className="h-9 cursor-pointer rounded-full border px-2 text-sm transition hover:opacity-80"
-            style={{ background: "transparent", borderColor: selected ? theme.node.text : theme.node.stroke, color: theme.node.text }}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={onClick}
-        >
-            {children}
-        </button>
-    );
+    return reasoningEffortOptions.includes(value) ? ({ auto: "自动", low: "低", medium: "中", high: "高", xhigh: "极高" } as Record<string, string>)[String(value)] || String(value) : value;
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
 import { cn } from "cn";
 import { Dialog as DialogPrimitive } from "radix-ui";
+import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import { XIcon } from "lucide-react";
@@ -57,7 +57,7 @@ function DialogContent({
                     <DialogPrimitive.Close data-slot="dialog-close" asChild>
                         <Button variant="ghost" className="absolute top-2 right-2" size="icon-sm">
                             <XIcon />
-                            <span className="sr-only">Close</span>
+                            <span className="sr-only">关闭</span>
                         </Button>
                     </DialogPrimitive.Close>
                 )}
@@ -83,7 +83,7 @@ function DialogFooter({
             {children}
             {showCloseButton && (
                 <DialogPrimitive.Close asChild>
-                    <Button variant="outline">Close</Button>
+                    <Button variant="outline">关闭</Button>
                 </DialogPrimitive.Close>
             )}
         </div>

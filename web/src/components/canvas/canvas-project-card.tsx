@@ -1,11 +1,15 @@
 import { Check, Download, Pencil, Trash2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Input } from "@/components/ui/app-primitives";
 
+import { CanvasProjectCover } from "@/components/canvas/canvas-project-cover";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { hasAgentUrlBootstrap } from "@/lib/agent/agent-url-bootstrap";
+import { exportCanvasProjects } from "@/lib/canvas/canvas-export";
 import { useCanvasStore, type CanvasProject } from "@/stores/canvas/use-canvas-store";
 import { useCanvasUiStore } from "@/stores/canvas/use-canvas-ui-store";
-import { exportCanvasProjects } from "@/lib/canvas/canvas-export";
-import { hasAgentUrlBootstrap } from "@/lib/agent/agent-url-bootstrap";
 
 export function CanvasProjectCard({ project }: { project: CanvasProject }) {
     const router = useRouter();
@@ -20,7 +24,6 @@ export function CanvasProjectCard({ project }: { project: CanvasProject }) {
     const toggleSelected = useCanvasUiStore((state) => state.toggleSelectedProjectId);
     const setDeleteIds = useCanvasUiStore((state) => state.setDeleteProjectIds);
     const editing = editingId === project.id;
-    const selected = selectedIds.includes(project.id);
     const open = () => {
         const agentHash = hasAgentUrlBootstrap(window.location.hash) ? window.location.hash : "";
         const target = `/canvas/${project.id}${searchParams.toString() ? `?${searchParams.toString()}` : ""}${agentHash}`;
@@ -33,51 +36,59 @@ export function CanvasProjectCard({ project }: { project: CanvasProject }) {
     };
 
     return (
-        <article className="group flex min-h-44 cursor-pointer flex-col justify-between rounded-xl border border-border bg-card p-5 shadow-card transition hover:bg-muted" onClick={() => !editing && open()}>
-            <div className="flex items-start gap-3">
-                <input
-                    type="checkbox"
-                    checked={selected}
-                    onClick={(event) => event.stopPropagation()}
-                    onChange={(event) => toggleSelected(project.id, event.target.checked)}
-                    className="mt-1 size-4 accent-primary"
-                    aria-label={`选择 ${project.title}`}
-                />
+        <Card className="min-w-0 gap-3 rounded-xl pt-0">
+            <Button variant="ghost" className="grid aspect-video h-auto w-full place-items-center overflow-hidden rounded-none p-0" onClick={open} disabled={editing} aria-label={`打开 ${project.title}`}>
+                <CanvasProjectCover project={project} />
+            </Button>
+            <CardHeader className="grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+                <Checkbox checked={selectedIds.includes(project.id)} onCheckedChange={(checked) => toggleSelected(project.id, checked === true)} aria-label={`选择 ${project.title}`} />
                 {editing ? (
-                    <Input className="min-w-0" value={editingTitle} onClick={(event) => event.stopPropagation()} onChange={(event) => setEditingTitle(event.target.value)} onKeyDown={(event) => event.key === "Enter" && saveTitle()} autoFocus />
-                ) : (
-                    <button
-                        type="button"
-                        className="min-w-0 cursor-pointer text-left"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            open();
+                    <Input
+                        value={editingTitle}
+                        onChange={(event) => setEditingTitle(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter") saveTitle();
+                            if (event.key === "Escape") stopEditing();
                         }}
-                    >
-                        <h2 className="truncate text-xl font-semibold">{project.title}</h2>
-                        <p className="mt-3 text-sm leading-6 text-brand-body ">
-                            {`${project.nodes.length} 个节点 · ${project.connections.length} 条连线`}
-                        </p>
-                    </button>
+                        aria-label="项目名称"
+                        autoFocus
+                    />
+                ) : (
+                    <CardTitle className="min-w-0">
+                        <Button variant="ghost" className="h-auto w-full justify-start p-0" onClick={open}>
+                            <span className="truncate">{project.title}</span>
+                        </Button>
+                    </CardTitle>
                 )}
-            </div>
-            <div className="mt-8 flex items-end justify-between gap-3">
-                <p className="text-xs text-muted-foreground">{`更新于 ${new Date(project.updatedAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}`}</p>
-                <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">{`${project.nodes.length} 个节点 · ${project.connections.length} 条连线`}</CardContent>
+            <CardFooter className="flex-wrap justify-between gap-2 border-0 bg-transparent pt-0">
+                <p className="text-xs text-muted-foreground">{new Date(project.updatedAt).toLocaleDateString("zh-CN")}</p>
+                <div className="flex items-center gap-1">
                     {editing ? (
                         <>
-                            <Button type="text" size="small" shape="circle" icon={<Check className="size-4" />} onClick={saveTitle} aria-label={"保存名称"} />
-                            <Button type="text" size="small" shape="circle" icon={<X className="size-4" />} onClick={stopEditing} aria-label={"取消重命名"} />
+                            <Button variant="ghost" size="icon-sm" onClick={saveTitle} aria-label={"保存名称"}>
+                                <Check />
+                            </Button>
+                            <Button variant="ghost" size="icon-sm" onClick={stopEditing} aria-label={"取消重命名"}>
+                                <X />
+                            </Button>
                         </>
                     ) : (
                         <>
-                            <Button type="text" size="small" shape="circle" icon={<Download className="size-4" />} onClick={() => void exportCanvasProjects([project], project.title || "Stephen Canvas")} aria-label={"导出"} />
-                            <Button type="text" size="small" shape="circle" icon={<Pencil className="size-4" />} onClick={() => startEditing(project.id, project.title)} aria-label={"重命名"} />
-                            <Button type="text" size="small" shape="circle" icon={<Trash2 className="size-4" />} onClick={() => setDeleteIds([project.id])} aria-label={"删除"} />
+                            <Button variant="ghost" size="icon-sm" onClick={() => void exportCanvasProjects([project], project.title || "Stephen Canvas")} aria-label={"导出"}>
+                                <Download />
+                            </Button>
+                            <Button variant="ghost" size="icon-sm" onClick={() => startEditing(project.id, project.title)} aria-label={"重命名"}>
+                                <Pencil />
+                            </Button>
+                            <Button variant="ghost" size="icon-sm" onClick={() => setDeleteIds([project.id])} aria-label={"删除"}>
+                                <Trash2 />
+                            </Button>
                         </>
                     )}
                 </div>
-            </div>
-        </article>
+            </CardFooter>
+        </Card>
     );
 }

@@ -1,26 +1,36 @@
 "use client";
 
+import { MediaPreview } from "@/components/media-preview";
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { saveAs } from "file-saver";
+import localforage from "localforage";
 import { ArrowLeft, ArrowRight, CheckSquare, ClipboardPaste, Download, FolderPlus, History, ImagePlus, LoaderCircle, PenLine, Plus, SlidersHorizontal, Sparkles, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Checkbox, Drawer, Empty, Image, Input, Modal, Tag, Tooltip, Typography } from "@/components/ui/app-primitives";
-import localforage from "localforage";
-import { saveAs } from "file-saver";
 
+import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { ImageSettingsPanel } from "@/components/image-settings-panel";
 import { ModelPicker } from "@/components/model-picker";
-import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { imageReferenceLabel } from "@/lib/image-reference-prompt";
-import { modelOptionLabel, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
-import { useThemeStore } from "@/stores/use-theme-store";
-import { nanoid } from "nanoid";
 import { formatBytes, formatDuration } from "@/lib/image-utils";
 import { requestEdit, requestGeneration } from "@/services/api/image";
 import { deleteStoredImages, ensureImagePreview, getImagePreviewRevision, previewUrlFor, resolveImageUrl, subscribeImagePreviews, uploadImage } from "@/services/image-storage";
 import { useAssetStore } from "@/stores/use-asset-store";
+import { modelOptionLabel, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
+import { useThemeStore } from "@/stores/use-theme-store";
 import { useWorkbenchAgentStore } from "@/stores/use-workbench-agent-store";
 import type { ReferenceImage } from "@/types/image";
+import { nanoid } from "nanoid";
 
 type GeneratedImage = {
     id: string;
@@ -64,7 +74,7 @@ type GenerationLogConfig = Pick<AiConfig, "model" | "imageModel" | "quality" | "
 type UpdateAiConfig = <K extends keyof AiConfig>(key: K, value: AiConfig[K]) => void;
 
 const LOG_STORE_KEY = "stephen-canvas:image_generation_logs";
-const RESULT_ACTION_BUTTON_CLASS = "min-w-0 px-1.5 [&_.ui-button-icon]:shrink-0 [&>span:last-child]:min-w-0 [&>span:last-child]:truncate";
+const RESULT_ACTION_BUTTON_CLASS = "min-w-0 px-1.5 [&>span:last-child]:min-w-0 [&>span:last-child]:truncate";
 const logStore = localforage.createInstance({ name: "stephen-canvas", storeName: "image_generation_logs" });
 
 export default function ImagePage() {
@@ -323,7 +333,16 @@ export default function ImagePage() {
             const image = result[0];
             if (!image) throw new Error("接口没有返回图片");
             const stored = await uploadImage(image.dataUrl);
-            const nextImage: GeneratedImage = { id: image.id, dataUrl: stored.url, ...(stored.storageKey ? { storageKey: stored.storageKey } : {}), durationMs: performance.now() - itemStartedAt, width: stored.width, height: stored.height, bytes: stored.bytes, mimeType: stored.mimeType };
+            const nextImage: GeneratedImage = {
+                id: image.id,
+                dataUrl: stored.url,
+                ...(stored.storageKey ? { storageKey: stored.storageKey } : {}),
+                durationMs: performance.now() - itemStartedAt,
+                width: stored.width,
+                height: stored.height,
+                bytes: stored.bytes,
+                mimeType: stored.mimeType,
+            };
             setResults((value) => updateResultAt(value, index, { status: "success", image: nextImage }));
             return nextImage;
         } catch (error) {
@@ -361,8 +380,8 @@ export default function ImagePage() {
 
     return (
         <div className="flex h-full flex-col overflow-hidden bg-muted text-foreground  ">
-            <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 lg:grid-cols-[300px_minmax(0,1fr)] lg:overflow-hidden xl:grid-cols-[320px_minmax(0,1fr)]">
-                <aside className="thin-scrollbar hidden min-h-0 overflow-y-auto rounded-lg border border-border bg-card p-4 shadow-sm  lg:block">
+            <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto px-4 pb-4 lg:px-6 @min-[1280px]:grid-cols-[240px_minmax(0,1fr)] @min-[1280px]:overflow-hidden">
+                <aside className="thin-scrollbar hidden min-h-0 overflow-y-auto rounded-xl border border-border bg-card p-4 @min-[1280px]:block">
                     <LogPanel
                         logs={logs}
                         selectedLogIds={selectedLogIds}
@@ -374,45 +393,50 @@ export default function ImagePage() {
                     />
                 </aside>
 
-                <section className="grid gap-3 lg:min-h-0 lg:overflow-hidden xl:grid-cols-[420px_minmax(0,1fr)]">
-                    <div className="thin-scrollbar flex flex-col rounded-lg border border-border bg-card p-4 shadow-sm  lg:min-h-0 lg:overflow-y-auto">
+                <section className="grid min-w-0 gap-4 @min-[800px]:min-h-0 @min-[800px]:overflow-hidden @min-[800px]:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
+                    <div className="thin-scrollbar flex flex-col min-w-0 rounded-xl border border-border bg-card p-5 @min-[800px]:min-h-0 @min-[800px]:overflow-y-auto">
                         <div>
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                     <h1 className="text-2xl font-semibold text-foreground ">{"生图工作台"}</h1>
                                 </div>
-                                <div className="flex shrink-0 gap-2 lg:hidden">
-                                    <Button icon={<History className="size-4" />} onClick={() => setLogsOpen(true)}>
+                                <div className="flex shrink-0 gap-2 @min-[1280px]:hidden">
+                                    <Button onClick={() => setLogsOpen(true)} type={"button"} variant={"secondary"} size="default">
+                                        {<History data-icon="inline-start" />}
                                         {"生成记录"}
                                     </Button>
-                                    <Button icon={<SlidersHorizontal className="size-4" />} onClick={() => setSettingsOpen(true)}>
+                                    <Button onClick={() => setSettingsOpen(true)} type={"button"} variant={"secondary"} size="default">
+                                        {<SlidersHorizontal data-icon="inline-start" />}
                                         {"参数"}
                                     </Button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-6 space-y-5">
+                        <div className="mt-6 flex flex-col gap-5">
                             <div>
                                 <div className="mb-2 flex items-center justify-between gap-3">
                                     <span className="text-base font-semibold">{"提示词"}</span>
                                     <div className="flex gap-2">
-                                        <Button size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => setAssetPickerOpen(true)}>
+                                        <Button onClick={() => setAssetPickerOpen(true)} type={"button"} variant={"secondary"} size="sm">
+                                            {<FolderPlus data-icon="inline-start" />}
                                             {"查看我的资产"}
                                         </Button>
                                     </div>
                                 </div>
-                                <Input.TextArea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} placeholder={"描述画面主体、风格、构图、光线和用途"} />
+                                <Textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} placeholder={"描述画面主体、风格、构图、光线和用途"} />
                             </div>
 
                             <div className="min-w-0">
                                 <div className="mb-2 flex items-center justify-between gap-3">
                                     <span className="text-base font-semibold">{"参考图"}</span>
                                     <div className="flex gap-2">
-                                        <Button size="small" icon={<ClipboardPaste className="size-3.5" />} onClick={() => void addReferencesFromClipboard()}>
+                                        <Button onClick={() => void addReferencesFromClipboard()} type={"button"} variant={"secondary"} size="sm">
+                                            {<ClipboardPaste data-icon="inline-start" />}
                                             {"剪切板"}
                                         </Button>
-                                        <Button size="small" icon={<Upload className="size-3.5" />} onClick={() => fileInputRef.current?.click()}>
+                                        <Button onClick={() => fileInputRef.current?.click()} type={"button"} variant={"secondary"} size="sm">
+                                            {<Upload data-icon="inline-start" />}
                                             {"上传"}
                                         </Button>
                                     </div>
@@ -450,14 +474,15 @@ export default function ImagePage() {
                                             <img src={previewUrlFor(item.storageKey) || item.dataUrl} alt={item.name} className="size-full object-cover" />
                                             <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">{imageReferenceLabel(index)}</span>
                                             <ReferenceOrderButtons index={index} total={references.length} onMove={(offset) => setReferences((value) => moveListItem(value, index, offset))} />
-                                            <button
+                                            <Button
+                                                variant="ghost"
                                                 type="button"
                                                 className="absolute right-1 top-1 hidden size-6 items-center justify-center rounded bg-black/60 text-white group-hover:flex"
                                                 onClick={() => setReferences((value) => value.filter((ref) => ref.id !== item.id))}
                                                 aria-label={"移除参考图"}
                                             >
                                                 <Trash2 className="size-3.5" />
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))}
                                     {!references.length ? <div className="flex min-w-full items-center justify-center text-sm text-muted-foreground">{isReferenceDragActive ? "松开即可添加参考图" : "暂无参考图，可将图片拖到这里"}</div> : null}
@@ -468,7 +493,8 @@ export default function ImagePage() {
                                 <span className="truncate text-muted-foreground ">
                                     {modelOptionLabel(effectiveConfig, model)} · {effectiveConfig.size} · {effectiveConfig.quality}
                                 </span>
-                                <Button size="small" type="text" icon={<SlidersHorizontal className="size-4" />} onClick={() => setSettingsOpen(true)}>
+                                <Button onClick={() => setSettingsOpen(true)} type={"button"} variant={"ghost"} size="sm">
+                                    {<SlidersHorizontal data-icon="inline-start" />}
                                     {"调整"}
                                 </Button>
                             </div>
@@ -479,18 +505,19 @@ export default function ImagePage() {
                         </div>
 
                         <div className="mt-auto pt-6">
-                            <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
+                            <Button onClick={() => void generate()} type={"button"} variant={"default"} size="lg" disabled={Boolean(running) || !canGenerate || running} className={true && "w-full"}>
+                                {running ? <Spinner data-icon="inline-start" /> : <Sparkles data-icon="inline-start" />}
                                 {"开始生成"}
                             </Button>
                         </div>
                     </div>
 
-                    <div className="thin-scrollbar rounded-lg border border-border bg-card p-4 shadow-sm  lg:min-h-0 lg:overflow-y-auto lg:p-5">
+                    <div className="thin-scrollbar min-w-0 rounded-xl border border-border bg-card p-5 @min-[800px]:min-h-0 @min-[800px]:overflow-y-auto lg:p-5">
                         <div className="mb-4 flex items-center justify-between gap-3">
                             <div>
                                 <h2 className="text-xl font-semibold">{"生成结果"}</h2>
                             </div>
-                            {running ? <Tag className="m-0 px-2 py-1">{`等待 ${formatDuration(elapsedMs)}`}</Tag> : null}
+                            {running ? <Badge className="m-0 px-2 py-1" variant={"secondary"}>{`等待 ${formatDuration(elapsedMs)}`}</Badge> : null}
                         </div>
                         {results.length ? (
                             <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
@@ -507,7 +534,11 @@ export default function ImagePage() {
                         ) : (
                             <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-border text-center  lg:min-h-[560px]">
                                 <ImagePlus className="mb-4 size-11 text-muted-foreground" />
-                                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={"还没有生成图片"} />
+                                <Empty>
+                                    <EmptyHeader>
+                                        <EmptyDescription>{"还没有生成图片"}</EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
                             </div>
                         )}
                     </div>
@@ -524,26 +555,68 @@ export default function ImagePage() {
                     event.target.value = "";
                 }}
             />
-            <Drawer title={"生成记录"} placement="bottom" size="large" open={logsOpen} onClose={() => setLogsOpen(false)}>
-                <LogPanel
-                    logs={logs}
-                    selectedLogIds={selectedLogIds}
-                    activeLogId={previewLog?.id}
-                    onSelectedLogIdsChange={setSelectedLogIds}
-                    onCreateSession={createSession}
-                    onDeleteSelected={() => setDeleteConfirmOpen(true)}
-                    onPreviewLog={(log) => void previewGenerationLog(log)}
-                />
-            </Drawer>
-            <Drawer title={"参数"} placement="bottom" size="82vh" open={settingsOpen} onClose={() => setSettingsOpen(false)}>
-                <div className="grid grid-cols-2 gap-3 pb-4">
-                    <GenerationSettings config={effectiveConfig} model={model} updateConfig={updateConfig} openConfigDialog={openConfigDialog} />
-                </div>
-            </Drawer>
+            <Sheet
+                open={logsOpen}
+                onOpenChange={(open) => {
+                    if (!open) (() => setLogsOpen(false))();
+                }}
+            >
+                <SheetContent side="bottom" aria-describedby={undefined} style={{ height: "80vh", maxWidth: "100vw" }}>
+                    <SheetHeader>
+                        <SheetTitle>{"生成记录"}</SheetTitle>
+                    </SheetHeader>
+                    <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+                        <LogPanel
+                            logs={logs}
+                            selectedLogIds={selectedLogIds}
+                            activeLogId={previewLog?.id}
+                            onSelectedLogIdsChange={setSelectedLogIds}
+                            onCreateSession={createSession}
+                            onDeleteSelected={() => setDeleteConfirmOpen(true)}
+                            onPreviewLog={(log) => void previewGenerationLog(log)}
+                        />
+                    </div>
+                </SheetContent>
+            </Sheet>
+            <Sheet
+                open={settingsOpen}
+                onOpenChange={(open) => {
+                    if (!open) (() => setSettingsOpen(false))();
+                }}
+            >
+                <SheetContent side="bottom" aria-describedby={undefined} style={{ height: "82vh", maxWidth: "100vw" }}>
+                    <SheetHeader>
+                        <SheetTitle>{"参数"}</SheetTitle>
+                    </SheetHeader>
+                    <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+                        <div className="grid grid-cols-2 gap-3 pb-4">
+                            <GenerationSettings config={effectiveConfig} model={model} updateConfig={updateConfig} openConfigDialog={openConfigDialog} />
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
             <AssetPickerModal open={assetPickerOpen} defaultTab="my-assets" onInsert={(payload) => void insertPickedAsset(payload)} onClose={() => setAssetPickerOpen(false)} />
-            <Modal title={"删除生成记录"} open={deleteConfirmOpen} onCancel={() => setDeleteConfirmOpen(false)} onOk={deleteSelectedLogs} okText={"删除"} okButtonProps={{ danger: true }} cancelText={"取消"}>
-                {`确定删除选中的 ${selectedLogIds.length} 条生成记录吗？`}
-            </Modal>
+            <Dialog
+                open={deleteConfirmOpen}
+                onOpenChange={(open) => {
+                    if (!open) (() => setDeleteConfirmOpen(false))();
+                }}
+            >
+                <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"}>
+                    <DialogHeader>
+                        <DialogTitle>{"删除生成记录"}</DialogTitle>
+                    </DialogHeader>
+                    <div>{`确定删除选中的 ${selectedLogIds.length} 条生成记录吗？`}</div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+                            {"取消"}
+                        </Button>
+                        <Button type="button" variant="destructive" disabled={({ danger: true } as { disabled?: boolean }).disabled} onClick={deleteSelectedLogs}>
+                            {"删除"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
@@ -558,7 +631,7 @@ function GenerationSettings({ config, model, updateConfig, openConfigDialog }: {
                 <ModelPicker config={config} value={model} onChange={(value) => updateConfig("imageModel", value)} capability="image" fullWidth onMissingConfig={() => openConfigDialog(false)} />
             </label>
             <div className="col-span-2">
-                <ImageSettingsPanel config={config} onConfigChange={(key, value) => updateConfig(key, value)} theme={theme} showTitle={false} className="space-y-4" maxCount={10} />
+                <ImageSettingsPanel config={config} onConfigChange={(key, value) => updateConfig(key, value)} theme={theme} showTitle={false} className="flex flex-col gap-4" maxCount={10} />
             </div>
         </>
     );
@@ -580,8 +653,8 @@ function ResultImageCard({
     useSyncExternalStore(subscribeImagePreviews, getImagePreviewRevision);
     return (
         <div className="overflow-hidden rounded-lg border border-border bg-background ">
-            <Image src={previewUrlFor(image.storageKey) || image.dataUrl} preview={{ src: image.dataUrl }} alt={`生成结果 ${index + 1}`} className="aspect-square object-cover" />
-            <div className="space-y-2 border-t border-border px-3 py-2.5 ">
+            <MediaPreview src={previewUrlFor(image.storageKey) || image.dataUrl} alt={`生成结果 ${index + 1}`} className="aspect-square object-cover" previewSrc={image.dataUrl} />
+            <div className="flex flex-col gap-2 border-t border-border px-3 py-2.5 ">
                 <div className="flex min-w-0 gap-x-2 gap-y-1 text-xs text-muted-foreground ">
                     <span>
                         {image.width}x{image.height}
@@ -590,20 +663,32 @@ function ResultImageCard({
                     <span>{formatDuration(image.durationMs)}</span>
                 </div>
                 <div className="grid min-w-0 grid-cols-3 gap-2">
-                    <Tooltip title={"加入我的资产"}>
-                        <Button className={RESULT_ACTION_BUTTON_CLASS} size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => void onSaveAsset(image, index)}>
-                            {"加入我的资产"}
-                        </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button onClick={() => void onSaveAsset(image, index)} type={"button"} variant={"secondary"} size="sm" className={RESULT_ACTION_BUTTON_CLASS}>
+                                {<FolderPlus data-icon="inline-start" />}
+                                {"加入我的资产"}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{"加入我的资产"}</TooltipContent>
                     </Tooltip>
-                    <Tooltip title={"加入参考图"}>
-                        <Button className={RESULT_ACTION_BUTTON_CLASS} size="small" icon={<PenLine className="size-3.5" />} onClick={() => void onEdit(image, index)}>
-                            {"加入参考图"}
-                        </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button onClick={() => void onEdit(image, index)} type={"button"} variant={"secondary"} size="sm" className={RESULT_ACTION_BUTTON_CLASS}>
+                                {<PenLine data-icon="inline-start" />}
+                                {"加入参考图"}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{"加入参考图"}</TooltipContent>
                     </Tooltip>
-                    <Tooltip title={"下载"}>
-                        <Button className={RESULT_ACTION_BUTTON_CLASS} size="small" icon={<Download className="size-3.5" />} onClick={() => onDownload(image, index)}>
-                            {"下载"}
-                        </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button onClick={() => onDownload(image, index)} type={"button"} variant={"secondary"} size="sm" className={RESULT_ACTION_BUTTON_CLASS}>
+                                {<Download data-icon="inline-start" />}
+                                {"下载"}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{"下载"}</TooltipContent>
                     </Tooltip>
                 </div>
             </div>
@@ -634,12 +719,10 @@ function FailedImageCard({ error, onRetry }: { error: string; onRetry: () => voi
         <div className="overflow-hidden rounded-lg border border-red-200 bg-red-50 dark:border-red-950 dark:bg-red-950/20">
             <div className="flex aspect-square flex-col items-center justify-center gap-3 p-5 text-center">
                 <div className="text-sm font-medium text-red-600 dark:text-red-300">{"生成失败"}</div>
-                <Typography.Paragraph ellipsis={{ rows: 4 }} className="!mb-0 !text-xs !text-red-500 dark:!text-red-300">
-                    {error}
-                </Typography.Paragraph>
+                <p className={cn("truncate", "!mb-0 !text-xs !text-red-500 dark:!text-red-300")}>{error}</p>
             </div>
             <div className="flex justify-end border-t border-red-200 p-3 dark:border-red-950">
-                <Button size="small" danger onClick={onRetry}>
+                <Button onClick={onRetry} type={"button"} variant={"destructive"} size="sm">
                     {"重试"}
                 </Button>
             </div>
@@ -677,20 +760,25 @@ function LogPanel({
                 <div>
                     <h2 className="text-base font-semibold">{"生成记录"}</h2>
                 </div>
-                <Tag className="m-0">{logs.length}</Tag>
+                <Badge className="m-0" variant={"secondary"}>
+                    {logs.length}
+                </Badge>
             </div>
             <div className="mb-4 flex flex-wrap gap-2">
-                <Button size="small" icon={<Plus className="size-3.5" />} onClick={onCreateSession}>
+                <Button onClick={onCreateSession} type={"button"} variant={"secondary"} size="sm">
+                    {<Plus data-icon="inline-start" />}
                     {"新建"}
                 </Button>
-                <Button size="small" icon={<CheckSquare className="size-3.5" />} disabled={!logs.length} onClick={toggleAll}>
+                <Button onClick={toggleAll} type={"button"} variant={"secondary"} size="sm" disabled={!logs.length}>
+                    {<CheckSquare data-icon="inline-start" />}
                     {allSelected ? "取消" : "全选"}
                 </Button>
-                <Button size="small" danger icon={<Trash2 className="size-3.5" />} disabled={!selectedLogIds.length} onClick={onDeleteSelected}>
+                <Button onClick={onDeleteSelected} type={"button"} variant={"destructive"} size="sm" disabled={!selectedLogIds.length}>
+                    {<Trash2 data-icon="inline-start" />}
                     {"删除"}
                 </Button>
             </div>
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
                 {logs.map((log) => (
                     <LogCard
                         key={log.id}
@@ -712,14 +800,10 @@ function LogCard({ log, selected, active, onSelectedChange, onClick }: { log: Ge
     const thumbnails = log.images.filter((image) => image.dataUrl).slice(0, 4);
 
     return (
-        <button
-            type="button"
-            className={`block w-full rounded-lg border p-2 text-left transition ${active ? "border-border bg-blue-50 dark:bg-blue-950/20" : "border-border bg-background hover:bg-muted"}`}
-            onClick={onClick}
-        >
+        <Button variant="ghost" type="button" className={`block w-full rounded-lg border p-2 text-left transition ${active ? "border-border bg-blue-50 dark:bg-blue-950/20" : "border-border bg-background hover:bg-muted"}`} onClick={onClick}>
             <div className="grid grid-cols-[minmax(128px,1fr)_auto] gap-2">
                 <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-2">
-                    <Checkbox className="mt-0.5" checked={selected} onClick={(event) => event.stopPropagation()} onChange={(event) => onSelectedChange(event.target.checked)} />
+                    <Checkbox className="mt-0.5" onClick={(event) => event.stopPropagation()} checked={selected} onCheckedChange={(checked) => onSelectedChange(checked === true)} />
                     <div className="min-w-0">
                         <div className="truncate text-sm font-semibold leading-5">{log.title}</div>
                         {thumbnails.length ? (
@@ -733,27 +817,23 @@ function LogCard({ log, selected, active, onSelectedChange, onClick }: { log: Ge
                 </div>
                 <div className="grid justify-items-end gap-2">
                     <div className="flex gap-1">
-                        <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" color="blue">
-                            {`成功 ${log.successCount ?? log.imageCount}`}
-                        </Tag>
-                        {log.failCount ? (
-                            <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" color="red">
-                                {`失败 ${log.failCount}`}
-                            </Tag>
-                        ) : null}
+                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant="secondary">{`成功 ${log.successCount ?? log.imageCount}`}</Badge>
+                        {log.failCount ? <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={"red" === "red" ? "destructive" : "secondary"}>{`失败 ${log.failCount}`}</Badge> : null}
                     </div>
                     <div className="flex flex-wrap justify-end gap-1">
-                        <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none">{`${log.imageCount} 张`}</Tag>
-                        <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" color="green">
+                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={"secondary"}>{`${log.imageCount} 张`}</Badge>
+                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant="secondary">
                             {formatDuration(log.durationMs)}
-                        </Tag>
+                        </Badge>
                     </div>
                     <div className="flex justify-end">
-                        <Tag className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none">{log.time}</Tag>
+                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={"secondary"}>
+                            {log.time}
+                        </Badge>
                     </div>
                 </div>
             </div>
-        </button>
+        </Button>
     );
 }
 
@@ -835,8 +915,12 @@ function ReferenceOrderButtons({ index, total, onMove }: { index: number; total:
     if (total <= 1) return null;
     return (
         <div className="absolute inset-x-1 bottom-1 flex justify-between">
-            <Button size="small" className="!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm" icon={<ArrowLeft className="size-3" />} disabled={index <= 0} onClick={() => onMove(-1)} />
-            <Button size="small" className="!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm" icon={<ArrowRight className="size-3" />} disabled={index >= total - 1} onClick={() => onMove(1)} />
+            <Button onClick={() => onMove(-1)} type={"button"} variant={"secondary"} size="icon-sm" disabled={index <= 0} className={"!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm"}>
+                {<ArrowLeft data-icon="inline-start" />}
+            </Button>
+            <Button onClick={() => onMove(1)} type={"button"} variant={"secondary"} size="icon-sm" disabled={index >= total - 1} className={"!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm"}>
+                {<ArrowRight data-icon="inline-start" />}
+            </Button>
         </div>
     );
 }

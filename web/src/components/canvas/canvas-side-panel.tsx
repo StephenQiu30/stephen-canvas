@@ -1,15 +1,20 @@
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
-import { memo, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
-import { Empty, Input, Popconfirm, Select, Tag } from "@/components/ui/app-primitives";
-import { Check, ChevronRight, Download, Eye, FileText, Image as ImageIcon, ListChecks, Music2, Plus, Search, Settings2, Square, Trash2, Type, Video } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Check, ChevronRight, Download, Eye, FileText, Image as ImageIcon, ListChecks, Music2, Plus, Search, Settings2, Square, Trash2, Type, Video, X } from "lucide-react";
 import { motion } from "motion/react";
+import { memo, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
 
 import { canvasThemes, type CanvasTheme } from "@/lib/canvas-theme";
 import { exportCanvasNodes } from "@/lib/canvas/canvas-export";
 import { getNodeDefinition } from "@/lib/canvas/node-registry";
 import { cn } from "@/lib/utils";
 import { uploadMediaFile } from "@/services/file-storage";
-import { previewUrlFor, subscribeImagePreviews, getImagePreviewRevision, uploadImage } from "@/services/image-storage";
+import { getImagePreviewRevision, previewUrlFor, subscribeImagePreviews, uploadImage } from "@/services/image-storage";
 import { useAssetStore, type Asset, type AssetKind } from "@/stores/use-asset-store";
 import { CANVAS_SIDE_PANEL_MAX_WIDTH, CANVAS_SIDE_PANEL_MIN_WIDTH, CANVAS_SIDE_PANEL_MOTION_MS, useCanvasSidePanelStore } from "@/stores/use-canvas-side-panel-store";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -99,13 +104,9 @@ export function CanvasSidePanel({ nodes, selectedNodeIds, onFocusNode, onPreview
                     <TabButton label={"资产"} active={tab === "assets"} theme={theme} onClick={() => setTab("assets")} />
                 </div>
                 <div className="mt-2 min-h-0 flex-1 overflow-hidden">
-                    {tab === "canvas" ? (
-                        <CanvasNodesTab nodes={nodes} selectedNodeIds={selectedNodeIds} onFocusNode={onFocusNode} onPreviewNode={onPreviewNode} theme={theme} />
-                    ) : (
-                        <CanvasAssetsTab onInsert={onInsertAsset} theme={theme} />
-                    )}
+                    {tab === "canvas" ? <CanvasNodesTab nodes={nodes} selectedNodeIds={selectedNodeIds} onFocusNode={onFocusNode} onPreviewNode={onPreviewNode} theme={theme} /> : <CanvasAssetsTab onInsert={onInsertAsset} theme={theme} />}
                 </div>
-                <button type="button" className="absolute inset-y-0 right-0 z-40 w-4 translate-x-1/2 cursor-col-resize" onPointerDown={startResize} aria-label={"调整左侧面板宽度"} />
+                <Button variant="ghost" type="button" className="absolute inset-y-0 right-0 z-40 w-4 translate-x-1/2 cursor-col-resize" onPointerDown={startResize} aria-label={"调整左侧面板宽度"} />
             </motion.aside>
         </motion.div>
     );
@@ -113,10 +114,10 @@ export function CanvasSidePanel({ nodes, selectedNodeIds, onFocusNode, onPreview
 
 function TabButton({ label, active, theme, onClick }: { label: string; active: boolean; theme: CanvasTheme; onClick: () => void }) {
     return (
-        <button type="button" onClick={onClick} className="relative pb-1.5 text-sm font-semibold transition-opacity" style={{ color: theme.node.text, opacity: active ? 1 : 0.45 }}>
+        <Button variant="ghost" type="button" onClick={onClick} className="relative pb-1.5 text-sm font-semibold transition-opacity" style={{ color: theme.node.text, opacity: active ? 1 : 0.45 }}>
             {label}
             {active ? <motion.span layoutId="sidePanelTabIndicator" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full" style={{ background: theme.toolbar.activeText }} transition={{ type: "spring", stiffness: 500, damping: 34 }} /> : null}
-        </button>
+        </Button>
     );
 }
 
@@ -179,7 +180,7 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
         const targets = nodes.filter((node) => checked.has(node.id));
         if (!targets.length) return;
         setExporting(true);
-        const hide = message.loading("正在导出选中元素…", 0);
+        const hide = message.loading("正在导出选中元素…");
         try {
             await exportCanvasNodes(targets, `画布元素-${targets.length}个`);
             message.success(`已导出 ${targets.length} 个元素`);
@@ -198,7 +199,8 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
             <div className="flex items-center gap-2 px-3 pb-2.5 pt-1">
                 <span className="text-xs font-medium opacity-60">{"画布元素"}</span>
                 {filtered.length ? <span className="text-xs opacity-35">{filtered.length}</span> : null}
-                <button
+                <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
                     className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
@@ -206,44 +208,102 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                 >
                     <ListChecks className="size-3.5" />
                     {selectMode ? "取消" : "选择"}
-                </button>
-                {selectMode ? null : <Select size="small" variant="borderless" className="w-20" value={typeFilter} onChange={setTypeFilter} options={NODE_FILTER_VALUES.map((value) => ({ value, label: value === "all" ? "全部" : (({ "image":"图片", "video":"视频", "text":"文本", "audio":"音频", "config":"配置", "group":"分组" } as Record<string, string>)[String(value)] || String(value)) }))} />}
+                </Button>
+                {selectMode ? null : (
+                    <Select
+                        value={String(typeFilter ?? "")}
+                        onValueChange={(value) => {
+                            const option = NODE_FILTER_VALUES.map((value) => ({
+                                value,
+                                label: value === "all" ? "全部" : ({ image: "图片", video: "视频", text: "文本", audio: "音频", config: "配置", group: "分组" } as Record<string, string>)[String(value)] || String(value),
+                            })).find((item) => String(item.value) === value);
+                            if (option) setTypeFilter(option.value);
+                        }}
+                    >
+                        <SelectTrigger className={"w-20"}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                {NODE_FILTER_VALUES.map((value) => ({
+                                    value,
+                                    label: value === "all" ? "全部" : ({ image: "图片", video: "视频", text: "文本", audio: "音频", config: "配置", group: "分组" } as Record<string, string>)[String(value)] || String(value),
+                                })).map((option) => (
+                                    <SelectItem key={String(option.value)} value={String(option.value)}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                )}
             </div>
             <div className="px-3 pb-2.5">
-                <Input size="small" allowClear prefix={<Search className="size-3.5 text-muted-foreground" />} placeholder={"搜索节点"} value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+                <InputGroup>
+                    <InputGroupAddon>{<Search className="size-3.5 text-muted-foreground" />}</InputGroupAddon>
+                    <InputGroupInput placeholder={"搜索节点"} value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+                    <InputGroupAddon align="inline-end">
+                        <InputGroupButton aria-label="清空" onClick={() => setKeyword("")}>
+                            <X />
+                        </InputGroupButton>
+                    </InputGroupAddon>
+                </InputGroup>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
                 {treeRows.length ? (
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col gap-1.5">
                         {treeRows.map(({ node, depth, hasChildren }) => {
                             const Icon = NODE_TYPE_ICON[node.type] || FileText;
                             const isImage = node.type === CanvasNodeType.Image && node.metadata?.content;
                             const isChecked = checked.has(node.id);
                             const active = selectMode ? isChecked : selectedNodeIds.has(node.id);
                             return (
-                                <div key={node.id} className={cn("group relative flex items-center rounded-lg transition", depth && "ml-5", active ? "" : "hover:bg-black/5 dark:hover:bg-white/5")} style={active ? { background: theme.toolbar.activeBg } : undefined}>
+                                <div
+                                    key={node.id}
+                                    className={cn("group relative flex items-center rounded-lg transition", depth && "ml-5", active ? "" : "hover:bg-black/5 dark:hover:bg-white/5")}
+                                    style={active ? { background: theme.toolbar.activeBg } : undefined}
+                                >
                                     {depth ? <span className="pointer-events-none absolute -left-3 top-[calc(-50%-0.4rem)] h-[calc(100%+0.4rem)] w-3 rounded-bl-md border-b border-l opacity-45" style={{ borderColor: theme.node.stroke }} /> : null}
                                     {node.type === CanvasNodeType.Group && hasChildren ? (
-                                        <button type="button" onClick={() => setCollapsedGroups((prev) => (prev.has(node.id) ? new Set([...prev].filter((id) => id !== node.id)) : new Set(prev).add(node.id)))} className="ml-1 grid size-6 shrink-0 place-items-center opacity-55 transition hover:opacity-100" aria-label={node.title}>
+                                        <Button
+                                            variant="ghost"
+                                            type="button"
+                                            onClick={() => setCollapsedGroups((prev) => (prev.has(node.id) ? new Set([...prev].filter((id) => id !== node.id)) : new Set(prev).add(node.id)))}
+                                            className="ml-1 grid size-6 shrink-0 place-items-center opacity-55 transition hover:opacity-100"
+                                            aria-label={node.title}
+                                        >
                                             <ChevronRight className={cn("size-3.5 transition-transform", !collapsedGroups.has(node.id) && "rotate-90")} />
-                                        </button>
+                                        </Button>
                                     ) : null}
-                                    <button type="button" onClick={() => (selectMode ? toggleChecked(node.id) : onFocusNode(node.id))} className={cn("flex min-w-0 flex-1 items-center gap-3 py-2 pr-2 text-left", node.type === CanvasNodeType.Group && hasChildren ? "pl-0" : "pl-2")} title={selectMode ? undefined : "定位到节点"}>
+                                    <Button
+                                        variant="ghost"
+                                        type="button"
+                                        onClick={() => (selectMode ? toggleChecked(node.id) : onFocusNode(node.id))}
+                                        className={cn("flex min-w-0 flex-1 items-center gap-3 py-2 pr-2 text-left", node.type === CanvasNodeType.Group && hasChildren ? "pl-0" : "pl-2")}
+                                        title={selectMode ? undefined : "定位到节点"}
+                                    >
                                         {selectMode ? <CheckMark checked={isChecked} theme={theme} /> : null}
                                         <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md">
                                             {isImage ? <img src={previewUrlFor(node.metadata?.storageKey) || node.metadata?.content} alt={node.title} className="size-full object-cover" /> : <Icon className="size-5 opacity-60" />}
                                         </span>
-                                        <span className="min-w-0 flex-1 space-y-0.5">
+                                        <span className="min-w-0 flex-1 flex flex-col gap-0.5">
                                             <span className="block truncate text-sm font-medium leading-snug">{node.title || getNodeDefinition(node.type)?.title || "未命名节点"}</span>
                                             <span className="block truncate text-xs leading-snug opacity-50">{nodePreviewText(node)}</span>
                                         </span>
                                         {node.metadata?.status && node.metadata.status !== "idle" ? <span className="size-1.5 shrink-0 rounded-full" style={{ background: STATUS_COLOR[node.metadata.status] || "transparent" }} /> : null}
-                                    </button>
+                                    </Button>
                                     {selectMode || !isImage ? null : (
                                         <div className="flex shrink-0 flex-col items-center gap-0.5 pr-1.5">
-                                            <button type="button" onClick={() => onPreviewNode(node.id)} className="grid size-7 place-items-center rounded-md opacity-55 transition hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/10" aria-label={"放大预览"} title={"放大预览"}>
+                                            <Button
+                                                variant="ghost"
+                                                type="button"
+                                                onClick={() => onPreviewNode(node.id)}
+                                                className="grid size-7 place-items-center rounded-md opacity-55 transition hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/10"
+                                                aria-label={"放大预览"}
+                                                title={"放大预览"}
+                                            >
                                                 <Eye className="size-3.5" />
-                                            </button>
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
@@ -256,11 +316,12 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
             </div>
             {selectMode ? (
                 <div className="flex items-center gap-2 border-t px-3 py-2.5" style={{ borderColor: theme.toolbar.border }}>
-                    <button type="button" onClick={toggleAll} className="rounded-md px-2 py-1 text-xs font-medium opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10">
+                    <Button variant="ghost" type="button" onClick={toggleAll} className="rounded-md px-2 py-1 text-xs font-medium opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10">
                         {allChecked ? "取消全选" : "全选"}
-                    </button>
+                    </Button>
                     <span className="text-xs opacity-45">{`已选 ${checked.size}`}</span>
-                    <button
+                    <Button
+                        variant="ghost"
                         type="button"
                         onClick={() => void handleExport()}
                         disabled={!checked.size || exporting}
@@ -269,7 +330,7 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                     >
                         <Download className="size-3.5" />
                         {"导出选中"}
-                    </button>
+                    </Button>
                 </div>
             ) : null}
         </div>
@@ -324,7 +385,7 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
         const files = Array.from(fileList || []);
         if (!files.length) return;
         setUploading(true);
-        const hide = message.loading("正在添加资产…", 0);
+        const hide = message.loading("正在添加资产…");
         let added = 0;
         try {
             for (const file of files) {
@@ -353,8 +414,17 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
     return (
         <div className="flex h-full flex-col">
             <div className="flex items-center gap-2 px-3 pb-2 pt-1">
-                <Input size="small" allowClear prefix={<Search className="size-3.5 text-muted-foreground" />} placeholder={"搜索资产"} value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-                <button
+                <InputGroup>
+                    <InputGroupAddon>{<Search className="size-3.5 text-muted-foreground" />}</InputGroupAddon>
+                    <InputGroupInput placeholder={"搜索资产"} value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+                    <InputGroupAddon align="inline-end">
+                        <InputGroupButton aria-label="清空" onClick={() => setKeyword("")}>
+                            <X />
+                        </InputGroupButton>
+                    </InputGroupAddon>
+                </InputGroup>
+                <Button
+                    variant="ghost"
                     type="button"
                     disabled={uploading}
                     onClick={() => fileInputRef.current?.click()}
@@ -363,38 +433,37 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
                 >
                     <Plus className="size-3.5" />
                     {"添加"}
-                </button>
+                </Button>
                 <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => void handleFiles(e.target.files)} />
             </div>
             {allTags.length ? (
-                <div className="flex flex-wrap gap-1.5 px-3 pb-2">
-                    <Tag.CheckableTag checked={tagFilter === "all"} className={cn("prompt-filter-tag", tagFilter === "all" && "is-active")} onChange={() => setTagFilter("all")}>
-                        {"全部"}
-                    </Tag.CheckableTag>
+                <ToggleGroup type="single" value={tagFilter} onValueChange={(value) => setTagFilter(value || "all")} className="flex-wrap px-3 pb-2" aria-label="素材标签">
+                    <ToggleGroupItem value="all">全部</ToggleGroupItem>
                     {allTags.map((tag) => (
-                        <Tag.CheckableTag key={tag} checked={tagFilter === tag} className={cn("prompt-filter-tag", tagFilter === tag && "is-active")} onChange={() => setTagFilter((prev) => (prev === tag ? "all" : tag))}>
+                        <ToggleGroupItem key={tag} value={tag}>
                             {tag}
-                        </Tag.CheckableTag>
+                        </ToggleGroupItem>
                     ))}
-                </div>
+                </ToggleGroup>
             ) : null}
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
                 {groups.length ? (
-                    <div className="space-y-1">
+                    <div className="flex flex-col gap-1">
                         {groups.map((group) => {
                             const isCollapsed = collapsed[group.kind];
                             return (
                                 <div key={group.kind}>
-                                    <button
+                                    <Button
+                                        variant="ghost"
                                         type="button"
                                         onClick={() => setCollapsed((prev) => ({ ...prev, [group.kind]: !prev[group.kind] }))}
                                         className="flex w-full items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-xs font-semibold opacity-75 transition hover:opacity-100"
                                     >
                                         <ChevronRight className={cn("size-3.5 transition-transform", !isCollapsed && "rotate-90")} />
                                         <group.icon className="size-3.5" />
-                                        <span>{(({ "text":"文本", "image":"图片", "video":"视频", "audio":"音频" } as Record<string, string>)[String(group.kind)] || String(group.kind))}</span>
+                                        <span>{({ text: "文本", image: "图片", video: "视频", audio: "音频" } as Record<string, string>)[String(group.kind)] || String(group.kind)}</span>
                                         <span className="opacity-50">{group.items.length}</span>
-                                    </button>
+                                    </Button>
                                     {isCollapsed ? null : (
                                         <div className="grid grid-cols-2 gap-2 px-1 pb-2 pt-1">
                                             {group.items.map((asset) => (
@@ -407,7 +476,11 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
                         })}
                     </div>
                 ) : (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={"暂无资产"} className="pt-16" />
+                    <Empty className={"pt-16"}>
+                        <EmptyHeader>
+                            <EmptyDescription>{"暂无资产"}</EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 )}
             </div>
         </div>
@@ -419,23 +492,36 @@ function AssetCard({ asset, theme, onInsert, onRemove }: { asset: Asset; theme: 
         <div className="group relative aspect-square overflow-hidden rounded-xl border transition duration-200 hover:-translate-y-0.5 hover:shadow-lg" style={{ borderColor: theme.node.stroke, background: theme.node.panel }}>
             <AssetCover asset={asset} />
             <div className="absolute inset-0 flex items-center justify-center gap-2.5 opacity-0 transition duration-200 group-hover:opacity-100">
-                <button
+                <Button
+                    variant="ghost"
                     type="button"
                     onClick={onInsert}
                     className="grid size-8 place-items-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur transition hover:bg-white dark:bg-black/60 dark:hover:bg-black/80"
                     aria-label={"插入画布"}
                 >
                     <Plus className="size-4" />
-                </button>
-                <Popconfirm title={"移除该资产？"} okText={"移除"} cancelText={"取消"} okButtonProps={{ danger: true }} onConfirm={onRemove}>
-                    <button
-                        type="button"
-                        className="grid size-8 place-items-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur transition hover:bg-white hover:text-red-500 dark:bg-black/60 dark:hover:bg-black/80 dark:hover:text-red-400"
-                        aria-label={"移除资产"}
-                    >
-                        <Trash2 className="size-4" />
-                    </button>
-                </Popconfirm>
+                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            type="button"
+                            className="grid size-8 place-items-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur transition hover:bg-white hover:text-red-500 dark:bg-black/60 dark:hover:bg-black/80 dark:hover:text-red-400"
+                            aria-label={"移除资产"}
+                        >
+                            <Trash2 className="size-4" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>{"移除该资产？"}</AlertDialogTitle>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>{"取消"}</AlertDialogCancel>
+                            <AlertDialogAction onClick={onRemove}>{"移除"}</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     );
