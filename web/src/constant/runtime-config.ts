@@ -1,5 +1,5 @@
 // Runtime configuration access layer.
-// Priority: window.__RUNTIME_CONFIG__ (injected by the container entrypoint) > build-time VITE_ variables > defaults.
+// Priority: window.__RUNTIME_CONFIG__ (injected by the container entrypoint) > build-time NEXT_PUBLIC_ variables > defaults.
 // This supports both configuring the same image with docker run -e and injecting values during custom builds.
 //
 // Each analytics provider has its own variable; configured providers are enabled independently and all are disabled by default.
@@ -25,5 +25,5 @@ function read(key: keyof RuntimeConfig, buildTime: string | undefined, fallback 
     return fallback;
 }
 
-export const ANALYTICS_GA4_ID = read("ANALYTICS_GA4_ID", import.meta.env.VITE_ANALYTICS_GA4_ID);
-export const ANALYTICS_BAIDU_ID = read("ANALYTICS_BAIDU_ID", import.meta.env.VITE_ANALYTICS_BAIDU_ID);
+export const ANALYTICS_GA4_ID = read("ANALYTICS_GA4_ID", process.env.NEXT_PUBLIC_ANALYTICS_GA4_ID);
+export const ANALYTICS_BAIDU_ID = read("ANALYTICS_BAIDU_ID", process.env.NEXT_PUBLIC_ANALYTICS_BAIDU_ID);

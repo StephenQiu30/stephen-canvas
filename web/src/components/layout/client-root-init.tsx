@@ -1,19 +1,24 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
-import { App } from "antd";
 import { useTranslation } from "react-i18next";
 
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { useConfigStore } from "@/stores/use-config-store";
 import { usePromptSourceScheduler } from "@/hooks/use-prompt-source-scheduler";
+import { initializeAppLocale } from "@/i18n";
 
 export function ClientRootInit({ children }: { children: ReactNode }) {
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const { t } = useTranslation();
     const handledConfigParams = useRef(false);
     const importChannelCredentials = useConfigStore((state) => state.importChannelCredentials);
     const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
 
     usePromptSourceScheduler();
+
+    useEffect(() => {
+        void initializeAppLocale();
+    }, []);
 
     useEffect(() => {
         if (handledConfigParams.current) return;

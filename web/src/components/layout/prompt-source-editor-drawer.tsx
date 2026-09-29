@@ -1,11 +1,12 @@
-import { App, Button, Drawer, Input, Space, Switch } from "antd";
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Button, Drawer, Input, Space, Switch } from "@/components/ui/app-primitives";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { PromptSource } from "@/services/api/prompt-source-presets";
 
 export function PromptSourceEditorDrawer({ open, source, onSave, onClose }: { open: boolean; source: PromptSource | null; onSave: (source: PromptSource) => void; onClose: () => void }) {
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const { t } = useTranslation();
     const [draft, setDraft] = useState<PromptSource | null>(source);
 

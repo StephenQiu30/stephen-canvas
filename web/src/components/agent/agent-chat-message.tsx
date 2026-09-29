@@ -1,5 +1,6 @@
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { App, Button, Image, Modal, Popover } from "antd";
+import { Button, Image, Modal, Popover } from "@/components/ui/app-primitives";
 import { Brain, CheckCircle2, ChevronDown, ChevronRight, Circle, CircleAlert, Copy, ExternalLink, FilePenLine, FileText, FolderOpen, ListChecks, LoaderCircle, Search, ShieldAlert, TerminalSquare, Wrench, XCircle } from "lucide-react";
 import { Streamdown, type LinkSafetyModalProps } from "streamdown";
 import { useTranslation } from "react-i18next";
@@ -25,7 +26,7 @@ const streamdownAnimation = { duration: 20, stagger: 0, sep: "word" } as const;
 
 function AgentLinkModal({ isOpen, onClose, onConfirm, url }: LinkSafetyModalProps) {
     const { t } = useTranslation();
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const copyText = useCopyText();
     const localPath = localFilePath(url);
     const [opening, setOpening] = useState(false);

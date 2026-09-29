@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Empty, Input, Modal, Pagination, Tag } from "antd";
+import { Empty, Input, Modal, Pagination, Tag } from "@/components/ui/app-primitives";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

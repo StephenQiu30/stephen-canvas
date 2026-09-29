@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Slider } from "antd";
+import { Slider } from "@/components/ui/app-primitives";
 import { useTranslation } from "react-i18next";
 
 import i18n from "@/i18n";

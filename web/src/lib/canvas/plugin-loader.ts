@@ -12,7 +12,7 @@ async function evaluatePluginSource(source: string): Promise<CanvasPlugin> {
     const blob = new Blob([source], { type: "text/javascript" });
     const url = URL.createObjectURL(blob);
     try {
-        const mod = (await import(/* @vite-ignore */ url)) as { default?: unknown; plugin?: unknown };
+        const mod = (await import(/* webpackIgnore: true */ url)) as { default?: unknown; plugin?: unknown };
         const exported = mod.default ?? mod.plugin;
         const plugin = typeof exported === "function" ? (exported as (runtime: unknown) => unknown)(getPluginRuntime()) : exported;
         assertPlugin(plugin);
@@ -117,7 +117,7 @@ export async function ensurePluginsLoaded() {
 async function loadLocalPlugins() {
     let urls: unknown;
     try {
-        const response = await fetch("/plugins/index.json");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/plugins/index.json`);
         if (!response.ok) return;
         urls = await response.json();
     } catch {
@@ -148,10 +148,10 @@ async function loadLocalPlugins() {
     );
 }
 
-// During local development, refetch VITE_DEV_PLUGINS URLs without caching or persistence on every startup.
+// During local development, refetch NEXT_PUBLIC_DEV_PLUGINS URLs without caching or persistence on every startup.
 // Together with watch builds, refreshing the page loads code changes without reinstalling the plugin.
 async function loadDevPlugins() {
-    const raw = import.meta.env.VITE_DEV_PLUGINS;
+    const raw = process.env.NEXT_PUBLIC_DEV_PLUGINS;
     if (!raw) return;
     const urls = raw.split(",").map((item) => item.trim()).filter(Boolean);
     await Promise.all(

@@ -1,5 +1,5 @@
 import { FileText, Image as ImageIcon, Music2, Plus, Puzzle, Video, X } from "lucide-react";
-import { Popover } from "antd";
+import { Popover } from "@/components/ui/app-primitives";
 import { useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 

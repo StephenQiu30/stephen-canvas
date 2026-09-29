@@ -1,6 +1,7 @@
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { Search } from "lucide-react";
 import { type UIEvent, useEffect, useState } from "react";
-import { App, Empty, Input, Modal, Spin, Tag } from "antd";
+import { Empty, Input, Modal, Spin, Tag } from "@/components/ui/app-primitives";
 import { useTranslation } from "react-i18next";
 
 import { ALL_PROMPTS_OPTION } from "@/services/api/prompts";
@@ -9,7 +10,7 @@ import { PromptCard } from "./prompt-card";
 import { usePromptList } from "./use-prompt-list";
 
 export function PromptSelectDialog({ open, onOpenChange, onSelect }: { open: boolean; onOpenChange: (open: boolean) => void; onSelect: (prompt: string) => void }) {
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const { t } = useTranslation();
     const [keyword, setKeyword] = useState("");
     const [selectedTags, setSelectedTags] = useState<string[]>([]);

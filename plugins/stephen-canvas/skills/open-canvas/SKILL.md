@@ -25,7 +25,7 @@ https://stephenqiu30.github.io/stephen-canvas/canvas?mode=new#agentUrl=<Local UR
 
 ## 本地版
 
-1. 在 Stephen Canvas 项目中启动前端，并使用 Vite 输出的 `Local` 地址：
+1. 在 Stephen Canvas 项目中启动 Next.js 前端，并使用终端输出的本地地址：
 
 ```bash
 cd web
@@ -42,7 +42,7 @@ npx -y @stephenqiu30/canvas-agent@latest
 3. 从启动输出取得 `Local URL` 和 `Connect token`，在 Codex 右侧浏览器打开：
 
 ```text
-<Vite Local 地址>/canvas?mode=new#agentUrl=<Local URL>&agentToken=<Connect token>
+<Next.js 本地地址>/canvas?mode=new#agentUrl=<Local URL>&agentToken=<Connect token>
 ```
 
 ## MCP 与连接地址

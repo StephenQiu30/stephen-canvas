@@ -9,8 +9,9 @@
   <a href="https://github.com/StephenQiu30/stephen-canvas"><img src="https://img.shields.io/github/stars/StephenQiu30/stephen-canvas?style=flat-square&logo=github" alt="GitHub stars"></a>
   <a href="https://github.com/StephenQiu30/stephen-canvas/tags"><img src="https://img.shields.io/github/v/tag/StephenQiu30/stephen-canvas?style=flat-square&label=version" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f97316?style=flat-square" alt="License"></a>
-  <a href="https://vite.dev/"><img src="https://img.shields.io/badge/Vite-7-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite"></a>
-  <a href="https://reactrouter.com/"><img src="https://img.shields.io/badge/React_Router-7-ca4245?style=flat-square&logo=reactrouter&logoColor=white" alt="React Router"></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js"></a>
+  <a href="https://ui.shadcn.com/"><img src="https://img.shields.io/badge/shadcn%2Fui-Radix-111111?style=flat-square" alt="shadcn/ui"></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS"></a>
 </p>
 
 <p align="center">

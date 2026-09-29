@@ -3,6 +3,7 @@
 ## Unreleased
 
 + [调整] 项目 fork 自 basketikun/infinite-canvas v0.19.0，更名为 Stephen Canvas，仓库、npm 包（@stephenqiu30/*）、Docker 镜像和文档链接切换到 StephenQiu30/stephen-canvas，移除原项目的赞助与推广内容。
++ [调整] 前端整体迁移至 Next.js App Router、shadcn/ui、Radix UI、Tailwind CSS、ESLint 和 Prettier，并改为 Node.js 服务部署。
 
 ## v0.19.0 - 2026-09-16
 

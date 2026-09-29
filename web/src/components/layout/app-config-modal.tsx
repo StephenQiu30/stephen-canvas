@@ -1,4 +1,5 @@
-import { App, Button, Form, Input, Modal, Progress, Select, Tabs } from "antd";
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Button, Form, Input, Modal, Progress, Select, Tabs } from "@/components/ui/app-primitives";
 import type { TFunction } from "i18next";
 import { Cloud, Download, Pencil, Plus, RefreshCw, Trash2, Upload, Wifi } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -48,7 +49,7 @@ function createWebdavDomainProgress(): Record<AppSyncDomainKey, WebdavDomainProg
 }
 
 export function AppConfigPanel({ showDoneButton = false, initialTab = "channels" }: { showDoneButton?: boolean; initialTab?: ConfigTabKey }) {
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const { i18n, t } = useTranslation();
     const configInputRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<ConfigTabKey>(initialTab);

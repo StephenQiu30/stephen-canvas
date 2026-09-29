@@ -1,34 +1,36 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { useEffect } from "react";
-import { ProConfigProvider } from "@ant-design/pro-components";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { App, ConfigProvider } from "antd";
-import enUS from "antd/es/locale/en_US";
-import zhCN from "antd/es/locale/zh_CN";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
 import { useTranslation } from "react-i18next";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppFeedbackProvider } from "@/components/ui/app-feedback-provider";
 import { ClientRootInit } from "@/components/layout/client-root-init";
 import type { AppLocale } from "@/i18n";
-import { getAntThemeConfig } from "@/lib/app-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
-
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            staleTime: 30_000,
-            retry: false,
-            refetchOnWindowFocus: false,
-        },
-    },
-});
+import "@/i18n";
 
 export function AppProviders({ children }: { children: ReactNode }) {
     const { i18n, t } = useTranslation();
     const theme = useThemeStore((state) => state.theme);
     const dark = theme === "dark";
     const locale = i18n.resolvedLanguage as AppLocale;
+    const [queryClient] = useState(
+        () =>
+            new QueryClient({
+                defaultOptions: {
+                    queries: {
+                        staleTime: 30_000,
+                        retry: false,
+                        refetchOnWindowFocus: false,
+                    },
+                },
+            }),
+    );
 
     useEffect(() => {
         document.documentElement.classList.toggle("dark", dark);
@@ -43,14 +45,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }, [locale, t]);
 
     return (
-        <ConfigProvider locale={locale === "zh-CN" ? zhCN : enUS} theme={getAntThemeConfig(dark)}>
-            <ProConfigProvider dark={dark}>
-                <App>
-                    <QueryClientProvider client={queryClient}>
-                        <ClientRootInit>{children}</ClientRootInit>
-                    </QueryClientProvider>
-                </App>
-            </ProConfigProvider>
-        </ConfigProvider>
+        <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+                <AppFeedbackProvider>
+                    <ClientRootInit>{children}</ClientRootInit>
+                </AppFeedbackProvider>
+            </TooltipProvider>
+        </QueryClientProvider>
     );
 }

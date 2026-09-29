@@ -1,5 +1,3 @@
-import type { NavigateFunction } from "react-router-dom";
-
 import i18n from "@/i18n";
 import { fetchPrompts } from "@/services/api/prompts";
 import { uploadImage } from "@/services/image-storage";
@@ -54,7 +52,7 @@ type SiteToolContext = { canvasSnapshot?: CanvasAgentSnapshot | null };
 type GenerationStatus = "idle" | "queued" | "running" | "succeeded" | "failed";
 type GenerationStatusItem = { id: string; source: "canvas" | "image" | "video"; status: GenerationStatus; kind?: string; title?: string; prompt?: string; projectId?: string; createdAt?: string; updatedAt?: string; successCount?: number; failCount?: number; error?: string };
 
-export async function runSiteTool(name: SiteToolName, input: SiteToolInput, navigate: NavigateFunction, context: SiteToolContext = {}): Promise<unknown> {
+export async function runSiteTool(name: SiteToolName, input: SiteToolInput, navigate: (path: string) => void, context: SiteToolContext = {}): Promise<unknown> {
     switch (name) {
         case "canvas_list_projects":
             return listCanvasProjects(input);
@@ -159,7 +157,7 @@ function getImageConfig() {
     };
 }
 
-function runImageWorkbench(input: SiteToolInput, navigate: NavigateFunction) {
+function runImageWorkbench(input: SiteToolInput, navigate: (path: string) => void) {
     const configStore = useConfigStore.getState();
     const applied: Record<string, unknown> = {};
     if (typeof input.model === "string" && input.model.trim()) {
@@ -212,7 +210,7 @@ function getVideoConfig() {
     };
 }
 
-function runVideoWorkbench(input: SiteToolInput, navigate: NavigateFunction) {
+function runVideoWorkbench(input: SiteToolInput, navigate: (path: string) => void) {
     const configStore = useConfigStore.getState();
     const applied: Record<string, unknown> = {};
     if (typeof input.model === "string" && input.model.trim()) {

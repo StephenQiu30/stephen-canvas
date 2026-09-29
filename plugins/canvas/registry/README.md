@@ -13,12 +13,12 @@ registry/
 
 ## 发布流程(CI 自动)
 
-`.github/workflows/publish-plugins.yml` 在**打版本 tag(`v*`)**或手动触发(`workflow_dispatch`)时,与 GitHub Pages 发布一起跑:
+`.github/workflows/publish-plugins.yml` 在**打版本 tag(`v*`)**或手动触发(`workflow_dispatch`)时运行:
 
 1. `npm install && npm run build` → 在 `dist/` 产出各 `<id>.js` 与 `official-plugins.json`;
 2. 把 `dist/` 强推到孤儿分支 **`plugins-dist`**(仅含产物,force-push 覆盖)。
 
-前端默认从下面地址读取(可用 `VITE_PLUGIN_REGISTRY_URL` 覆盖):
+前端默认从下面地址读取(可用 `NEXT_PUBLIC_PLUGIN_REGISTRY_URL` 覆盖):
 
 ```
 https://cdn.jsdelivr.net/gh/StephenQiu30/stephen-canvas@plugins-dist/official-plugins.json
@@ -35,5 +35,5 @@ https://cdn.jsdelivr.net/gh/StephenQiu30/stephen-canvas@plugins-dist/official-pl
 
 ```bash
 cd plugins/canvas/registry && npm install && npm run build   # 产出 dist/
-# 用任意静态服务器伺服 dist/,把 VITE_PLUGIN_REGISTRY_URL 指向其 official-plugins.json
+# 用任意静态服务器伺服 dist/,把 NEXT_PUBLIC_PLUGIN_REGISTRY_URL 指向其 official-plugins.json
 ```

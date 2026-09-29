@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Button, Card, Checkbox, Form, Modal, Space, Switch, Tag, Tooltip, Typography, theme as antdTheme } from "antd";
+import { Button, Card, Checkbox, Form, Modal, Space, Switch, Tag, Tooltip, Typography } from "@/components/ui/app-primitives";
 import { Ellipsis, Image as ImageIcon, Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -50,7 +50,14 @@ export function ImageToolSettingsModal({
     onSave: () => void;
 }) {
     const { t } = useTranslation();
-    const { token } = antdTheme.useToken();
+    const token = {
+        colorBgElevated: "var(--popover)",
+        colorBorderSecondary: "var(--border)",
+        boxShadowSecondary: "0 8px 30px rgb(0 0 0 / 12%)",
+        colorText: "var(--foreground)",
+        colorFillAlter: "var(--muted)",
+        colorTextSecondary: "var(--muted-foreground)",
+    };
     const previewToolbarRef = useRef<HTMLDivElement>(null);
     const scrollbarTrackRef = useRef<HTMLInputElement>(null);
     const [previewScroll, setPreviewScroll] = useState<PreviewScroll>({ left: 0, max: 0, viewport: 1, content: 1 });

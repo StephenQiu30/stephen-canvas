@@ -1,16 +1,17 @@
-import { App, Button, Empty, Modal, Space, Table, Tag } from "antd";
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Button, Empty, Modal, Space, Table, Tag } from "@/components/ui/app-primitives";
 import { Copy, FolderPlus, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { PromptDetailDialog } from "@/pages/prompts/components/prompt-detail-dialog";
+import { PromptDetailDialog } from "@/screens/prompts/components/prompt-detail-dialog";
 import { useCopyText } from "@/hooks/use-copy-text";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { fetchSourcePrompts, refreshSource, type Prompt } from "@/services/api/prompts";
 import type { PromptSource } from "@/services/api/prompt-source-presets";
 
 export function PromptSourceContentModal({ source, onClose }: { source: PromptSource | null; onClose: () => void }) {
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const { t } = useTranslation();
     const [items, setItems] = useState<Prompt[]>([]);
     const [loading, setLoading] = useState(false);

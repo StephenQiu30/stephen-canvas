@@ -1,14 +1,15 @@
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { App } from "antd";
+
 import { useTranslation } from "react-i18next";
-import { APP_VERSION } from "@/constant/env";
+import { APP_RELEASES, APP_VERSION } from "@/constant/env";
 import { parseChangelog, type ReleaseInfo } from "@/lib/release";
 
 const latestVersionUrl = "https://raw.githubusercontent.com/StephenQiu30/stephen-canvas/main/VERSION";
 const latestChangelogUrl = "https://raw.githubusercontent.com/StephenQiu30/stephen-canvas/main/CHANGELOG.md";
 
 function readLocalReleases(): ReleaseInfo[] {
-    return __APP_RELEASES__ || [];
+    return APP_RELEASES;
 }
 
 function toVersionParts(version: string) {
@@ -26,7 +27,7 @@ function isNewerVersion(latestVersion: string, currentVersion: string) {
 export function useVersionCheck() {
     const { t } = useTranslation();
     const currentVersion = APP_VERSION;
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const localReleases = useMemo(readLocalReleases, []);
     const [latestVersion, setLatestVersion] = useState(currentVersion);
     const [releases, setReleases] = useState<ReleaseInfo[]>(localReleases);

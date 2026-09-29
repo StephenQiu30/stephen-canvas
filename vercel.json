@@ -1,7 +1,5 @@
 {
-  "framework": "vite",
+  "framework": "nextjs",
   "installCommand": "cd web && bun install",
-  "buildCommand": "cd web && bun run build",
-  "outputDirectory": "web/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "buildCommand": "cd web && bun run build"
 }

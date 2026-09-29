@@ -1,5 +1,6 @@
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { App, Button, Input, Modal, Popconfirm, Switch, Tabs } from "antd";
+import { Button, Input, Modal, Popconfirm, Switch, Tabs } from "@/components/ui/app-primitives";
 import { AlertTriangle, Download, Puzzle, RefreshCw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -12,7 +13,7 @@ import { usePluginStore, type InstalledPlugin } from "@/stores/canvas/use-plugin
 export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     const { t } = useTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const plugins = usePluginStore((state) => state.plugins);
     const [url, setUrl] = useState("");
     const [installing, setInstalling] = useState(false);

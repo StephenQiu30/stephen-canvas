@@ -1,4 +1,5 @@
-import { App, Button, Select, Switch, Tag } from "antd";
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Button, Select, Switch, Tag } from "@/components/ui/app-primitives";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -13,7 +14,7 @@ import type { PromptSource } from "@/services/api/prompt-source-presets";
 const STATUS_QUERY_KEY = ["prompt-source-statuses"];
 
 export function ConfigPromptSources() {
-    const { message, modal } = App.useApp();
+    const { message, modal } = useAppFeedback();
     const { i18n, t } = useTranslation();
     const queryClient = useQueryClient();
     const sources = usePromptSourceStore((state) => state.sources);

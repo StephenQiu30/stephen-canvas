@@ -1,4 +1,4 @@
-import { GithubOutlined } from "@ant-design/icons";
+import { GitBranch } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -10,7 +10,7 @@ type GitHubLinkProps = {
 export function GitHubLink({ className, style }: GitHubLinkProps) {
     return (
         <a
-            className={cn("inline-flex size-9 shrink-0 items-center justify-center rounded-full text-stone-600 transition hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white", className)}
+            className={cn("inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground", className)}
             style={style}
             href="https://github.com/StephenQiu30/stephen-canvas"
             target="_blank"
@@ -18,7 +18,7 @@ export function GitHubLink({ className, style }: GitHubLinkProps) {
             aria-label="GitHub"
             title="GitHub"
         >
-            <GithubOutlined className="text-base" />
+            <GitBranch className="size-4" />
         </a>
     );
 }

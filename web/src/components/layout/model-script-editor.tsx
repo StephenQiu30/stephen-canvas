@@ -1,6 +1,6 @@
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
-import { Button, Modal } from "antd";
+import { Button, Modal } from "@/components/ui/app-primitives";
 import { Copy } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -49,16 +49,9 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
             open={open}
             title={null}
             footer={null}
-            width="100vw"
-            centered={false}
             onCancel={onClose}
-            wrapClassName="[&_.ant-modal]:!inset-0 [&_.ant-modal]:!top-0 [&_.ant-modal]:!m-0 [&_.ant-modal]:!max-w-none [&_.ant-modal]:!h-dvh [&_.ant-modal]:!w-full [&_.ant-modal]:!p-0 [&_.ant-modal-container]:!h-dvh [&_.ant-modal-container]:!p-0 [&_.ant-modal-content]:!h-dvh [&_.ant-modal-content]:!max-h-dvh [&_.ant-modal-content]:!rounded-none [&_.ant-modal-content]:!overflow-hidden [&_.ant-modal-body]:!h-full [&_.ant-modal-body]:!max-h-full [&_.ant-modal-body]:!overflow-hidden [&_.ant-modal-body]:!p-0"
-            styles={{
-                wrapper: { overflow: "hidden" },
-                content: { height: "100dvh", maxHeight: "100dvh", margin: 0, padding: 0, borderRadius: 0, overflow: "hidden" },
-                body: { height: "100dvh", maxHeight: "100dvh", padding: 0, overflow: "hidden" },
-            }}
-            style={{ top: 0, margin: 0, paddingBottom: 0, maxWidth: "100vw" }}
+            className="!fixed !top-0 !left-0 !m-0 !h-dvh !w-screen !max-w-none !translate-x-0 !translate-y-0 !gap-0 !overflow-hidden !rounded-none !p-0"
+            styles={{ body: { display: "flex", height: "100dvh", maxHeight: "100dvh", flexDirection: "column", overflow: "hidden" } }}
         >
             <div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
                 <header className="shrink-0 border-b border-stone-200 px-6 py-3 pr-12 dark:border-stone-800">

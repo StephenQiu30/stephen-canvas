@@ -16,7 +16,7 @@ npm run dev        # watch,改动自动构建
 
 ## 本地开发
 
-`npm run dev` 起 watch,在 `web/.env.local` 加 `VITE_DEV_PLUGINS=/plugins/markdown.js`,起画布后改 `src/index.jsx` 刷新页面即生效,无需反复安装。
+`npm run dev` 起 watch,在 `web/.env.local` 加 `NEXT_PUBLIC_DEV_PLUGINS=/plugins/markdown.js`,启动前端后改 `src/index.jsx` 刷新页面即生效,无需反复安装。
 
 插件契约见 `plugins/canvas/README.md`。
 

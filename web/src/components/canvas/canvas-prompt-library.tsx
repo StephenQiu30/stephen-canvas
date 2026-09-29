@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Tooltip } from "antd";
+import { Button, Tooltip } from "@/components/ui/app-primitives";
 import { BookOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

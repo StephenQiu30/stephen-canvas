@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Tooltip } from "antd";
+import { Tooltip } from "@/components/ui/app-primitives";
 import { BookOpen, Keyboard, Puzzle, Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 

@@ -1,6 +1,6 @@
 import { Copy, FileText } from "lucide-react";
 import type { ReactNode } from "react";
-import { Button, Card, Tag } from "antd";
+import { Button, Card, Tag } from "@/components/ui/app-primitives";
 import { useTranslation } from "react-i18next";
 
 import { formatPromptDate, type Prompt } from "@/services/api/prompts";

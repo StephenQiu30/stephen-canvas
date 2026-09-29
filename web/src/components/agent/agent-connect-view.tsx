@@ -1,5 +1,6 @@
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { Fragment } from "react";
-import { App, Button, Input, Tooltip } from "antd";
+import { Button, Input, Tooltip } from "@/components/ui/app-primitives";
 import copyToClipboard from "copy-to-clipboard";
 import { Copy, KeyRound, Link2, PlugZap } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -33,7 +34,7 @@ export function AgentConnectView({
     onToggleEnabled: () => void;
 }) {
     const { t } = useTranslation();
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const steps = [{ title: t("agent.connect.pluginTitle"), text: t("agent.connect.pluginText") }, { title: t("agent.connect.directTitle"), text: t("agent.connect.directText"), command: "npx -y @stephenqiu30/canvas-agent@latest" }];
     const statusText = connectError ? t("agent.status.failed") : connected ? activity : enabled ? t("agent.status.connecting") : t("agent.status.disconnected");
     const statusColor = connectError ? "#dc2626" : connected ? "#16a34a" : enabled ? "#d97706" : theme.node.muted;

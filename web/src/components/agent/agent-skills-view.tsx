@@ -1,6 +1,7 @@
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { App, Button, Collapse, Dropdown, Form, Input, Modal, Select, Switch, Tooltip } from "antd";
-import type { MenuProps } from "antd";
+import { Button, Collapse, Dropdown, Form, Input, Modal, Select, Switch, Tooltip } from "@/components/ui/app-primitives";
+import type { MenuProps } from "@/components/ui/app-primitives";
 import { Check, ChevronDown, CircleAlert, FilePenLine, LoaderCircle, LockKeyhole, MessageSquareText, Plus, RefreshCw, Search, Sparkles, Trash2, Workflow } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -20,7 +21,7 @@ const skillNamePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export function AgentSkillsView({ clientId }: { clientId: string }) {
     const { t } = useTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
-    const { message, modal } = App.useApp();
+    const { message, modal } = useAppFeedback();
     const connected = useAgentStore((state) => state.connected);
     const url = useAgentStore((state) => state.url);
     const token = useAgentStore((state) => state.token);

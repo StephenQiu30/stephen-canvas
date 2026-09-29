@@ -1,10 +1,7 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "cn";
 import { nanoid } from "nanoid";
 
-export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+export { cn };
 
 /**
  * Generate a unique id.

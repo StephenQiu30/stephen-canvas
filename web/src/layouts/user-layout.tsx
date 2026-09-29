@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 import { AgentPanel } from "@/components/agent/agent-panel";

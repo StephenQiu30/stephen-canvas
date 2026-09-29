@@ -1,4 +1,5 @@
-import { App, Button, Form, Input, Switch } from "antd";
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Button, Form, Input, Switch } from "@/components/ui/app-primitives";
 import { Copy, Network, Wifi } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,7 +9,7 @@ import { testLocalProxy } from "@/services/api/local-proxy";
 import { DEFAULT_LOCAL_PROXY_URL, LOCAL_PROXY_PACKAGE, normalizeLocalProxyUrl, useConfigStore } from "@/stores/use-config-store";
 
 export function ConfigLocalProxy() {
-    const { message } = App.useApp();
+    const { message } = useAppFeedback();
     const { t } = useTranslation();
     const copyText = useCopyText();
     const [testing, setTesting] = useState(false);

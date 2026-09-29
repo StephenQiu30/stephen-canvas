@@ -1,6 +1,7 @@
+import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { App, Button, Tooltip } from "antd";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button, Tooltip } from "@/components/ui/app-primitives";
 import dayjs from "dayjs";
 import { Bot, History, MessageSquare, PanelRightClose, PlugZap, Plus, Sparkles, Terminal } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -126,10 +127,17 @@ function conversationBootstrapView(conversation: AgentConversationState) {
 export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?: boolean; headless?: boolean; autoConnect?: boolean }) {
     const { t } = useTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
-    const { message, modal } = App.useApp();
-    const { hash } = useLocation();
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
+    const { message, modal } = useAppFeedback();
+    const [hash, setHash] = useState("");
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const navigate = useCallback((path: string) => router.push(path), [router]);
+    useEffect(() => {
+        const syncHash = () => setHash(window.location.hash);
+        syncHash();
+        window.addEventListener("hashchange", syncHash);
+        return () => window.removeEventListener("hashchange", syncHash);
+    }, []);
     // Field-level selectors with useShallow rerender only when these fields change.
     // canvasContext is intentionally excluded because project updates it every frame during dragging and resizing.
     // The panel uses it only for ref synchronization and debounced postState calls, never during rendering.
@@ -824,7 +832,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
             let appliedOps = input.ops || [];
             if (payload.name === "site_navigate") {
                 const path = input.path || "/";
-                navigate(path);
+                router.push(path);
                 result = { ok: true, path };
             } else if (payload.name === "canvas_apply_ops") {
                 const context = canvasContextRef.current;
@@ -948,7 +956,7 @@ export function LocalAgentPanel({ embedded, headless, autoConnect }: { embedded?
     useLayoutEffect(() => {
         const bootstrap = readAgentUrlBootstrap(hash);
         if (!bootstrap) return;
-        navigate(`${window.location.pathname}${window.location.search}${bootstrap.remainingHash}`, { replace: true });
+        router.replace(`${window.location.pathname}${window.location.search}${bootstrap.remainingHash}`);
         if (!bootstrap.url || !bootstrap.token) {
             setAgentState({ fragmentBootstrap: false, activeTab: "setup", connectError: rt(!bootstrap.url ? "addressRequired" : "agentNotFound") });
             useAgentStore.getState().openPanel();
