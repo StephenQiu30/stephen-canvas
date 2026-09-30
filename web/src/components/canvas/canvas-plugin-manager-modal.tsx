@@ -6,7 +6,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, Download, Puzzle, RefreshCw, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, Download, Puzzle, RefreshCw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -135,8 +135,8 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
         </span>
     );
 
-    const versionTag = (version: string) => (
-        <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px]" style={{ background: theme.toolbar.activeBg, color: theme.node.muted }}>
+    const versionTag = (version: ReactNode) => (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px]" style={{ background: theme.toolbar.activeBg, color: theme.node.muted }}>
             v{version}
         </span>
     );
@@ -148,7 +148,7 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
     );
 
     // Shared plugin row: icon, title with name and version, description, and actions.
-    const row = (key: string, icon: ReactNode, name: string, version: string, subtitle: string | undefined, right: ReactNode) => (
+    const row = (key: string, icon: ReactNode, name: string, version: ReactNode, subtitle: string | undefined, right: ReactNode) => (
         <div key={key} className="flex items-center gap-3 rounded-xl border px-3 py-2.5" style={{ borderColor: theme.node.stroke, background: theme.node.fill }}>
             <span className="grid size-9 shrink-0 place-items-center rounded-lg text-base" style={{ background: theme.toolbar.activeBg, color: theme.node.muted }}>
                 {icon}
@@ -200,7 +200,7 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
                             upgradable ? withUpgradeDot(icon) : icon,
                             entry.name,
                             // Show local and remote versions in the title so the update target is explicit.
-                            upgradable && record ? `${record.version} → ${entry.version}` : entry.version,
+                            upgradable && record ? <>{record.version}<ArrowRight className="size-3" aria-label="升级至" />{entry.version}</> : entry.version,
                             entry.description,
                             record ? (
                                 installedControls(record, upgradable)
