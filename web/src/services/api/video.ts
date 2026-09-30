@@ -5,7 +5,7 @@ import { dataUrlToFile, readFileAsDataUrl } from "@/lib/image-utils";
 import { clampVideoSeconds, computeVideoSize, inferVideoRatio } from "@/lib/media-size";
 import { getMediaBlob, resolveMediaUrl, uploadMediaFile, type UploadedFile } from "@/services/file-storage";
 import { imageToDataUrl } from "@/services/image-storage";
-import { boolConfig, buildApiUrl, modelOptionName, resolveModelRequestConfig, resolveModelScript, withLocalProxy, type AiConfig } from "@/stores/use-config-store";
+import { boolConfig, buildApiUrl, modelOptionName, resolveModelRequestConfig, resolveModelScript, type AiConfig } from "@/stores/use-config-store";
 import { runModelPlugin } from "./model-plugin";
 import type { ReferenceImage } from "@/types/image";
 import type { ReferenceAudio, ReferenceVideo } from "@/types/media";
@@ -89,8 +89,8 @@ export async function pollVideoGenerationTask(config: AiConfig, task: VideoGener
 }
 
 async function createPluginVideoTask(config: AiConfig, model: string, script: string, prompt: string, references: ReferenceImage[], options?: VideoMediaOptions): Promise<VideoGenerationTask> {
-    if (!config.baseUrl.trim()) throw new Error("请先配置 Base URL");
-    if (!config.apiKey.trim()) throw new Error("请先配置 API Key");
+    if (!config.baseUrl.trim()) throw new Error("生成服务尚未接入");
+    if (!config.apiKey.trim()) throw new Error("生成服务尚未接入");
     const refs = await Promise.all(references.map((image) => imageToDataUrl(image)));
     const videos = await Promise.all((options?.videos || []).map((video) => referenceMediaToFile(video, "ref.mp4", "invalidReferenceVideo", options)));
     const audios = await Promise.all((options?.audios || []).map((audio) => referenceMediaToFile(audio, "ref.mp3", "invalidReferenceAudio", options)));
@@ -194,7 +194,7 @@ async function pollOpenAIVideoTask(config: AiConfig, task: VideoGenerationTask, 
 
 async function videoResultFromUrl(url: string, options?: RequestOptions): Promise<VideoGenerationResult> {
     try {
-        const response = await axios.get<Blob>(withLocalProxy(url), { responseType: "blob", signal: options?.signal });
+        const response = await axios.get<Blob>(url, { responseType: "blob", signal: options?.signal });
         await assertVideoBlob(response.data);
         return { blob: response.data };
     } catch (error) {
@@ -250,9 +250,9 @@ async function pollGeminiVideoTask(config: AiConfig, task: VideoGenerationTask, 
 }
 
 function assertVideoConfig(config: AiConfig, model: string) {
-    if (!model) throw new Error("请先配置视频模型");
-    if (!config.baseUrl.trim()) throw new Error("请先配置 Base URL");
-    if (!config.apiKey.trim()) throw new Error("请先配置 API Key");
+    if (!model) throw new Error("生成服务尚未接入");
+    if (!config.baseUrl.trim()) throw new Error("生成服务尚未接入");
+    if (!config.apiKey.trim()) throw new Error("生成服务尚未接入");
 }
 
 function geminiVideoBaseUrl(config: Pick<AiConfig, "baseUrl">) {
@@ -262,11 +262,11 @@ function geminiVideoBaseUrl(config: Pick<AiConfig, "baseUrl">) {
 }
 
 function geminiVideoUrl(config: Pick<AiConfig, "baseUrl">, model: string, action: string) {
-    return withLocalProxy(`${geminiVideoBaseUrl(config)}/models/${encodeURIComponent(modelOptionName(model).replace(/^models\//, ""))}:${action}`);
+    return `${geminiVideoBaseUrl(config)}/models/${encodeURIComponent(modelOptionName(model).replace(/^models\//, ""))}:${action}`;
 }
 
 function geminiOperationUrl(config: Pick<AiConfig, "baseUrl">, name: string) {
-    return withLocalProxy(`${geminiVideoBaseUrl(config)}/${name.replace(/^\//, "")}`);
+    return `${geminiVideoBaseUrl(config)}/${name.replace(/^\//, "")}`;
 }
 
 function geminiVideoHeaders(config: Pick<AiConfig, "apiKey">) {
@@ -387,7 +387,7 @@ function readAxiosError(error: unknown, fallback: string) {
 }
 
 function statusMessage(status: number | undefined, fallback: string) {
-    if (status === 401 || status === 403) return "鉴权失败，请检查 API Key、套餐权限或模型权限";
+    if (status === 401 || status === 403) return "生成服务鉴权失败，请联系服务提供方";
     if (status === 429) return "请求被限流或额度不足，请稍后重试";
     return status ? `${fallback}（${status}）` : fallback;
 }

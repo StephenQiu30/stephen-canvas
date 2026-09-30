@@ -207,7 +207,6 @@ function InfiniteCanvasPage() {
     const config = useConfigStore((state) => state.config);
     const effectiveConfig = useEffectiveConfig();
     const isAiConfigReady = useConfigStore((state) => state.isAiConfigReady);
-    const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
     const addAsset = useAssetStore((state) => state.addAsset);
     const cleanupAssetImages = useAssetStore((state) => state.cleanupImages);
     const hydrated = useCanvasStore((state) => state.hydrated);
@@ -343,10 +342,10 @@ function InfiniteCanvasPage() {
                 const generationConfig = buildGenerationConfig(effectiveConfig, node, "video");
                 if (!isAiConfigReady(generationConfig, generationConfig.model)) {
                     if (silent) {
-                        setNodes((prev) => prev.map((item) => (item.id === node.id ? { ...item, metadata: { ...item.metadata, status: NODE_STATUS_ERROR, errorDetails: "请先完成配置" } } : item)));
+                        setNodes((prev) => prev.map((item) => (item.id === node.id ? { ...item, metadata: { ...item.metadata, status: NODE_STATUS_ERROR, errorDetails: "生成服务尚未接入" } } : item)));
                         return;
                     }
-                    openConfigDialog(true);
+                    message.warning("生成服务尚未接入");
                     return;
                 }
                 setRunningNodeId(node.id);
@@ -398,7 +397,7 @@ function InfiniteCanvasPage() {
                 }
             }
         },
-        [effectiveConfig, finishGenerationRequest, isAiConfigReady, message, openConfigDialog, startGenerationRequest],
+        [effectiveConfig, finishGenerationRequest, isAiConfigReady, message, startGenerationRequest],
     );
 
     const stopGenerationByRunningId = useCallback((runningId: string) => {
@@ -820,7 +819,6 @@ function InfiniteCanvasPage() {
     const { pluginHost, renderPluginPanel, buildNodeToolbarItems } = usePluginHost({
         effectiveConfig,
         isAiConfigReady,
-        openConfigDialog,
         theme,
         nodesRef,
         connectionsRef,
@@ -2006,7 +2004,7 @@ function InfiniteCanvasPage() {
             if (!node.metadata?.content) return;
             const generationConfig = { ...buildGenerationConfig(effectiveConfig, node, "image"), count: "1", size: node.metadata?.size || "auto" };
             if (payload.generate && !isAiConfigReady(generationConfig, generationConfig.model)) {
-                openConfigDialog(true);
+                message.warning("生成服务尚未接入");
                 return;
             }
             const userPrompt = payload.prompt.trim();
@@ -2063,7 +2061,7 @@ function InfiniteCanvasPage() {
                 setRunningNodeId(null);
             }
         },
-        [effectiveConfig, finishGenerationRequest, isAiConfigReady, message, openConfigDialog, startGenerationRequest],
+        [effectiveConfig, finishGenerationRequest, isAiConfigReady, message, startGenerationRequest],
     );
 
     const upscaleImageNode = useCallback(async (node: CanvasNodeData, params: CanvasImageUpscaleParams) => {
@@ -2096,7 +2094,7 @@ function InfiniteCanvasPage() {
             if (!node.metadata?.content) return;
             const generationConfig = { ...buildGenerationConfig(effectiveConfig, node, "image"), count: "1" };
             if (!isAiConfigReady(generationConfig, generationConfig.model)) {
-                openConfigDialog(true);
+                message.warning("生成服务尚未接入");
                 return;
             }
             const childId = nanoid();
@@ -2140,7 +2138,7 @@ function InfiniteCanvasPage() {
                 setRunningNodeId(null);
             }
         },
-        [effectiveConfig, finishGenerationRequest, openConfigDialog, startGenerationRequest],
+        [effectiveConfig, finishGenerationRequest, isAiConfigReady, message, startGenerationRequest],
     );
 
     const handleFontSizeChange = useCallback((nodeId: string, fontSize: number) => {
@@ -2322,7 +2320,7 @@ function InfiniteCanvasPage() {
             const sourceNode = nodesRef.current.find((node) => node.id === nodeId);
             const generationConfig = buildGenerationConfig(effectiveConfig, sourceNode, mode);
             if (!isAiConfigReady(generationConfig, generationConfig.model)) {
-                openConfigDialog(true);
+                message.warning("生成服务尚未接入");
                 return;
             }
 
@@ -2772,7 +2770,7 @@ function InfiniteCanvasPage() {
                 setRunningNodeId(null);
             }
         },
-        [completeVideoNodeTask, effectiveConfig, finishGenerationRequest, isAiConfigReady, message, openConfigDialog, startGenerationRequest],
+        [completeVideoNodeTask, effectiveConfig, finishGenerationRequest, isAiConfigReady, message, startGenerationRequest],
     );
     useEffect(() => {
         generateNodeRef.current = handleGenerateNode;
@@ -2799,7 +2797,7 @@ function InfiniteCanvasPage() {
                       }
                     : { ...buildGenerationConfig(effectiveConfig, sourceNode, node.type === CanvasNodeType.Text ? "text" : node.type === CanvasNodeType.Video ? "video" : node.type === CanvasNodeType.Audio ? "audio" : "image"), count: "1" };
             if (!isAiConfigReady(generationConfig, generationConfig.model)) {
-                openConfigDialog(true);
+                message.warning("生成服务尚未接入");
                 return;
             }
 
@@ -2973,7 +2971,7 @@ function InfiniteCanvasPage() {
                 setRunningNodeId(null);
             }
         },
-        [completeVideoNodeTask, effectiveConfig, finishGenerationRequest, isAiConfigReady, message, openConfigDialog, pollVideoNodeTask, startGenerationRequest],
+        [completeVideoNodeTask, effectiveConfig, finishGenerationRequest, isAiConfigReady, message, pollVideoNodeTask, startGenerationRequest],
     );
 
     const deleteBatchImage = useCallback((nodeId: string, imageId: string) => {

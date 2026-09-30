@@ -14,14 +14,13 @@ type ModelPickerProps = {
     className?: string;
     fullWidth?: boolean;
     placeholder?: string;
-    onMissingConfig?: () => void;
 };
 
-export function ModelPicker({ config, value, onChange, capability, className, fullWidth = false, placeholder, onMissingConfig }: ModelPickerProps) {
+export function ModelPicker({ config, value, onChange, capability, className, fullWidth = false, placeholder }: ModelPickerProps) {
     const pickerId = useId();
     const [open, setOpen] = useState(false);
     const options = useMemo(
-        () => Array.from(new Set([...(config.channelMode === "local" && !capability ? [value] : []), ...selectableModelsByCapability(config, capability)].filter((model): model is string => Boolean(model)))),
+        () => Array.from(new Set([...(!capability ? [value] : []), ...selectableModelsByCapability(config, capability)].filter((model): model is string => Boolean(model)))),
         [capability, config, value],
     );
     const current = value || "";
@@ -40,7 +39,6 @@ export function ModelPicker({ config, value, onChange, capability, className, fu
             open={open}
             value={current}
             onOpenChange={(nextOpen) => {
-                if (nextOpen && !options.length && config.channelMode === "local") onMissingConfig?.();
                 if (nextOpen) window.dispatchEvent(new CustomEvent("model-picker-open", { detail: pickerId }));
                 setOpen(nextOpen);
             }}
@@ -90,8 +88,7 @@ export function ModelPicker({ config, value, onChange, capability, className, fu
 
 function emptyModelLabel(config: AiConfig, capability?: ModelCapability) {
     const label = capability ? ({ image: "生图", video: "视频", text: "文本", audio: "音频" } as Record<string, string>)[String(capability)] || String(capability) : "";
-    if (capability && config.models.length) return `请先在渠道里为${label}指定模型`;
-    return config.models.length ? `暂无匹配的${label}模型` : "请先到配置里添加渠道和模型";
+    return config.models.length ? `暂无可用的${label}模型` : "暂无可用模型";
 }
 
 function ModelLabel({ config, model }: { config: AiConfig; model: string }) {

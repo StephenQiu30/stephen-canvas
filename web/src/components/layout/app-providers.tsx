@@ -6,7 +6,6 @@ import { MotionConfig } from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 
-import { ClientRootInit } from "@/components/layout/client-root-init";
 import { AppFeedbackProvider } from "@/components/ui/app-feedback-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -26,9 +25,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
     return (
         <MotionConfig reducedMotion="user">
             <TooltipProvider>
-                <AppFeedbackProvider>
-                    <ClientRootInit>{children}</ClientRootInit>
-                </AppFeedbackProvider>
+                <AppFeedbackProvider>{children}</AppFeedbackProvider>
             </TooltipProvider>
         </MotionConfig>
     );

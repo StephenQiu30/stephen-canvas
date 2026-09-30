@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { buildApiUrl, resolveModelRequestConfig, resolveModelScript, withLocalProxy, type AiConfig, type ModelChannel } from "@/stores/use-config-store";
+import { buildApiUrl, resolveModelRequestConfig, resolveModelScript, type AiConfig } from "@/stores/use-config-store";
 import { normalizePluginImages, runModelPlugin } from "./model-plugin";
 import { nanoid } from "nanoid";
 import { dataUrlToFile } from "@/lib/image-utils";
@@ -88,7 +88,6 @@ type GeminiPart = {
 type GeminiContent = { role?: "user" | "model"; parts: GeminiPart[] };
 type GeminiPayload = {
     candidates?: Array<{ content?: { parts?: GeminiPart[] }; finishReason?: string }>;
-    models?: Array<{ name?: string }>;
     error?: { message?: string };
     promptFeedback?: { blockReason?: string };
 };
@@ -310,7 +309,7 @@ function readApiErrorMessage(value: unknown): string {
 function readAxiosError(error: unknown, fallback: string) {
     if (axios.isCancel(error)) return "请求已取消";
     if (axios.isAxiosError(error)) {
-        if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") return "生图请求超时，接口长时间没有返回，请稍后重试或更换渠道";
+        if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") return "生图请求超时，服务长时间没有返回，请稍后重试";
         if (!error.response && error.code === "ERR_NETWORK") return "请求失败";
         const responseData = error.response?.data;
         // Prefer the API error from the response body.
@@ -327,12 +326,12 @@ function readAxiosError(error: unknown, fallback: string) {
 }
 
 function readStatusError(status: number | undefined, fallback: string) {
-    if (status === 401 || status === 403) return "鉴权失败，请检查 API Key、套餐权限或模型权限";
+    if (status === 401 || status === 403) return "生成服务鉴权失败，请联系服务提供方";
     if (status === 429) return "请求被限流或额度不足，请稍后重试";
-    if (status === 404) return "接口地址不存在（404），请检查 Base URL 和模型选择";
+    if (status === 404) return "生成服务接口不存在（404），请联系服务提供方";
     if (status === 502) return "网关错误（502），接口服务暂时不可用，请稍后重试";
     if (status === 503) return "服务繁忙（503），请稍后重试";
-    return status ? `请求失败（HTTP ${status}），请检查 Base URL 和 API Key 是否正确` : fallback;
+    return status ? `生成服务请求失败（HTTP ${status}）` : fallback;
 }
 
 function withSystemPrompt(config: AiConfig, prompt: string) {
@@ -361,10 +360,9 @@ function geminiModelName(model: string) {
     return model.trim().replace(/^models\//, "");
 }
 
-function geminiApiUrl(config: Pick<AiConfig, "baseUrl" | "model">, action?: "generateContent" | "streamGenerateContent") {
+function geminiApiUrl(config: Pick<AiConfig, "baseUrl" | "model">, action: "generateContent" | "streamGenerateContent") {
     const baseUrl = geminiBaseUrl(config);
-    if (!action) return withLocalProxy(`${baseUrl}/models`);
-    return withLocalProxy(`${baseUrl}/models/${encodeURIComponent(geminiModelName(config.model))}:${action}`);
+    return `${baseUrl}/models/${encodeURIComponent(geminiModelName(config.model))}:${action}`;
 }
 
 function geminiHeaders(config: Pick<AiConfig, "apiKey">) {
@@ -885,39 +883,3 @@ export async function requestImageQuestion(config: AiConfig, messages: AiTextMes
         throw new Error(readAxiosError(error, "请求失败"));
     }
 }
-
-export async function fetchImageModels(config: Pick<AiConfig, "baseUrl" | "apiKey" | "apiFormat">) {
-    try {
-        if (config.apiFormat === "gemini") {
-            const response = await axios.get<GeminiPayload>(geminiApiUrl({ ...defaultGeminiConfig, ...config }), { headers: geminiHeaders({ ...defaultGeminiConfig, ...config }) });
-            validateGeminiPayload(response.data);
-            return (response.data.models || [])
-                .map((model) => model.name?.replace(/^models\//, ""))
-                .filter((id): id is string => Boolean(id))
-                .sort((a, b) => a.localeCompare(b));
-        }
-        const response = await axios.get<{ data?: Array<{ id?: string }>; error?: { message?: string } }>(buildApiUrl(config.baseUrl, "/models"), {
-            headers: {
-                Authorization: `Bearer ${config.apiKey}`,
-            },
-        });
-        return (response.data.data || [])
-            .map((model) => model.id)
-            .filter((id): id is string => Boolean(id))
-            .sort((a, b) => a.localeCompare(b));
-    } catch (error) {
-        throw new Error(readAxiosError(error, "读取模型失败"));
-    }
-}
-
-export async function fetchChannelModels(channel: ModelChannel) {
-    return fetchImageModels({ baseUrl: channel.baseUrl, apiKey: channel.apiKey, apiFormat: channel.apiFormat });
-}
-
-const defaultGeminiConfig: Pick<AiConfig, "baseUrl" | "apiKey" | "apiFormat" | "model" | "systemPrompt"> = {
-    baseUrl: "https://generativelanguage.googleapis.com",
-    apiKey: "",
-    apiFormat: "gemini",
-    model: "",
-    systemPrompt: "",
-};

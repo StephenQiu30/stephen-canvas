@@ -2,7 +2,7 @@ import axios from "axios";
 
 import { audioMimeType, normalizeAudioFormatValue, normalizeAudioSpeedValue, normalizeAudioVoiceValue } from "@/lib/audio-generation";
 import { uploadMediaFile, type UploadedFile } from "@/services/file-storage";
-import { buildApiUrl, resolveModelRequestConfig, resolveModelScript, withLocalProxy, type AiConfig } from "@/stores/use-config-store";
+import { buildApiUrl, resolveModelRequestConfig, resolveModelScript, type AiConfig } from "@/stores/use-config-store";
 import { runModelPlugin } from "./model-plugin";
 
 type RequestOptions = { signal?: AbortSignal };
@@ -24,9 +24,9 @@ export async function requestAudioGeneration(config: AiConfig, prompt: string, o
     const format = normalizeAudioFormatValue(config.audioFormat);
     const script = resolveModelScript(config, config.model || config.audioModel);
     if (script) {
-        if (!model) throw new Error("请先配置音频模型");
-        if (!requestConfig.baseUrl.trim()) throw new Error("请先配置 Base URL");
-        if (!requestConfig.apiKey.trim()) throw new Error("请先配置 API Key");
+        if (!model) throw new Error("生成服务尚未接入");
+        if (!requestConfig.baseUrl.trim()) throw new Error("生成服务尚未接入");
+        if (!requestConfig.apiKey.trim()) throw new Error("生成服务尚未接入");
         try {
             const result = await runModelPlugin({
                 capability: "audio",
@@ -74,7 +74,7 @@ async function audioPluginBlob(result: unknown, format: string): Promise<Blob> {
     }
     if (!source) throw new Error("模型调用脚本没有返回音频");
     const url = source.startsWith("data:") || /^https?:/i.test(source) ? source : `data:${audioMimeType(format)};base64,${source}`;
-    const blob = await (await fetch(withLocalProxy(url))).blob();
+    const blob = await (await fetch(url)).blob();
     return blob.type.startsWith("audio/") ? blob : new Blob([blob], { type: audioMimeType(format) });
 }
 
@@ -84,10 +84,10 @@ export async function storeGeneratedAudio(blob: Blob, format = "mp3"): Promise<U
 }
 
 function assertAudioConfig(config: AiConfig, model: string) {
-    if (!model) throw new Error("请先配置音频模型");
-    if (!config.baseUrl.trim()) throw new Error("请先配置 Base URL");
-    if (!config.apiKey.trim()) throw new Error("请先配置 API Key");
-    if (config.apiFormat === "gemini") throw new Error("Gemini 调用格式暂不支持音频生成，请使用 OpenAI 格式渠道");
+    if (!model) throw new Error("生成服务尚未接入");
+    if (!config.baseUrl.trim()) throw new Error("生成服务尚未接入");
+    if (!config.apiKey.trim()) throw new Error("生成服务尚未接入");
+    if (config.apiFormat === "gemini") throw new Error("当前生成服务暂不支持音频生成");
 }
 
 async function assertAudioBlob(blob: Blob) {
@@ -146,10 +146,10 @@ function readAxiosError(error: unknown, fallback: string) {
 }
 
 function statusMessage(status: number | undefined, fallback: string) {
-    if (status === 401 || status === 403) return "鉴权失败，请检查 API Key、套餐权限或模型权限";
+    if (status === 401 || status === 403) return "生成服务鉴权失败，请联系服务提供方";
     if (status === 429) return "请求被限流或额度不足，请稍后重试";
-    if (status === 404) return "接口地址不存在（404），请检查 Base URL 和模型选择";
+    if (status === 404) return "生成服务接口不存在（404），请联系服务提供方";
     if (status === 502) return "网关错误（502），接口服务暂时不可用，请稍后重试";
     if (status === 503) return "服务繁忙（503），请稍后重试";
-    return status ? `请求失败（HTTP ${status}），请检查 Base URL 和 API Key 是否正确` : fallback;
+    return status ? `生成服务请求失败（HTTP ${status}）` : fallback;
 }

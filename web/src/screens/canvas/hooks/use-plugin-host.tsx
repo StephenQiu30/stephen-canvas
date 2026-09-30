@@ -20,7 +20,6 @@ type CanvasTheme = (typeof canvasThemes)[keyof typeof canvasThemes];
 type PluginHostParams = {
     effectiveConfig: AiConfig;
     isAiConfigReady: (config: AiConfig, model: string) => boolean;
-    openConfigDialog: (open: boolean) => void;
     theme: CanvasTheme;
     nodesRef: MutableRefObject<CanvasNodeData[]>;
     connectionsRef: MutableRefObject<CanvasConnection[]>;
@@ -35,7 +34,7 @@ type PluginHostParams = {
  * through plugin-callable host/ai objects. Loads installed remote plugins on mount and returns renderers for plugin panels and toolbars.
  */
 export function usePluginHost(params: PluginHostParams) {
-    const { effectiveConfig, isAiConfigReady, openConfigDialog, theme, nodesRef, connectionsRef, viewportRef, setNodes, setDialogNodeId, applyCanvasOps } = params;
+    const { effectiveConfig, isAiConfigReady, theme, nodesRef, connectionsRef, viewportRef, setNodes, setDialogNodeId, applyCanvasOps } = params;
 
     // Host capabilities available to plugin nodes; methods receive nodeId and are not bound to a specific node.
     const pluginAi = useMemo<CanvasPluginAi>(() => {
@@ -44,8 +43,7 @@ export function usePluginHost(params: PluginHostParams) {
         // Open the configuration dialog and throw when AI is not configured, allowing the plugin to handle the error.
         const ensureReady = (config: AiConfig) => {
             if (!isAiConfigReady(config, config.model)) {
-                openConfigDialog(true);
-                throw new Error("AI 配置未就绪，请先在设置里配置模型与密钥");
+                throw new Error("生成服务尚未接入");
             }
         };
         return {
@@ -88,7 +86,7 @@ export function usePluginHost(params: PluginHostParams) {
             listModels: (capability) => selectableModelsByCapability(effectiveConfig, capability as ModelCapability | undefined).map((value) => ({ value, label: decodeChannelModel(value)?.model || value })),
             defaultModel: (capability) => buildGenerationConfig(effectiveConfig, undefined, capability).model,
         };
-    }, [effectiveConfig, isAiConfigReady, openConfigDialog]);
+    }, [effectiveConfig, isAiConfigReady]);
 
     const pluginHost = useMemo<CanvasPluginHost>(
         () => ({

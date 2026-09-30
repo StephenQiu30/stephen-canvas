@@ -1,7 +1,6 @@
 import localforage from "localforage";
 
 import { nanoid } from "nanoid";
-import { withLocalProxy } from "@/stores/use-config-store";
 import { createImageThumbnail } from "@/lib/image-thumbnail";
 
 export type UploadedImage = {
@@ -78,7 +77,7 @@ async function fetchImageBlob(url: string, options?: ImageReadOptions) {
         controller.abort();
     }, IMAGE_DOWNLOAD_TIMEOUT_MS);
     try {
-        const response = await fetch(withLocalProxy(url), { signal: controller.signal });
+        const response = await fetch(url, { signal: controller.signal });
         if (!response.ok) throw namedError(IMAGE_RESPONSE_ERROR);
         return await response.blob();
     } catch (error) {
@@ -154,7 +153,7 @@ export async function getImageBlob(storageKey: string) {
     return store.getItem<Blob>(storageKey);
 }
 
-// 缩略图按图片的 storageKey 另存一份 WebP，只放在本地 IndexedDB 里，不写进节点数据，也不参与导出和 WebDAV 同步。
+// 缩略图按图片的 storageKey 另存一份 WebP，只放在本地 IndexedDB 里，不写进节点数据，也不参与导出。
 export function previewUrlFor(storageKey?: string) {
     return storageKey ? previewUrls.get(storageKey) : undefined;
 }

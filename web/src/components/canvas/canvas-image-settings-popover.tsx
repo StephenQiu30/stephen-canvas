@@ -11,7 +11,6 @@ import { useThemeStore } from "@/stores/use-theme-store";
 type CanvasImageSettingsPopoverProps = {
     config: AiConfig;
     onConfigChange: (key: keyof AiConfig, value: string) => void;
-    onMissingConfig?: () => void;
     onOpenChange?: (open: boolean) => void;
     buttonClassName?: string;
     getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;

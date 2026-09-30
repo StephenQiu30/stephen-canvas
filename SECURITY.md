@@ -27,7 +27,7 @@ Please include:
 - Impact and attack scenario.
 - Any relevant logs, screenshots, or proof of concept, with secrets removed.
 - Whether the issue affects local-only usage, hosted deployments, browser
-  storage, WebDAV sync, AI provider configuration, or API proxy behavior.
+  storage, runtime service integration, or API request behavior.
 
 ## Scope
 
@@ -35,8 +35,8 @@ Please include:
 
 The canvas supports third-party node plugins loaded from a remote URL. By
 design, an installed plugin's code runs directly inside the web app with full
-access to the page, including locally stored data such as AI API keys. This is
-an intentional trade-off for extensibility, and the installer shows a warning
+access to the page, including local projects, assets, and host-supplied runtime
+service information. This is an intentional trade-off for extensibility, and the installer shows a warning
 before installing. Therefore:
 
 - Only install plugins from sources you trust.
@@ -50,9 +50,9 @@ before installing. Therefore:
 Examples of in-scope reports:
 
 - Cross-site scripting or token exfiltration in the web app.
-- Exposure of locally stored API keys or synced canvas data caused by project
+- Exposure of runtime service credentials or local canvas data caused by project
   code.
-- Unsafe file handling, import/export behavior, or WebDAV proxy behavior.
+- Unsafe file handling, import/export behavior, or service request behavior.
 - Authentication, authorization, or access-control flaws in project-managed
   features.
 - Supply-chain issues that are exploitable through this repository's shipped
@@ -77,4 +77,3 @@ this community project.
 
 Please allow time for investigation and remediation before publishing details.
 Credit will be given on request unless you prefer to remain anonymous.
-

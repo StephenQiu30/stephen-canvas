@@ -1,12 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Keyboard, Moon, Puzzle, Settings2, Sun } from "lucide-react";
+import { Keyboard, Moon, Puzzle, Sun } from "lucide-react";
 import type { CSSProperties } from "react";
 
 import { GitHubLink } from "@/components/layout/github-link";
 import { canvasThemes } from "@/lib/canvas-theme";
-import { useConfigStore } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 
 type AppToolbarActionsProps = {
@@ -18,7 +17,6 @@ type AppToolbarActionsProps = {
 export function AppToolbarActions({ variant = "default", onOpenShortcuts, onOpenPlugins }: AppToolbarActionsProps) {
     const theme = useThemeStore((state) => state.theme);
     const setTheme = useThemeStore((state) => state.setTheme);
-    const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
     const canvasTheme = canvasThemes[theme];
     const iconStyle: CSSProperties | undefined = variant === "canvas" ? { color: canvasTheme.node.text } : undefined;
 
@@ -27,11 +25,6 @@ export function AppToolbarActions({ variant = "default", onOpenShortcuts, onOpen
             {onOpenPlugins ? (
                 <Button type="button" variant="ghost" size="icon-sm" style={iconStyle} onClick={onOpenPlugins} aria-label={"节点插件"} title={"节点插件"}>
                     <Puzzle />
-                </Button>
-            ) : null}
-            {variant === "canvas" ? (
-                <Button type="button" variant="ghost" size="icon-sm" style={iconStyle} onClick={() => openConfigDialog(false)} aria-label={"配置"} title={"配置"}>
-                    <Settings2 />
                 </Button>
             ) : null}
             <Button

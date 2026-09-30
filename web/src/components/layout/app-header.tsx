@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { AppConfigModal } from "@/components/layout/app-config-modal";
 import { AppToolbarActions } from "@/components/layout/app-toolbar-actions";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
@@ -24,7 +23,7 @@ export function AppHeader() {
                             {activeToolSlug === "canvas"
                                 ? "项目空间"
                                 : activeToolSlug
-                                  ? ({ canvas: "我的项目", image: "图片生成", video: "视频生成", assets: "我的素材", config: "模型与服务配置" } as Record<string, string>)[String(activeToolSlug)] || String(activeToolSlug)
+                                  ? ({ canvas: "我的项目", image: "图片生成", video: "视频生成", assets: "我的素材" } as Record<string, string>)[String(activeToolSlug)] || String(activeToolSlug)
                                   : "创作工作台"}
                         </Link>
                     </div>
@@ -33,8 +32,6 @@ export function AppHeader() {
                     </div>
                 </header>
             ) : null}
-
-            <AppConfigModal />
         </>
     );
 }

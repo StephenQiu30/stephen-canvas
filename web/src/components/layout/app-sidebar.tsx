@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator, useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
-import { FolderOpen, Home, ImagePlus, Images, Plus, Settings2, Video } from "lucide-react";
+import { FolderOpen, Home, ImagePlus, Images, Plus, Video } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -88,16 +88,6 @@ export function AppSidebar() {
             </SidebarContent>
             <SidebarFooter className="gap-3 px-2 pb-4">
                 <SidebarSeparator className="mx-0" />
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild className="h-10" tooltip="模型与服务配置" isActive={pathname === "/config"}>
-                            <Link href="/config" onClick={navigate} aria-current={pathname === "/config" ? "page" : undefined}>
-                                <Settings2 />
-                                <span>模型与服务配置</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
                 <p className="px-2 text-xs leading-5 text-muted-foreground group-data-[collapsible=icon]:hidden">项目与素材保存在当前浏览器。</p>
             </SidebarFooter>
         </Sidebar>

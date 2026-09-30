@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, FolderOpen, ImagePlus, Images, Plus, Settings2, Video, Workflow } from "lucide-react";
+import { ChevronRight, FolderOpen, ImagePlus, Images, Plus, Video, Workflow } from "lucide-react";
 import Link from "next/link";
 
 import { AssetCard } from "@/components/assets/asset-card";
@@ -17,7 +17,6 @@ const shortcuts = [
     { label: "视频生成", href: "/video", icon: Video },
     { label: "画布项目", href: "/canvas", icon: Workflow },
     { label: "我的素材", href: "/assets", icon: Images },
-    { label: "模型配置", href: "/config", icon: Settings2 },
 ];
 
 export default function HomePage() {
@@ -40,7 +39,7 @@ export default function HomePage() {
                     </span>
                     <h1 className="text-lg font-medium tracking-tight">新建画布创作</h1>
                 </Link>
-                <section aria-label="创作工具" className="grid grid-cols-3 gap-x-4 gap-y-5 @min-[640px]:grid-cols-5">
+                <section aria-label="创作工具" className="grid grid-cols-2 gap-x-4 gap-y-5 @min-[640px]:grid-cols-4">
                     {shortcuts.map(({ label, href, icon: Icon }) => (
                         <Link key={href} href={href} className="group flex flex-col items-center gap-3 rounded-xl text-center text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <span className="grid h-14 w-full max-w-28 place-items-center rounded-2xl bg-card motion-safe:transition-colors group-hover:bg-accent">
