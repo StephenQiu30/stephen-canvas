@@ -4,7 +4,7 @@
 // 防闪烁:解析结果按源码模块级缓存,且只在 HTML 真正变化时写入 DOM——
 //   画布任何重渲染都不会重新解析或重载 Markdown 里的图片。
 // styles.css 由 esbuild 以 text 方式打进 bundle,通过 plugin.css 自动注入。
-import { definePlugin, useEffect, useRef, useState } from "@stephen-canvas/plugin-sdk";
+import { CanvasIcon, definePlugin, useEffect, useRef, useState } from "@stephen-canvas/plugin-sdk";
 import type { CanvasNodeContentProps } from "@stephen-canvas/plugin-sdk";
 
 import css from "./styles.css";
@@ -19,7 +19,7 @@ function loadMarked(): Promise<Marked> {
     return markedPromise;
 }
 
-const PLACEHOLDER = "*选中节点,点上方工具条的 ✎ 编辑 Markdown*";
+const PLACEHOLDER = "*选中节点,点上方工具条的编辑按钮编辑 Markdown*";
 
 // 解析结果按源码缓存(模块级):同一段 Markdown 只解析一次,重复渲染/重挂载都命中缓存,
 // 返回的是同一个字符串引用,配合下方「值不变不写 DOM」彻底避免图片被重新请求。
@@ -95,7 +95,7 @@ export default definePlugin({
         {
             type: "markdown:doc",
             title: "Markdown",
-            icon: "📝",
+            icon: <CanvasIcon name="file-pen-line" size={20} />,
             description: "编辑与渲染 Markdown",
             defaultSize: { width: 360, height: 300 },
             defaultMetadata: { content: "" },
@@ -114,7 +114,7 @@ export default definePlugin({
                         id: "md-toggle-edit",
                         title: editing ? "预览渲染结果" : "编辑 Markdown 源码",
                         label: editing ? "预览" : "编辑",
-                        icon: editing ? "👁" : "✎",
+                        icon: <CanvasIcon name={editing ? "eye" : "pencil"} />,
                         active: editing,
                         onClick: () => ctx.updateMetadata({ editing: !editing }),
                     },

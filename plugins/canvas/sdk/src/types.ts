@@ -6,7 +6,7 @@
 // 真源:宿主 `web/src/types/canvas-plugin.ts` 及其引用的类型。本文件是它的公开镜像,
 // 若宿主契约变更,请同步更新此处(两者结构保持一致即可,无需逐字节相同)。
 
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactElement, SVGProps } from "react";
 
 // ---------------------------------------------------------------------------
 // 画布基础几何与节点数据
@@ -115,10 +115,10 @@ export type CanvasTheme = {
 };
 
 // ---------------------------------------------------------------------------
-// 画布指令集(ctx.applyOps):与 AI Agent 同级的画布操作能力
+// 画布指令集(ctx.applyOps):由宿主提供的画布操作能力
 // ---------------------------------------------------------------------------
 
-export type CanvasAgentOp =
+export type CanvasOperation =
     | { type: "add_node"; id?: string; nodeType?: CanvasNodeTypeId; title?: string; position?: { x: number; y: number }; x?: number; y?: number; width?: number; height?: number; metadata?: CanvasNodeMetadata }
     | { type: "update_node"; id: string; patch?: Partial<CanvasNodeData>; metadata?: CanvasNodeMetadata }
     | { type: "delete_node"; id?: string; ids?: string[]; nodeType?: CanvasNodeTypeId }
@@ -223,8 +223,8 @@ export type CanvasNodeContext = {
     getConnections: () => CanvasConnection[];
     getUpstream: () => CanvasNodeData[];
     getDownstream: () => CanvasNodeData[];
-    // 画布操作(复用 Agent 指令集)
-    applyOps: (ops: CanvasAgentOp[]) => void;
+    // 画布操作
+    applyOps: (ops: CanvasOperation[]) => void;
     // 节点间/插件间通信
     emit: (event: string, payload?: unknown) => void;
     on: (event: string, handler: (payload: unknown) => void) => () => void;
@@ -245,7 +245,7 @@ export type CanvasNodeToolbarItem = {
     id: string;
     title: string;
     label: string;
-    icon: ReactNode;
+    icon: ReactElement;
     onClick: () => void;
     active?: boolean;
     danger?: boolean;
@@ -267,7 +267,7 @@ export type CanvasBuiltinPanelConfig = {
 export type CanvasNodeDefinition = {
     type: string; // 建议 "<pluginId>:<name>",全局唯一
     title: string;
-    icon: ReactNode; // emoji 字符串或任意 ReactNode
+    icon: ReactElement; // 使用 CanvasIcon 或 SVG 元素，不使用文字或 emoji。
     description?: string;
     defaultSize: { width: number; height: number };
     defaultMetadata?: CanvasNodeMetadata;
@@ -310,10 +310,14 @@ export type CanvasPluginApp = {
 };
 
 // 宿主注入的运行时(工厂形式插件的入参),内含宿主 React 实例避免双 React
+export type CanvasIconName = "code-xml" | "eye" | "file-pen-line" | "globe" | "image-up" | "pencil" | "puzzle" | "refresh-cw" | "sparkles" | "sticky-note" | "vector-square";
+export type CanvasIconProps = SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number };
+
 export type PluginRuntime = CanvasPluginApp & {
     React: typeof import("react");
     jsx: typeof import("react").createElement;
     Fragment: typeof import("react").Fragment;
+    icons: Record<CanvasIconName, ComponentType<CanvasIconProps>>;
 };
 
 // 插件包(默认导出对象,或返回它的工厂函数)

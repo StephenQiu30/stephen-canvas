@@ -51,10 +51,10 @@ export async function waitForVideoGenerationTask(config: AiConfig, task: VideoGe
         const state = await pollVideoGenerationTask(config, task, options);
         if (state.status === "completed") return state.result;
         if (state.status === "failed") throw videoTaskFailed(state.error);
-        if (attempt === 119) throw new Error("视频生成超时，请稍后重试");
+        if (attempt === 119) throw new Error(`${""}视频生成超时，请稍后重试`);
         await delay(2500, options?.signal);
     }
-    throw new Error("视频生成超时，请稍后重试");
+    throw new Error(`${""}视频生成超时，请稍后重试`);
 }
 
 export function isVideoTaskFailed(error: unknown) {
@@ -288,18 +288,19 @@ async function fileToGeminiInline(file: File): Promise<GeminiInlineData> {
 }
 
 async function referenceMediaToFile(item: { name: string; type?: string; url?: string; storageKey?: string }, fallbackName: string, errorKey: "invalidReferenceVideo" | "invalidReferenceAudio", options?: RequestOptions) {
+    const invalidReferenceMessage = errorKey === "invalidReferenceVideo" ? "参考视频必须是公网 URL、资产 ID，或本地已保存的视频" : "参考音频必须是公网 URL、资产 ID，或本地已保存的音频";
     let blob = item.storageKey ? await getMediaBlob(item.storageKey) : null;
     if (!blob) {
         const url = item.storageKey ? await resolveMediaUrl(item.storageKey, item.url || "") : item.url || "";
-        if (!url) throw new Error((errorKey === "invalidReferenceVideo" ? "参考视频必须是公网 URL、资产 ID，或本地已保存的视频" : "参考音频必须是公网 URL、资产 ID，或本地已保存的音频"));
+        if (!url) throw new Error(invalidReferenceMessage);
         try {
             blob = await (await fetch(url, { signal: options?.signal })).blob();
         } catch (error) {
             if (error instanceof DOMException && error.name === "AbortError") throw error;
-            throw new Error((errorKey === "invalidReferenceVideo" ? "参考视频必须是公网 URL、资产 ID，或本地已保存的视频" : "参考音频必须是公网 URL、资产 ID，或本地已保存的音频"));
+            throw new Error(invalidReferenceMessage);
         }
     }
-    if (!blob.size) throw new Error((errorKey === "invalidReferenceVideo" ? "参考视频必须是公网 URL、资产 ID，或本地已保存的视频" : "参考音频必须是公网 URL、资产 ID，或本地已保存的音频"));
+    if (!blob.size) throw new Error(invalidReferenceMessage);
     return new File([blob], item.name || fallbackName, { type: item.type || blob.type || "application/octet-stream" });
 }
 

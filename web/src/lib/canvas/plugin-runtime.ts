@@ -2,6 +2,7 @@ import React from "react";
 
 import { APP_VERSION } from "@/constant/env";
 import { emitCanvasEvent, onCanvasEvent } from "@/lib/canvas/canvas-event-bus";
+import { canvasPluginIcons } from "@/lib/canvas/plugin-icons";
 import type { CanvasPluginApp } from "@/types/canvas-plugin";
 
 // Remote plugins obtain the host React instance through this runtime to avoid multiple React copies.
@@ -9,6 +10,7 @@ export type PluginRuntime = CanvasPluginApp & {
     React: typeof React;
     jsx: typeof React.createElement;
     Fragment: typeof React.Fragment;
+    icons: typeof canvasPluginIcons;
     injectCSS: (css: string, key?: string) => () => void;
 };
 
@@ -32,6 +34,7 @@ export function getPluginRuntime(): PluginRuntime {
             React,
             jsx: React.createElement,
             Fragment: React.Fragment,
+            icons: canvasPluginIcons,
             injectCSS,
             version: APP_VERSION,
             emit: emitCanvasEvent,

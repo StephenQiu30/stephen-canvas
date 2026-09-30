@@ -170,6 +170,10 @@ function Sidebar({
                         } as React.CSSProperties
                     }
                     side={side}
+                    onCloseAutoFocus={(event) => {
+                        event.preventDefault();
+                        document.querySelector<HTMLButtonElement>('[data-sidebar="trigger"]')?.focus();
+                    }}
                 >
                     <SheetHeader className="sr-only">
                         <SheetTitle>导航</SheetTitle>

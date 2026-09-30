@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE">开源协议</a> · <a href="SECURITY.md">漏洞提交</a> · <a href="canvas-agent/README.md">本地 Canvas Agent</a> · <a href="plugins/stephen-canvas">Codex app 插件</a>
+  <a href="LICENSE">开源协议</a> · <a href="SECURITY.md">漏洞提交</a>
 </p>
 
 Stephen Canvas 是一款面向图片创作的开源工作台。它把画布编排、AI 图片生成、参考图编辑、对话助手和素材沉淀放在同一个界面里，适合用来探索视觉方案并连续迭代图片结果。
@@ -31,14 +31,14 @@ Stephen Canvas 是一款面向图片创作的开源工作台。它把画布编�
 - 无限画布：多画布项目、节点拖拽缩放、连线、小地图、撤销重做、导入导出。
 - AI 创作：浏览器前台直连你配置的 OpenAI 兼容接口，支持文生图、图生图、参考图编辑、文本问答、音频和视频生成。
 - 画布助手：围绕选中节点和上游节点对话、生图，并把结果插回画布。
-- 本地 Agent：通过本机 Canvas Agent 连接 Codex / Claude Code，让 Agent 通过 MCP 操作当前画布；
-- Codex App 插件：提供 Codex app 插件，安装后会自动注册 MCP 并尝试拉起本地 Agent。
 - 插件系统：支持通过 URL 动态安装 / 启用 / 更新 / 卸载远程节点插件，并提供 TypeScript SDK 自行开发画布节点插件。
 - 自定义接口调用：可自定义生图 / 视频接口的调用方式，灵活适配各类中转站与自建服务。
 
 ## 快速开始
 
 AI API Key、Base URL、画布、素材和生成记录默认保存在浏览器本地。
+
+画布和创作界面无需本地 Agent 服务；节点插件通过宿主提供的画布操作与生成接口运行。
 
 ### 本地开发
 

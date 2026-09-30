@@ -11,7 +11,7 @@ import { Controller, useForm } from "react-hook-form";
 import { MediaPreview } from "@/components/media-preview";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem } from "@/components/ui/pagination";
@@ -20,14 +20,15 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import dayjs from "dayjs";
 import { saveAs } from "file-saver";
-import { Copy, Download, PencilLine, Trash2, Upload } from "lucide-react";
+import { Copy, Download, Ellipsis, FileUp, Images, PencilLine, Plus, Search, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button as AssetButton } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input as SearchInput } from "@/components/ui/input";
+import { AssetCard } from "@/components/assets/asset-card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { WorkspaceCardSkeleton } from "@/components/workspace/workspace-card-skeleton";
 import { Select as PageSizeSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCopyText } from "@/hooks/use-copy-text";
 import { formatBytes, readFileAsDataUrl } from "@/lib/image-utils";
@@ -65,6 +66,7 @@ export default function AssetsPage() {
     const imageInputRef = useRef<HTMLInputElement>(null);
     const assetInputRef = useRef<HTMLInputElement>(null);
     const assets = useAssetStore((state) => state.assets);
+    const hydrated = useAssetStore((state) => state.hydrated);
     const addAsset = useAssetStore((state) => state.addAsset);
     const updateAsset = useAssetStore((state) => state.updateAsset);
     const removeAsset = useAssetStore((state) => state.removeAsset);
@@ -238,148 +240,210 @@ export default function AssetsPage() {
     return (
         <div className="flex h-full flex-col overflow-hidden bg-background text-foreground ">
             <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-10 pt-4 lg:px-10">
-                <div className="pb-8">
-                    <div className="text-left">
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground ">{"我的资产"}</h1>
-                        <p className="mt-3 text-sm text-muted-foreground ">{"收藏常用文本和图片，按类型、标题和标签快速查找。"}</p>
-                    </div>
-
-                    <div className="mt-6 w-full max-w-md">
-                        <SearchInput
-                            type="search"
-                            value={keyword}
-                            aria-label={"搜索标题、内容、标签或来源"}
-                            placeholder={"搜索标题、内容、标签或来源"}
-                            onChange={(event) => {
-                                setPage(1);
-                                setKeyword(event.target.value);
-                            }}
-                        />
-                    </div>
-
-                    <div className="mt-6 grid gap-3 text-left">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="grid gap-2 sm:grid-cols-[56px_minmax(0,1fr)] sm:items-center">
-                                <div className="text-xs font-medium text-muted-foreground ">{"类型"}</div>
-                                <ToggleGroup
-                                    type="single"
-                                    value={kindFilter}
-                                    onValueChange={(value) => {
-                                        if (value) {
-                                            setPage(1);
-                                            setKindFilter(value as typeof kindFilter);
-                                        }
-                                    }}
-                                    className="flex-wrap"
-                                    aria-label="资产类型"
-                                >
-                                    {kindOptions.map((option) => (
-                                        <ToggleGroupItem key={option} value={option}>
-                                            {option === "all" ? "全部" : ({ text: "文本", image: "图片", video: "视频", audio: "音频" } as Record<string, string>)[String(option)] || String(option)}
-                                        </ToggleGroupItem>
-                                    ))}
-                                </ToggleGroup>
-                            </div>
-                            <div className="flex flex-wrap gap-4">
-                                <Button
-                                    variant="ghost"
-                                    type="button"
-                                    className="cursor-pointer text-sm font-medium text-brand-body underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline "
-                                    onClick={() => void exportAllAssets()}
-                                >
-                                    {"导出资产"}
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    type="button"
-                                    className="cursor-pointer text-sm font-medium text-brand-body underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline "
-                                    onClick={() => assetInputRef.current?.click()}
-                                >
-                                    {"导入资产"}
-                                </Button>
-                                <Button variant="ghost" type="button" className="cursor-pointer text-sm font-medium text-brand-body underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline " onClick={openCreate}>
-                                    {"新增资产"}
-                                </Button>
-                            </div>
+                <div className="mx-auto flex max-w-[1600px] flex-col gap-6">
+                    <header className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="flex flex-col gap-2">
+                            <h1 className="text-2xl font-medium tracking-tight">我的素材</h1>
+                            <p className="text-sm text-muted-foreground">收藏创作素材，让每一个想法随时可用。</p>
                         </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-col gap-5">
-                    <div className="grid gap-5 @min-[520px]:grid-cols-2 @min-[900px]:grid-cols-3 @min-[1200px]:grid-cols-4">
-                        {visibleAssets.map((asset) => (
-                            <AssetCard key={asset.id} asset={asset} onOpen={() => setPreviewAsset(asset)} onEdit={() => openEdit(asset)} onCopy={copyAssetText} onDownload={downloadImage} onDelete={() => setDeletingAsset(asset)} />
-                        ))}
-                    </div>
-
-                    {!visibleAssets.length ? (
-                        <Empty className={"py-20"}>
-                            <EmptyHeader>
-                                <EmptyDescription>{"没有找到资产"}</EmptyDescription>
-                            </EmptyHeader>
-                        </Empty>
-                    ) : null}
-
-                    <div className="flex flex-wrap items-center justify-center gap-3">
-                        <Pagination aria-label="分页">
-                            <PaginationContent>
-                                <PaginationItem>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={page <= 1}
-                                        onClick={() =>
-                                            ((nextPage, nextPageSize) => {
-                                                setPage(nextPage);
-                                                setPageSize(nextPageSize);
-                                            })(page - 1, pageSize)
-                                        }
-                                    >
-                                        上一页
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" disabled={!hydrated} onClick={() => assetInputRef.current?.click()}>
+                                <FileUp data-icon="inline-start" />
+                                导入素材
+                            </Button>
+                            <Button disabled={!hydrated} onClick={openCreate}>
+                                <Plus data-icon="inline-start" />
+                                新增素材
+                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" disabled={!validAssets.length} aria-label="素材批量操作">
+                                        <Ellipsis />
                                     </Button>
-                                </PaginationItem>
-                                <PaginationItem className="px-2 font-mono text-sm tabular-nums">
-                                    {page} / {Math.max(1, Math.ceil(filteredAssets.length / pageSize))}
-                                </PaginationItem>
-                                <PaginationItem>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={page >= Math.max(1, Math.ceil(filteredAssets.length / pageSize))}
-                                        onClick={() =>
-                                            ((nextPage, nextPageSize) => {
-                                                setPage(nextPage);
-                                                setPageSize(nextPageSize);
-                                            })(page + 1, pageSize)
-                                        }
-                                    >
-                                        下一页
-                                    </Button>
-                                </PaginationItem>
-                            </PaginationContent>
-                        </Pagination>
-                        <PageSizeSelect
-                            value={String(pageSize)}
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuGroup>
+                                        <DropdownMenuItem onSelect={() => void exportAllAssets()}>
+                                            <Download />
+                                            导出全部素材
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </header>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <InputGroup className="w-full @min-[520px]:w-80">
+                            <InputGroupInput
+                                type="search"
+                                value={keyword}
+                                aria-label="搜索素材"
+                                placeholder="搜索名称、标签或内容"
+                                onChange={(event) => {
+                                    setPage(1);
+                                    setKeyword(event.target.value);
+                                }}
+                            />
+                            <InputGroupAddon>
+                                <Search />
+                            </InputGroupAddon>
+                        </InputGroup>
+                        <ToggleGroup
+                            type="single"
+                            value={kindFilter}
                             onValueChange={(value) => {
-                                setPageSize(Number(value));
-                                setPage(1);
+                                if (value) {
+                                    setPage(1);
+                                    setKindFilter(value as typeof kindFilter);
+                                }
                             }}
+                            aria-label="素材类型"
                         >
-                            <SelectTrigger aria-label="每页数量">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {[10, 20, 50, 100].map((size) => (
-                                        <SelectItem key={size} value={String(size)}>
-                                            {size} 条 / 页
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </PageSizeSelect>
+                            {kindOptions.map((option) => (
+                                <ToggleGroupItem key={option} value={option}>
+                                    {option === "all" ? "全部" : option === "text" ? "文本" : option === "image" ? "图片" : "视频"}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
+                    </div>
+                    <div className="flex flex-col gap-5">
+                        {!hydrated || visibleAssets.length ? (
+                            <div className="grid gap-x-4 gap-y-6 @min-[520px]:grid-cols-2 @min-[800px]:grid-cols-3 @min-[1000px]:grid-cols-4 @min-[1200px]:grid-cols-5" aria-busy={!hydrated} aria-label="素材列表">
+                                {!hydrated
+                                    ? Array.from({ length: 5 }, (_, index) => <WorkspaceCardSkeleton key={index} />)
+                                    : visibleAssets.map((asset) => (
+                                          <AssetCard key={asset.id} asset={asset} onOpen={() => setPreviewAsset(asset)}>
+                                              <DropdownMenu>
+                                                  <DropdownMenuTrigger asChild>
+                                                      <Button variant="ghost" size="icon-sm" aria-label={`${asset.title} 的更多操作`}>
+                                                          <Ellipsis />
+                                                      </Button>
+                                                  </DropdownMenuTrigger>
+                                                  <DropdownMenuContent align="end">
+                                                      <DropdownMenuGroup>
+                                                          <DropdownMenuItem onSelect={() => setPreviewAsset(asset)}>查看详情</DropdownMenuItem>
+                                                          {asset.kind !== "video" && (
+                                                              <DropdownMenuItem onSelect={() => openEdit(asset)}>
+                                                                  <PencilLine />
+                                                                  编辑素材
+                                                              </DropdownMenuItem>
+                                                          )}
+                                                          {asset.kind === "text" ? (
+                                                              <DropdownMenuItem onSelect={() => copyAssetText(asset)}>
+                                                                  <Copy />
+                                                                  复制文本
+                                                              </DropdownMenuItem>
+                                                          ) : (
+                                                              <DropdownMenuItem onSelect={() => void downloadImage(asset)}>
+                                                                  <Download />
+                                                                  下载素材
+                                                              </DropdownMenuItem>
+                                                          )}
+                                                      </DropdownMenuGroup>
+                                                      <DropdownMenuSeparator />
+                                                      <DropdownMenuGroup>
+                                                          <DropdownMenuItem variant="destructive" onSelect={() => setDeletingAsset(asset)}>
+                                                              <Trash2 />
+                                                              删除素材
+                                                          </DropdownMenuItem>
+                                                      </DropdownMenuGroup>
+                                                  </DropdownMenuContent>
+                                              </DropdownMenu>
+                                          </AssetCard>
+                                      ))}
+                            </div>
+                        ) : (
+                            <Empty className="min-h-72 border">
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <Images />
+                                    </EmptyMedia>
+                                    <EmptyTitle>{validAssets.length ? "没有匹配的素材" : "收藏你的第一份素材"}</EmptyTitle>
+                                    <EmptyDescription>{validAssets.length ? "调整类型或搜索内容，看看其他创作素材。" : "添加文本、导入素材包，或把生成结果保存到这里。"}</EmptyDescription>
+                                </EmptyHeader>
+                                <EmptyContent>
+                                    {validAssets.length ? (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                setKeyword("");
+                                                setKindFilter("all");
+                                            }}
+                                        >
+                                            清空筛选
+                                        </Button>
+                                    ) : (
+                                        <Button onClick={openCreate}>
+                                            <Plus data-icon="inline-start" />
+                                            新增素材
+                                        </Button>
+                                    )}
+                                </EmptyContent>
+                            </Empty>
+                        )}
+                        {filteredAssets.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-center gap-3">
+                                <Pagination aria-label="分页">
+                                    <PaginationContent>
+                                        <PaginationItem>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={page <= 1}
+                                                onClick={() =>
+                                                    ((nextPage, nextPageSize) => {
+                                                        setPage(nextPage);
+                                                        setPageSize(nextPageSize);
+                                                    })(page - 1, pageSize)
+                                                }
+                                            >
+                                                上一页
+                                            </Button>
+                                        </PaginationItem>
+                                        <PaginationItem className="px-2 font-mono text-sm tabular-nums">
+                                            {page} / {Math.max(1, Math.ceil(filteredAssets.length / pageSize))}
+                                        </PaginationItem>
+                                        <PaginationItem>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={page >= Math.max(1, Math.ceil(filteredAssets.length / pageSize))}
+                                                onClick={() =>
+                                                    ((nextPage, nextPageSize) => {
+                                                        setPage(nextPage);
+                                                        setPageSize(nextPageSize);
+                                                    })(page + 1, pageSize)
+                                                }
+                                            >
+                                                下一页
+                                            </Button>
+                                        </PaginationItem>
+                                    </PaginationContent>
+                                </Pagination>
+                                <PageSizeSelect
+                                    value={String(pageSize)}
+                                    onValueChange={(value) => {
+                                        setPageSize(Number(value));
+                                        setPage(1);
+                                    }}
+                                >
+                                    <SelectTrigger aria-label="每页数量">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            {[10, 20, 50, 100].map((size) => (
+                                                <SelectItem key={size} value={String(size)}>
+                                                    {size} 条 / 页
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </PageSizeSelect>
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>
@@ -392,7 +456,7 @@ export default function AssetsPage() {
             >
                 <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"} style={{ width: 980, maxWidth: "calc(100vw - 2rem)" }}>
                     <DialogHeader>
-                        <DialogTitle>{editingAsset ? "编辑资产" : "新增资产"}</DialogTitle>
+                        <DialogTitle>{editingAsset ? "编辑素材" : "新增素材"}</DialogTitle>
                     </DialogHeader>
                     <div>
                         <div className="grid gap-6 pt-1 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -657,9 +721,9 @@ export default function AssetsPage() {
             >
                 <DialogContent aria-describedby={undefined} className={"max-h-[90dvh] overflow-y-auto"}>
                     <DialogHeader>
-                        <DialogTitle>{"删除资产"}</DialogTitle>
+                        <DialogTitle>{"删除素材"}</DialogTitle>
                     </DialogHeader>
-                    <div>{`确定删除「${deletingAsset?.title}」吗？删除后会从我的资产中移除。`}</div>
+                    <div>{`确定删除「${deletingAsset?.title}」吗？删除后会从我的素材中移除。`}</div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setDeletingAsset(null)}>
                             {"取消"}
@@ -671,60 +735,6 @@ export default function AssetsPage() {
                 </DialogContent>
             </Dialog>
         </div>
-    );
-}
-
-function AssetCard({ asset, onOpen, onEdit, onCopy, onDownload, onDelete }: { asset: Asset; onOpen: () => void; onEdit: () => void; onCopy: (asset: Asset) => void; onDownload: (asset: Asset) => void; onDelete: () => void }) {
-    useSyncExternalStore(subscribeImagePreviews, getImagePreviewRevision, () => 0);
-    const cover = assetCoverUrl(asset);
-    const summary = assetSummary(asset);
-    return (
-        <Card className="min-w-0 gap-3 rounded-xl pt-0">
-            <AssetButton variant="ghost" className="grid aspect-video h-auto w-full overflow-hidden rounded-none p-0" onClick={onOpen} aria-label={`查看 ${asset.title}`}>
-                {cover ? <img src={cover} alt={asset.title} loading="lazy" className="h-full w-full object-cover" /> : <span className="line-clamp-4 whitespace-normal px-5 text-center">{asset.kind === "text" ? asset.data.content : "暂无封面"}</span>}
-            </AssetButton>
-            <CardHeader>
-                <CardTitle>
-                    <AssetButton variant="ghost" className="h-auto w-full justify-start p-0" onClick={onOpen}>
-                        <span className="truncate">{asset.title}</span>
-                    </AssetButton>
-                </CardTitle>
-                <CardDescription>{asset.source || "未标注来源"}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-                <p className="line-clamp-3 text-xs leading-5 text-muted-foreground">{summary}</p>
-                <div className="flex flex-wrap gap-1.5">
-                    <Badge variant="secondary">{({ text: "文本", image: "图片", video: "视频", audio: "音频" } as Record<string, string>)[String(asset.kind)] || String(asset.kind)}</Badge>
-                    {asset.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="outline">
-                            {tag}
-                        </Badge>
-                    ))}
-                </div>
-            </CardContent>
-            <CardFooter className="flex-wrap gap-2 border-0 bg-transparent pt-0">
-                <AssetButton variant="ghost" size="sm" onClick={onOpen}>
-                    {"查看"}
-                </AssetButton>
-                {asset.kind !== "video" && (
-                    <AssetButton variant="ghost" size="icon-sm" onClick={onEdit} aria-label={"编辑"}>
-                        <PencilLine />
-                    </AssetButton>
-                )}
-                {asset.kind === "text" ? (
-                    <AssetButton variant="ghost" size="icon-sm" onClick={() => onCopy(asset)} aria-label={"复制"}>
-                        <Copy />
-                    </AssetButton>
-                ) : (
-                    <AssetButton variant="ghost" size="icon-sm" onClick={() => onDownload(asset)} aria-label={"下载"}>
-                        <Download />
-                    </AssetButton>
-                )}
-                <AssetButton variant="ghost" size="icon-sm" onClick={onDelete} aria-label={"删除"}>
-                    <Trash2 />
-                </AssetButton>
-            </CardFooter>
-        </Card>
     );
 }
 
@@ -740,7 +750,7 @@ function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | nu
         >
             <SheetContent side="right" aria-describedby={undefined} style={{ width: 640, maxWidth: "100vw" }}>
                 <SheetHeader>
-                    <SheetTitle>{"资产详情"}</SheetTitle>
+                    <SheetTitle>{"素材详情"}</SheetTitle>
                 </SheetHeader>
                 <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
                     {asset ? (
@@ -751,7 +761,7 @@ function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | nu
                                 <div className="rounded-lg border border-border bg-muted p-5 text-sm leading-6 text-brand-body   ">{asset.kind === "text" ? asset.data.content : "暂无封面"}</div>
                             )}
                             <div>
-                                <h4 className={"!mb-2"}>{asset.title}</h4>
+                                <h3 className="mb-2 text-base font-medium">{asset.title}</h3>
                                 <div className={"flex gap-2 items-center flex-wrap"}>
                                     <Badge variant={"secondary"}>{({ text: "文本", image: "图片", video: "视频", audio: "音频" } as Record<string, string>)[String(asset.kind)] || String(asset.kind)}</Badge>
                                     {(asset.tags || []).map((tag) => (
@@ -760,13 +770,17 @@ function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | nu
                                         </Badge>
                                     ))}
                                 </div>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    {asset.source && <span>{asset.source} · </span>}
+                                    <time dateTime={asset.updatedAt}>{dayjs(asset.updatedAt).format("YYYY-MM-DD")}</time>
+                                </p>
                             </div>
                             <div className="rounded-lg border border-border p-4 ">
-                                <span className={cn("secondary" === "secondary" && "text-muted-foreground", "block text-xs")}>{"文本内容"}</span>
+                                <span className="block text-xs text-muted-foreground">{asset.kind === "text" ? "文本内容" : asset.kind === "video" ? "视频预览" : "图片信息"}</span>
                                 {asset.kind === "text" ? (
                                     <p className={"mt-2 whitespace-pre-wrap"}>{asset.data.content}</p>
                                 ) : asset.kind === "video" ? (
-                                    <video src={asset.data.url} controls className="mt-2 aspect-video w-full rounded-lg bg-black" />
+                                    <video src={asset.data.url} controls className="mt-2 aspect-video w-full rounded-lg bg-muted" />
                                 ) : (
                                     <span className={"mt-2 block"}>
                                         {asset.data.width}x{asset.data.height}· {formatBytes(asset.data.bytes)}· {asset.data.mimeType}
@@ -811,11 +825,6 @@ async function readAssetMediaBlob(asset: Extract<Asset, { kind: "image" | "video
     if (!url) return null;
     const response = await fetch(url);
     return response.ok ? response.blob() : null;
-}
-
-function assetSummary(asset: Asset) {
-    if (asset.kind === "text") return asset.data.content;
-    return `${asset.data.width}x${asset.data.height} · ${formatBytes(asset.data.bytes)} · ${asset.data.mimeType}`;
 }
 
 function assetSearchText(asset: Asset) {

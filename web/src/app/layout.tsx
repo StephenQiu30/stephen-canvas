@@ -6,7 +6,6 @@ import { Suspense, type ReactNode } from "react";
 import { AppProviders } from "@/components/layout/app-providers";
 import { BasicLayout } from "@/layouts/basic-layout";
 
-import "streamdown/styles.css";
 import "./globals.css";
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });

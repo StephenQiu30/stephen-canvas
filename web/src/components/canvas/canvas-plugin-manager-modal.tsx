@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 
 import { canvasThemes } from "@/lib/canvas-theme";
 import { installPluginFromUrl, setPluginEnabled, uninstallPlugin, updatePlugin } from "@/lib/canvas/plugin-loader";
+import { canvasPluginIcons } from "@/lib/canvas/plugin-icons";
 import { fetchOfficialPlugins, hasUpgrade, type OfficialPluginEntry } from "@/lib/canvas/plugin-registry";
 import { usePluginStore, type InstalledPlugin } from "@/stores/canvas/use-plugin-store";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -192,7 +193,8 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
                         const record = recordById.get(entry.id);
                         // Show the update dot and highlight the action when the remote version is newer.
                         const upgradable = Boolean(record && hasUpgrade(record.version, entry.version));
-                        const icon = entry.icon || <Puzzle className="size-4" />;
+                        const Icon = canvasPluginIcons[entry.icon as keyof typeof canvasPluginIcons] || Puzzle;
+                        const icon = <Icon className="size-4" aria-hidden />;
                         return row(
                             entry.id,
                             upgradable ? withUpgradeDot(icon) : icon,

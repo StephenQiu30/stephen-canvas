@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { saveAs } from "file-saver";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import type { ChangeEvent as ReactChangeEvent, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -78,7 +78,7 @@ import { CANVAS_GRID_SIZE, canvasPoint, fitCanvasNodes, zoomAt } from "@/lib/can
 import { getNodeDefinition, isBuiltinNodeType as isBuiltinType, useNodeRegistryVersion } from "@/lib/canvas/node-registry";
 import { imageReferenceLabel } from "@/lib/image-reference-prompt";
 import { getDataUrlByteSize, readImageMeta } from "@/lib/image-utils";
-import { useAgentBridge } from "@/screens/canvas/hooks/use-agent-bridge";
+import { useCanvasOperations } from "@/screens/canvas/hooks/use-canvas-operations";
 import { usePluginHost } from "@/screens/canvas/hooks/use-plugin-host";
 import { requestAudioGeneration, storeGeneratedAudio } from "@/services/api/audio";
 import { requestEdit, requestGeneration, requestImageQuestion } from "@/services/api/image";
@@ -86,7 +86,6 @@ import { createVideoGenerationTask, isVideoTaskFailed, storeGeneratedVideo, wait
 import { uploadMediaFile, type UploadedFile } from "@/services/file-storage";
 import { ensureImagePreview, uploadImage } from "@/services/image-storage";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
-import { useAgentStore } from "@/stores/use-agent-store";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { defaultConfig, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -175,15 +174,7 @@ function InfiniteCanvasPage() {
     const nodeRegistryVersion = useNodeRegistryVersion((state) => state.version);
     const params = useParams<{ id: string }>();
     const router = useRouter();
-    const searchParams = useSearchParams();
     const projectId = params.id || "";
-    const localAgentConnected = useAgentStore((state) => state.connected);
-    const localAgentActivity = useAgentStore((state) => state.activity);
-    const localAgentEnabled = useAgentStore((state) => state.enabled);
-    const fragmentBootstrap = useAgentStore((state) => state.fragmentBootstrap);
-    const agentPanelOpen = useAgentStore((state) => state.panelOpen);
-    const toggleAgentPanel = useAgentStore((state) => state.togglePanel);
-    const openAgentPanel = useAgentStore((state) => state.openPanel);
     const containerRef = useRef<HTMLDivElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const uploadTargetRef = useRef<{ nodeId?: string; position?: Position } | null>(null);
@@ -812,13 +803,7 @@ function InfiniteCanvasPage() {
             ),
         [connectedNodesByNodeId, nodes, referencePickerNodeId],
     );
-    const { applyAgentOps } = useAgentBridge({
-        projectId,
-        title: currentProject?.title,
-        nodes,
-        connections,
-        selectedNodeIds,
-        viewport,
+    const applyCanvasOps = useCanvasOperations({
         nodesRef,
         connectionsRef,
         selectedNodeIdsRef,
@@ -842,7 +827,7 @@ function InfiniteCanvasPage() {
         viewportRef,
         setNodes,
         setDialogNodeId,
-        applyAgentOps,
+        applyCanvasOps,
     });
     const createNode = useCallback(
         (type: CanvasNodeTypeId, position?: Position) => {
@@ -3241,9 +3226,6 @@ function InfiniteCanvasPage() {
                     onOpenPlugins={() => setPluginManagerOpen(true)}
                     onUndo={undoCanvas}
                     onRedo={redoCanvas}
-                    agentOpen={agentPanelOpen}
-                    compactAgentStatus={{ connected: localAgentConnected, enabled: localAgentEnabled, activity: localAgentActivity }}
-                    onToggleAgent={toggleAgentPanel}
                 />
 
                 <InfiniteCanvas

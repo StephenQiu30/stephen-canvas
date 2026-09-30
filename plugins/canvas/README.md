@@ -98,7 +98,7 @@ SDK 导出的 hooks(`useState/useEffect/useMemo/useRef/...`)运行时转发宿�
 {
     type: string;                 // 建议 "<pluginId>:<name>",全局唯一
     title: string;                // 创建菜单/默认标题
-    icon: ReactNode;              // emoji 字符串或任意 ReactNode
+    icon: ReactElement;           // CanvasIcon 或 SVG 图标元素，不使用文字或 emoji
     description?: string;
     defaultSize: { width, height };
     defaultMetadata?: object;     // 新建节点初始 metadata(文本内容放 content)

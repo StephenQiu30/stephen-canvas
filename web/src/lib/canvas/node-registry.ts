@@ -1,5 +1,6 @@
+import { Puzzle } from "lucide-react";
+import { createElement, isValidElement } from "react";
 import { create } from "zustand";
-
 
 import type { CanvasNodeDefinition } from "@/types/canvas-plugin";
 import { CanvasNodeType } from "@/types/canvas";
@@ -15,7 +16,7 @@ function bump() {
 
 export function registerNodeDefinitions(defs: CanvasNodeDefinition[], pluginId = "builtin") {
     defs.forEach((def) => {
-        definitions.set(def.type, def);
+        definitions.set(def.type, { ...def, icon: isValidElement(def.icon) ? def.icon : createElement(Puzzle, { className: "size-5", "aria-hidden": true }) });
         ownerByType.set(def.type, pluginId);
     });
     bump();
@@ -48,7 +49,7 @@ export function isRegisteredNodeType(type: string) {
 
 const FALLBACK_SPEC = { width: 340, height: 240, title: "节点", metadata: {} as CanvasNodeDefinition["defaultMetadata"] };
 
-// Provide default size, title, and metadata shared by createCanvasNode and agent operations.
+// Provide default size, title, and metadata shared by createCanvasNode and canvas operations.
 export function getNodeSpec(type: string) {
     const def = definitions.get(type);
     if (!def) return FALLBACK_SPEC;

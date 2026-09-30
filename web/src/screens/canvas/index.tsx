@@ -1,17 +1,19 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Download, FileUp, Plus } from "lucide-react";
+import { Download, Ellipsis, FileUp, FolderOpen, Plus, Search, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { CanvasDeleteProjectsDialog } from "@/components/canvas/canvas-delete-projects-dialog";
 import { CanvasProjectCard } from "@/components/canvas/canvas-project-card";
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
-import { Button as ActionButton } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { WorkspaceCardSkeleton } from "@/components/workspace/workspace-card-skeleton";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { hasAgentUrlBootstrap } from "@/lib/agent/agent-url-bootstrap";
 import { exportCanvasProjects } from "@/lib/canvas/canvas-export";
 import { readZip } from "@/lib/zip";
 import { setMediaBlob } from "@/services/file-storage";
@@ -38,14 +40,7 @@ export default function CanvasPage() {
     const visibleProjects = projects.filter((project) => project.title.toLowerCase().includes(keyword.toLowerCase())).sort((a, b) => (sort === "name" ? a.title.localeCompare(b.title, "zh-CN") : b.updatedAt.localeCompare(a.updatedAt)));
 
     const mode = searchParams.get("mode");
-    const agentMode = mode === "new" || mode === "recent" || mode === "choose";
-    const agentQuery = agentMode ? `?${searchParams.toString()}` : "";
-    const enterProject = (id: string) => {
-        const agentHash = hasAgentUrlBootstrap(window.location.hash) ? window.location.hash : "";
-        const target = `/canvas/${id}${agentQuery}${agentHash}`;
-        if (agentHash) router.replace(target);
-        else router.push(target);
-    };
+    const enterProject = (id: string) => router.push(`/canvas/${id}`);
     const createAndEnter = () => enterProject(createProject(`Stephen Canvas ${projects.length + 1}`));
     const importCanvas = async (file?: File) => {
         if (!file) return;
@@ -84,89 +79,111 @@ export default function CanvasPage() {
     return (
         <main className="h-full overflow-auto bg-background text-foreground ">
             <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 pb-10 pt-4 lg:px-10">
-                <header className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <p className="text-xs text-muted-foreground">{"画布库"}</p>
-                        <h1 className="mt-2 text-2xl font-semibold">{"Stephen Canvas"}</h1>
+                <header className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex flex-col gap-2">
+                        <h1 className="text-2xl font-medium tracking-tight">我的项目</h1>
+                        <p className="text-sm text-muted-foreground">继续最近的创作，或开始一张新的画布。</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        {selectedIds.length ? (
-                            <>
-                                <Button
-                                    onClick={() =>
-                                        void exportCanvasProjects(
-                                            projects.filter((project) => selectedIds.includes(project.id)),
-                                            `${"Stephen Canvas"}-${selectedIds.length}`,
-                                        )
-                                    }
-                                    type={"button"}
-                                    variant={"secondary"}
-                                    size="default"
-                                    disabled={!hydrated}
-                                >
-                                    {<Download data-icon="inline-start" />}
-                                    {"导出选中"}
-                                </Button>
-                                <Button onClick={() => setDeleteIds(selectedIds)} type={"button"} variant={"secondary"} size="default" disabled={!hydrated}>
-                                    {"删除选中"}
-                                </Button>
-                            </>
-                        ) : null}
-                        {projects.length ? (
-                            <Button onClick={() => setDeleteIds(projects.map((project) => project.id))} type={"button"} variant={"secondary"} size="default" disabled={!hydrated}>
-                                {"删除全部"}
-                            </Button>
-                        ) : null}
-                        <Button onClick={() => inputRef.current?.click()} type={"button"} variant={"secondary"} size="default" disabled={!hydrated}>
-                            {<FileUp data-icon="inline-start" />}
-                            {"导入画布"}
+                        <Button variant="outline" disabled={!hydrated} onClick={() => inputRef.current?.click()}>
+                            <FileUp data-icon="inline-start" />
+                            导入项目
                         </Button>
-                        <Button onClick={createAndEnter} type={"button"} variant={"default"} size="default" disabled={!hydrated}>
-                            {<Plus data-icon="inline-start" />}
-                            {"新建画布"}
+                        <Button disabled={!hydrated} onClick={createAndEnter}>
+                            <Plus data-icon="inline-start" />
+                            新建项目
                         </Button>
+                        {projects.length > 0 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" aria-label="项目批量操作">
+                                        <Ellipsis />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    {selectedIds.length > 0 && (
+                                        <>
+                                            <DropdownMenuGroup>
+                                                <DropdownMenuItem
+                                                    onSelect={() =>
+                                                        void exportCanvasProjects(
+                                                            projects.filter((project) => selectedIds.includes(project.id)),
+                                                            `Stephen Canvas-${selectedIds.length}`,
+                                                        )
+                                                    }
+                                                >
+                                                    <Download />
+                                                    导出选中项目
+                                                </DropdownMenuItem>
+                                            </DropdownMenuGroup>
+                                            <DropdownMenuSeparator />
+                                        </>
+                                    )}
+                                    <DropdownMenuGroup>
+                                        {selectedIds.length > 0 && (
+                                            <DropdownMenuItem variant="destructive" onSelect={() => setDeleteIds(selectedIds)}>
+                                                <Trash2 />
+                                                删除选中项目
+                                            </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuItem variant="destructive" onSelect={() => setDeleteIds(projects.map((project) => project.id))}>
+                                            <Trash2 />
+                                            删除全部项目
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                     </div>
                 </header>
-
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <Input placeholder="搜索项目" aria-label="搜索项目" value={keyword} onChange={(event) => setKeyword(event.target.value)} className="w-full sm:w-72" />
-                    <Select value={sort} onValueChange={setSort}>
-                        <SelectTrigger aria-label="项目排序">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                <SelectItem value="updated">最近更新</SelectItem>
-                                <SelectItem value="name">按名称排序</SelectItem>
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
+                    <InputGroup className="w-full @min-[520px]:w-72">
+                        <InputGroupInput type="search" placeholder="搜索项目名称" aria-label="搜索项目" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
+                        <InputGroupAddon>
+                            <Search />
+                        </InputGroupAddon>
+                    </InputGroup>
+                    <div className="flex items-center gap-3">
+                        {selectedIds.length > 0 ? <Badge variant="secondary">已选 {selectedIds.length} 项</Badge> : <span className="text-xs text-muted-foreground">{visibleProjects.length} 个项目</span>}
+                        <Select value={sort} onValueChange={setSort}>
+                            <SelectTrigger aria-label="项目排序">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem value="updated">最近更新</SelectItem>
+                                    <SelectItem value="name">按名称排序</SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
-
-                {!hydrated ? (
-                    <section className="flex min-h-[360px] items-center justify-center border-y border-border text-sm text-muted-foreground ">{"正在加载画布..."}</section>
-                ) : projects.length ? (
-                    <div className="grid gap-5 @min-[520px]:grid-cols-2 @min-[900px]:grid-cols-3 @min-[1200px]:grid-cols-4">
-                        {!keyword && (
-                            <ActionButton variant="outline" onClick={createAndEnter} className="h-auto min-h-60 flex-col gap-3 rounded-xl border-dashed">
-                                <Plus />
-                                新建画布创作
-                            </ActionButton>
-                        )}
-                        {!visibleProjects.length && <p className="col-span-full py-12 text-center text-sm text-muted-foreground">没有找到匹配的项目</p>}
-                        {visibleProjects.map((project) => (
-                            <CanvasProjectCard key={project.id} project={project} />
-                        ))}
+                {!hydrated || visibleProjects.length ? (
+                    <div className="grid gap-x-4 gap-y-6 @min-[520px]:grid-cols-2 @min-[800px]:grid-cols-3 @min-[1000px]:grid-cols-4 @min-[1200px]:grid-cols-5" aria-busy={!hydrated} aria-label="项目列表">
+                        {!hydrated ? Array.from({ length: 5 }, (_, index) => <WorkspaceCardSkeleton key={index} showDate />) : visibleProjects.map((project) => <CanvasProjectCard key={project.id} project={project} />)}
                     </div>
                 ) : (
-                    <section className="flex min-h-[360px] flex-col items-center justify-center border-y border-border text-center ">
-                        <h2 className="text-xl font-medium">{"还没有画布"}</h2>
-                        <p className="mt-3 text-sm text-muted-foreground">{"新建一个画布后，就可以独立保存节点、连线和画布外观。"}</p>
-                        <Button onClick={createAndEnter} type={"button"} variant={"default"} size="default" className={"mt-6"}>
-                            {<Plus data-icon="inline-start" />}
-                            {"新建画布"}
-                        </Button>
-                    </section>
+                    <Empty className="min-h-72 border">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <FolderOpen />
+                            </EmptyMedia>
+                            <EmptyTitle>{projects.length ? "没有匹配的项目" : "还没有项目"}</EmptyTitle>
+                            <EmptyDescription>{projects.length ? "试试其他名称，或清空搜索查看所有项目。" : "新建一张画布，保存你的节点、连线与创作想法。"}</EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent>
+                            {projects.length ? (
+                                <Button variant="outline" onClick={() => setKeyword("")}>
+                                    清空搜索
+                                </Button>
+                            ) : (
+                                <Button onClick={createAndEnter}>
+                                    <Plus data-icon="inline-start" />
+                                    新建项目
+                                </Button>
+                            )}
+                        </EmptyContent>
+                    </Empty>
                 )}
             </div>
 

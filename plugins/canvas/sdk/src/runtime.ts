@@ -4,7 +4,7 @@
 
 import type * as React from "react";
 
-import type { PluginRuntime } from "./types";
+import type { CanvasIconName, CanvasIconProps, PluginRuntime } from "./types";
 
 type RuntimeGlobal = { StephenCanvasRuntime?: PluginRuntime };
 
@@ -20,6 +20,11 @@ export function getRuntime(): PluginRuntime {
 /** 取宿主的 React 实例。仅在渲染/hook 调用时(运行时已就绪)使用。 */
 export function getReact(): typeof React {
     return getRuntime().React as unknown as typeof React;
+}
+
+/** 渲染宿主提供的 Lucide SVG；与 JSX 一样在渲染时读取运行时。 */
+export function CanvasIcon({ name, size = 16, ...props }: CanvasIconProps & { name: CanvasIconName }) {
+    return getReact().createElement(getRuntime().icons[name], { size, "aria-hidden": true, ...props });
 }
 
 // --- 类型完整的 hooks 转发:签名取自 @types/react,运行时转发到宿主 React ---

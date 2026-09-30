@@ -2,6 +2,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ArrowLeftRight } from "lucide-react";
 
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import { clampVideoSeconds, computeVideoSize, inferVideoRatio, parseVideoResolution, readVideoDimensions, VIDEO_SECONDS_MAX, VIDEO_SECONDS_MIN, videoRatioOptions } from "@/lib/media-size";
@@ -77,7 +78,7 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
                 <FieldLabel>尺寸</FieldLabel>
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
                     <DimensionInput prefix="W" value={dimensions.width} disabled={selectedRatio === "auto"} theme={theme} onChange={(value) => updateDimension("width", value, dimensions, onConfigChange)} />
-                    <span className="text-lg opacity-45">↔</span>
+                    <ArrowLeftRight className="size-4 opacity-45" aria-hidden />
                     <DimensionInput prefix="H" value={dimensions.height} disabled={selectedRatio === "auto"} theme={theme} onChange={(value) => updateDimension("height", value, dimensions, onConfigChange)} />
                 </div>
             </Field>

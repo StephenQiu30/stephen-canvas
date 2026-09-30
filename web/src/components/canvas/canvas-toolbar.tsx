@@ -8,10 +8,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { canvasThemes, type CanvasBackgroundMode } from "@/lib/canvas-theme";
 import { listNodeDefinitions, useNodeRegistryVersion } from "@/lib/canvas/node-registry";
-import { useAgentStore } from "@/stores/use-agent-store";
 import { useCanvasSidePanelStore } from "@/stores/use-canvas-side-panel-store";
 import { useThemeStore } from "@/stores/use-theme-store";
-import { Bot, Eraser, Hand, Images, Info, MoreHorizontal, MousePointer2, Palette, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
+import { Eraser, Hand, Images, Info, MoreHorizontal, MousePointer2, Palette, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
 import { useState } from "react";
 
 export function CanvasToolbar({
@@ -53,8 +52,6 @@ export function CanvasToolbar({
     const theme = canvasThemes[colorTheme];
     const panelOpen = useCanvasSidePanelStore((state) => state.panelOpen);
     const togglePanel = useCanvasSidePanelStore((state) => state.togglePanel);
-    const agentOpen = useAgentStore((state) => state.panelOpen);
-    const toggleAgent = useAgentStore((state) => state.togglePanel);
     useNodeRegistryVersion();
     const definitions = listNodeDefinitions().filter((definition) => definition.showInCreateMenu !== false);
 
@@ -212,14 +209,6 @@ export function CanvasToolbar({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant={agentOpen ? "secondary" : "outline"} size="icon-lg" aria-label="画布助手" aria-pressed={agentOpen} onClick={toggleAgent}>
-                        <Bot />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">画布助手</TooltipContent>
-            </Tooltip>
         </div>
     );
 }

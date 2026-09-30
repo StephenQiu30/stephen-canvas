@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { Hand, MousePointer2, Puzzle } from "lucide-react";
+import { isValidElement, useCallback, useEffect, useMemo, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
-import type { CanvasAgentOp } from "@/lib/canvas/canvas-agent-ops";
+import type { CanvasOperation } from "@/lib/canvas/canvas-operations";
 import { buildGenerationConfig } from "@/lib/canvas/canvas-generation-helpers";
 import { getNodeDefinition } from "@/lib/canvas/node-registry";
 import { ensurePluginsLoaded } from "@/lib/canvas/plugin-loader";
@@ -26,7 +27,7 @@ type PluginHostParams = {
     viewportRef: MutableRefObject<ViewportTransform>;
     setNodes: Dispatch<SetStateAction<CanvasNodeData[]>>;
     setDialogNodeId: Dispatch<SetStateAction<string | null>>;
-    applyAgentOps: (ops?: CanvasAgentOp[]) => unknown;
+    applyCanvasOps: (ops?: CanvasOperation[]) => unknown;
 };
 
 /**
@@ -34,7 +35,7 @@ type PluginHostParams = {
  * through plugin-callable host/ai objects. Loads installed remote plugins on mount and returns renderers for plugin panels and toolbars.
  */
 export function usePluginHost(params: PluginHostParams) {
-    const { effectiveConfig, isAiConfigReady, openConfigDialog, theme, nodesRef, connectionsRef, viewportRef, setNodes, setDialogNodeId, applyAgentOps } = params;
+    const { effectiveConfig, isAiConfigReady, openConfigDialog, theme, nodesRef, connectionsRef, viewportRef, setNodes, setDialogNodeId, applyCanvasOps } = params;
 
     // Host capabilities available to plugin nodes; methods receive nodeId and are not bound to a specific node.
     const pluginAi = useMemo<CanvasPluginAi>(() => {
@@ -106,12 +107,12 @@ export function usePluginHost(params: PluginHostParams) {
                     .filter((node): node is CanvasNodeData => Boolean(node)),
             updateNode: (nodeId, patch) => setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, ...patch } : node))),
             updateMetadata: (nodeId, patch) => setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, ...patch } } : node))),
-            applyOps: (ops) => applyAgentOps(ops),
+            applyOps: (ops) => applyCanvasOps(ops),
             ai: pluginAi,
             openPanel: (nodeId) => setDialogNodeId(nodeId),
             closePanel: () => setDialogNodeId(null),
         }),
-        [applyAgentOps, pluginAi],
+        [applyCanvasOps, pluginAi],
     );
 
     const renderPluginPanel = useCallback(
@@ -129,7 +130,7 @@ export function usePluginHost(params: PluginHostParams) {
         (node: CanvasNodeData): CanvasNodeToolbarItem[] => {
             const definition = getNodeDefinition(node.type);
             const ctx = buildNodeContext(pluginHost, node, theme, viewportRef.current.k);
-            const custom = definition?.toolbar?.(ctx) || [];
+            const custom = (definition?.toolbar?.(ctx) || []).map((item) => ({ ...item, icon: isValidElement(item.icon) ? item.icon : <Puzzle className="size-4" aria-hidden /> }));
             // Show the interaction/move toggle only for nodes with content that are not forced into an interactive state.
             if (!definition?.interactionToggle || !node.metadata?.content || definition.forceInteractive?.(node)) return custom;
             const interactive = Boolean(node.metadata?.interactive);
@@ -137,7 +138,7 @@ export function usePluginHost(params: PluginHostParams) {
                 id: "node-interaction-toggle",
                 title: interactive ? "当前：交互中。点击切回「移动」——拖动可移动节点" : "当前：可移动。点击切到「交互」——可操作节点内容（如转动全景）",
                 label: interactive ? "移动" : "交互",
-                icon: interactive ? "✋" : "🖐",
+                icon: interactive ? <Hand className="size-4" aria-hidden /> : <MousePointer2 className="size-4" aria-hidden />,
                 active: interactive,
                 onClick: () => pluginHost.updateMetadata(node.id, { interactive: !interactive }),
             };

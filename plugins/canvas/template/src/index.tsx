@@ -1,6 +1,6 @@
 // 插件模板:复制本目录 → 改 id/name/type → 写你的节点。
 // 这是一个演示节点:编辑文本、跟随主题、读取上游节点、用画布指令衍生新节点。
-import { definePlugin, useState } from "@stephen-canvas/plugin-sdk";
+import { CanvasIcon, definePlugin, useState } from "@stephen-canvas/plugin-sdk";
 import type { CanvasNodeContentProps } from "@stephen-canvas/plugin-sdk";
 
 function TemplateContent({ ctx }: CanvasNodeContentProps) {
@@ -56,7 +56,7 @@ export default definePlugin({
         {
             type: "template:node", // ← 建议 "<id>:<name>",全局唯一
             title: "模板",
-            icon: "✨",
+            icon: <CanvasIcon name="sparkles" size={20} />,
             description: "起步示例节点",
             defaultSize: { width: 280, height: 200 },
             defaultMetadata: { content: "" },

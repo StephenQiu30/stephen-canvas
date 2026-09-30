@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { cn } from "@/lib/utils";
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
-import { Copy } from "lucide-react";
+import { ArrowRight, Copy } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useCopyText } from "@/hooks/use-copy-text";
@@ -68,9 +68,9 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
                             <aside className="flex h-full w-[420px] shrink-0 flex-col border-r border-border bg-muted/80  ">
                                 <div className="flex shrink-0 gap-2 border-b border-border px-5 py-3 text-xs text-muted-foreground  ">
                                     <span>1. {"看懂规则"}</span>
-                                    <span>→</span>
+                                    <ArrowRight className="size-4 shrink-0" aria-hidden />
                                     <span>2. {"让外部 AI 写"}</span>
-                                    <span>→</span>
+                                    <ArrowRight className="size-4 shrink-0" aria-hidden />
                                     <span>3. {"粘贴保存"}</span>
                                 </div>
                                 <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain p-0">

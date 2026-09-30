@@ -6,17 +6,18 @@ Stephen Canvas 画布节点插件的 **TypeScript SDK**。插件作者只写节�
 
 | 能力 | 说明 |
 | --- | --- |
-| **完整类型** | `CanvasPlugin` / `CanvasNodeDefinition` / `CanvasNodeContext` / `CanvasAgentOp` / `CanvasTheme` / `CanvasNodeData` … 全部有提示 |
+| **完整类型** | `CanvasPlugin` / `CanvasNodeDefinition` / `CanvasNodeContext` / `CanvasOperation` / `CanvasTheme` / `CanvasNodeData` … 全部有提示 |
 | `definePlugin(...)` | 给插件对象(或工厂)补全类型;对象形式无需再 `const { React } = runtime` |
 | automatic JSX | `jsxImportSource` 指向本包,TSX 自动转发到宿主 React,**不打包第二份 React** |
 | 类型化 hooks | `import { useState, useEffect, useMemo, useRef, ... }`,运行时转发宿主 React |
+| `CanvasIcon` | 复用宿主 Lucide SVG 图标，支持 `name`、`size`、`className` 和 SVG 属性 |
 | `buildPlugin(...)` | 统一 esbuild 构建,插件 `build.mjs` 只需一行 |
 
 ## 最小插件
 
 ```tsx
 // src/index.tsx
-import { definePlugin, useState } from "@stephen-canvas/plugin-sdk";
+import { CanvasIcon, definePlugin, useState } from "@stephen-canvas/plugin-sdk";
 import type { CanvasNodeContentProps } from "@stephen-canvas/plugin-sdk";
 
 function Content({ ctx }: CanvasNodeContentProps) {
@@ -36,7 +37,7 @@ export default definePlugin({
         {
             type: "my-plugin:node",
             title: "示例",
-            icon: "✨",
+            icon: <CanvasIcon name="sparkles" size={20} />,
             defaultSize: { width: 240, height: 160 },
             Content,
         },
@@ -51,6 +52,8 @@ await buildPlugin(import.meta.url);
 ```
 
 `npm run build` 产出 `dist/<目录名>.js` 并同步到 `web/public/plugins/`。
+
+节点与工具栏的 `icon` 必须提供图标元素，不使用文字或 emoji。`CanvasIcon` 可用名称见 `CanvasIconName`；图标继承 `currentColor`，跟随宿主主题。
 
 ## 依赖接入
 

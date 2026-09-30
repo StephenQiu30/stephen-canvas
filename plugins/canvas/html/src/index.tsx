@@ -2,7 +2,7 @@
 // 交互:预览态 iframe 默认 pointer-events:none —— 鼠标事件穿透到宿主节点体,
 // 因此点节点任意位置都能拖动,无需在节点上加任何标题栏/按钮。
 // 「编辑/预览」与「交互」开关都放在节点外的悬浮工具条(toolbar 扩展点),状态存 metadata。
-import { definePlugin, useMemo, useRef, useState } from "@stephen-canvas/plugin-sdk";
+import { CanvasIcon, definePlugin, useMemo, useRef, useState } from "@stephen-canvas/plugin-sdk";
 import type { CanvasNodeContentProps } from "@stephen-canvas/plugin-sdk";
 
 // 源码编辑器行高/字号,行号槽与文本域必须完全一致才能对齐
@@ -80,8 +80,8 @@ function HtmlContent({ ctx }: CanvasNodeContentProps) {
     if (!value) {
         return (
             <div style={{ height: "100%", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: ctx.theme.node.placeholder }}>
-                <span style={{ fontSize: 26 }}>{"</>"}</span>
-                <span style={{ fontSize: 13 }}>选中节点,点上方工具条的 ✎ 编辑 HTML</span>
+                <CanvasIcon name="code-xml" size={26} />
+                <span style={{ fontSize: 13 }}>选中节点,点上方工具条的编辑按钮编辑 HTML</span>
             </div>
         );
     }
@@ -109,7 +109,7 @@ export default definePlugin({
         {
             type: "html:render",
             title: "HTML",
-            icon: "🌐",
+            icon: <CanvasIcon name="code-xml" size={20} />,
             description: "沙箱渲染 HTML",
             defaultSize: { width: 420, height: 320 },
             defaultMetadata: { content: "" },
@@ -127,7 +127,7 @@ export default definePlugin({
                         id: "html-toggle-edit",
                         title: editing ? "预览渲染结果" : "编辑 HTML 源码",
                         label: editing ? "预览" : "编辑",
-                        icon: editing ? "👁" : "✎",
+                        icon: <CanvasIcon name={editing ? "eye" : "pencil"} />,
                         active: editing,
                         onClick: () => ctx.updateMetadata({ editing: !editing }),
                     },

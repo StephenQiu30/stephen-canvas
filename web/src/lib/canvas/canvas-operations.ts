@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { getNodeSpec, isRegisteredNodeType } from "@/lib/canvas/node-registry";
 import { CanvasNodeType, type CanvasConnection, type CanvasNodeData, type CanvasNodeMetadata, type CanvasNodeTypeId, type ViewportTransform } from "@/types/canvas";
 
-export type CanvasAgentOp =
+export type CanvasOperation =
     | { type: "add_node"; id?: string; nodeType?: CanvasNodeTypeId; title?: string; position?: { x: number; y: number }; x?: number; y?: number; width?: number; height?: number; metadata?: CanvasNodeMetadata }
     | { type: "update_node"; id: string; patch?: Partial<CanvasNodeData>; metadata?: CanvasNodeMetadata }
     | { type: "delete_node"; id?: string; ids?: string[]; nodeType?: CanvasNodeTypeId }
@@ -13,27 +13,14 @@ export type CanvasAgentOp =
     | { type: "select_nodes"; ids: string[] }
     | { type: "run_generation"; nodeId: string; mode?: "text" | "image" | "video" | "audio"; prompt?: string };
 
-export type CanvasAgentSnapshot = {
-    projectId: string;
-    title: string;
+export type CanvasSnapshot = {
     nodes: CanvasNodeData[];
     connections: CanvasConnection[];
     selectedNodeIds: string[];
     viewport: ViewportTransform;
 };
 
-export function summarizeCanvasAgentOps(ops?: CanvasAgentOp[]) {
-    const counts = (Array.isArray(ops) ? ops : []).reduce<Record<string, number>>((acc, op) => {
-        if (!op?.type) return acc;
-        acc[op.type] = (acc[op.type] || 0) + 1;
-        return acc;
-    }, {});
-    return Object.entries(counts)
-        .map(([type, count]) => `${opLabel(type)} ${count}`)
-        .join("，");
-}
-
-export function applyCanvasAgentOps(snapshot: CanvasAgentSnapshot, ops?: CanvasAgentOp[]) {
+export function applyCanvasOperations(snapshot: CanvasSnapshot, ops?: CanvasOperation[]) {
     let nodes = snapshot.nodes;
     let connections = snapshot.connections;
     let selectedNodeIds = snapshot.selectedNodeIds;
@@ -81,8 +68,4 @@ export function applyCanvasAgentOps(snapshot: CanvasAgentSnapshot, ops?: CanvasA
     });
 
     return { ...snapshot, nodes, connections, selectedNodeIds, viewport };
-}
-
-function opLabel(type: string) {
-    return (({ "add_node":"新增节点", "update_node":"更新节点", "delete_node":"删除节点", "delete_connections":"删除连线", "connect_nodes":"连接", "set_viewport":"调整视图", "select_nodes":"选择节点", "run_generation":"触发生成" } as Record<string, string>)[String(type)] || String(type));
 }

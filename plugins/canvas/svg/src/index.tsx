@@ -1,5 +1,5 @@
 // SVG 节点:编辑与渲染 SVG,透明背景直接融入画布;无自身内容时可取上游文本节点里的 SVG 源码。
-import { definePlugin, useEffect, useRef, useState } from "@stephen-canvas/plugin-sdk";
+import { CanvasIcon, definePlugin, useEffect, useRef, useState } from "@stephen-canvas/plugin-sdk";
 import type { CanvasNodeContentProps } from "@stephen-canvas/plugin-sdk";
 
 function SvgContent({ ctx }: CanvasNodeContentProps) {
@@ -45,8 +45,8 @@ function SvgContent({ ctx }: CanvasNodeContentProps) {
                 setEditing(true);
             }}
         >
-            <button type="button" style={toggle} onMouseDown={stop} onClick={() => setEditing((v) => !v)} title={editing ? "预览" : "编辑源码"}>
-                {editing ? "👁" : "✎"}
+            <button type="button" style={toggle} onMouseDown={stop} onClick={() => setEditing((v) => !v)} title={editing ? "预览" : "编辑源码"} aria-label={editing ? "预览 SVG" : "编辑 SVG 源码"}>
+                <CanvasIcon name={editing ? "eye" : "pencil"} />
             </button>
             {editing ? (
                 <textarea
@@ -84,7 +84,7 @@ export default definePlugin({
         {
             type: "svg:vector",
             title: "SVG",
-            icon: "🔷",
+            icon: <CanvasIcon name="vector-square" size={20} />,
             description: "渲染 SVG 矢量图",
             defaultSize: { width: 320, height: 320 },
             defaultMetadata: {},

@@ -2,6 +2,7 @@ import { FieldGroup, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ArrowLeftRight } from "lucide-react";
 import { useState } from "react";
 
 import { type CanvasTheme } from "@/lib/canvas-theme";
@@ -99,7 +100,7 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                 </div>
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
                     <DimensionInput prefix="W" value={dimensions.width} disabled={selectedRatio === "auto"} theme={theme} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("width", value)} />
-                    <span className="text-lg opacity-45">↔</span>
+                    <ArrowLeftRight className="size-4 opacity-45" aria-hidden />
                     <DimensionInput prefix="H" value={dimensions.height} disabled={selectedRatio === "auto"} theme={theme} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("height", value)} />
                 </div>
             </div>

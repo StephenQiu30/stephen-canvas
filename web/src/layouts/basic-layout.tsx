@@ -4,7 +4,6 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { AgentPanel } from "@/components/agent/agent-panel";
 import { AppFooter } from "@/components/layout/app-footer";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -21,7 +20,6 @@ export function BasicLayout({ children }: { children: ReactNode }) {
                 </div>
                 <AppFooter />
             </div>
-            <AgentPanel />
         </div>
     );
     return <SidebarProvider className="min-h-0 h-dvh">{content}</SidebarProvider>;

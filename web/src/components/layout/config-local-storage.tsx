@@ -14,7 +14,6 @@ const storeLabels: Record<string, string> = {
     media_files: "音视频文件",
     image_generation_logs: "生图记录",
     video_generation_logs: "视频记录",
-    agent_chat_messages: "Agent 消息",
 };
 
 export function ConfigLocalStorage({ active }: { active: boolean }) {
