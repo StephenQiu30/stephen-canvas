@@ -8,12 +8,13 @@ const cleanups = new Map<string, () => void>();
 // A remote plugin may export CanvasPlugin directly or a factory that receives runtime and returns CanvasPlugin.
 // The factory uses runtime.React so the bundle does not need its own React copy.
 async function evaluatePluginSource(source: string): Promise<CanvasPlugin> {
+    const runtime = getPluginRuntime();
     const blob = new Blob([source], { type: "text/javascript" });
     const url = URL.createObjectURL(blob);
     try {
         const mod = (await import(/* webpackIgnore: true */ url)) as { default?: unknown; plugin?: unknown };
         const exported = mod.default ?? mod.plugin;
-        const plugin = typeof exported === "function" ? (exported as (runtime: unknown) => unknown)(getPluginRuntime()) : exported;
+        const plugin = typeof exported === "function" ? (exported as (runtime: unknown) => unknown)(runtime) : exported;
         assertPlugin(plugin);
         return plugin;
     } finally {

@@ -32,7 +32,7 @@ export type CanvasNodeToolbarItem = {
     id: string;
     title: string;
     label: string;
-    icon: ReactElement;
+    icon: ReactElement; // SVG 图标元素，不使用文字或 emoji。
     onClick: () => void;
     active?: boolean;
     danger?: boolean;
@@ -101,7 +101,7 @@ export type CanvasBuiltinPanelConfig = {
 export type CanvasNodeDefinition = {
     type: string; // Built-ins use values such as "image"; plugins should use "<pluginId>:<name>".
     title: string;
-    icon: ReactElement;
+    icon: ReactElement; // SVG 图标元素，不使用文字或 emoji。
     description?: string;
     defaultSize: { width: number; height: number };
     defaultMetadata?: CanvasNodeMetadata;

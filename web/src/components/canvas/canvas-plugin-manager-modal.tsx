@@ -193,7 +193,7 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
                         const record = recordById.get(entry.id);
                         // Show the update dot and highlight the action when the remote version is newer.
                         const upgradable = Boolean(record && hasUpgrade(record.version, entry.version));
-                        const Icon = canvasPluginIcons[entry.icon as keyof typeof canvasPluginIcons] || Puzzle;
+                        const Icon = entry.icon && Object.hasOwn(canvasPluginIcons, entry.icon) ? canvasPluginIcons[entry.icon as keyof typeof canvasPluginIcons] : Puzzle;
                         const icon = <Icon className="size-4" aria-hidden />;
                         return row(
                             entry.id,

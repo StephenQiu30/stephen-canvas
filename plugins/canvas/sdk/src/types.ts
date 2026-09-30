@@ -245,7 +245,7 @@ export type CanvasNodeToolbarItem = {
     id: string;
     title: string;
     label: string;
-    icon: ReactElement;
+    icon: ReactElement; // 使用 CanvasIcon 或 SVG 元素，不使用文字或 emoji。
     onClick: () => void;
     active?: boolean;
     danger?: boolean;
@@ -309,10 +309,11 @@ export type CanvasPluginApp = {
     injectCSS: (css: string, key?: string) => () => void;
 };
 
-// 宿主注入的运行时(工厂形式插件的入参),内含宿主 React 实例避免双 React
+// 宿主提供的 Lucide SVG 图标，与 web/src/lib/canvas/plugin-icons.ts 保持一致。
 export type CanvasIconName = "code-xml" | "eye" | "file-pen-line" | "globe" | "image-up" | "pencil" | "puzzle" | "refresh-cw" | "sparkles" | "sticky-note" | "vector-square";
 export type CanvasIconProps = SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number };
 
+// 宿主注入的运行时(工厂形式插件的入参),内含宿主 React 实例避免双 React
 export type PluginRuntime = CanvasPluginApp & {
     React: typeof import("react");
     jsx: typeof import("react").createElement;
