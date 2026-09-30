@@ -1,6 +1,6 @@
 "use client";
 
-import { Video } from "lucide-react";
+import { Music2, Video } from "lucide-react";
 import Link from "next/link";
 import { useSyncExternalStore, type ReactNode } from "react";
 
@@ -18,6 +18,8 @@ export function AssetCard({ asset, href, onOpen, children }: { asset: Asset; hre
                 <img src={cover} alt="" loading="lazy" className="size-full object-cover motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover/card:scale-[1.03]" />
             ) : asset.kind === "text" ? (
                 <p className="line-clamp-4 whitespace-normal px-6 text-left text-sm leading-6 text-muted-foreground">{asset.data.content}</p>
+            ) : asset.kind === "audio" ? (
+                <Music2 className="size-8 text-muted-foreground" strokeWidth={1.5} aria-hidden />
             ) : (
                 <Video className="size-8 text-muted-foreground" strokeWidth={1.5} />
             )}

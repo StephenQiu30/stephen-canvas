@@ -20,13 +20,17 @@ import localforage from "localforage";
 import { ArrowLeft, ArrowRight, CheckSquare, ClipboardPaste, Download, FolderPlus, History, ImagePlus, PenLine, Plus, SlidersHorizontal, Sparkles, Trash2, Upload } from "lucide-react";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
+import { savePageGeneration } from "@/lib/canvas/canvas-generation-history";
+import { createCanvasNode, imageMetadata } from "@/lib/canvas/canvas-node-factory";
+import { generationParameters, useCanvasGenerationStore } from "@/stores/canvas/use-canvas-generation-store";
+import { CanvasNodeType } from "@/types/canvas";
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { ImageSettingsPanel } from "@/components/image-settings-panel";
 import { ModelPicker } from "@/components/model-picker";
 import { imageReferenceLabel } from "@/lib/image-reference-prompt";
 import { formatBytes, formatDuration } from "@/lib/image-utils";
 import { requestEdit, requestGeneration } from "@/services/api/image";
-import { deleteStoredImages, ensureImagePreview, getImagePreviewRevision, previewUrlFor, resolveImageUrl, subscribeImagePreviews, uploadImage } from "@/services/image-storage";
+import { ensureImagePreview, getImagePreviewRevision, previewUrlFor, resolveImageUrl, subscribeImagePreviews, uploadImage } from "@/services/image-storage";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { modelOptionLabel, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
 import type { ReferenceImage } from "@/types/image";
@@ -245,8 +249,11 @@ export default function ImagePage() {
     };
 
     const deleteSelectedLogs = () => {
-        const imageKeys = logs.filter((log) => selectedLogIds.includes(log.id)).flatMap((log) => log.images.map((image) => image.storageKey).filter((key): key is string => Boolean(key)));
-        void Promise.all([deleteStoredImages(imageKeys), ...selectedLogIds.map((id) => logStore.removeItem(id))]).then(refreshLogs);
+        selectedLogIds.forEach((id) => useCanvasGenerationStore.getState().remove(`image:${id}`));
+        void Promise.all(selectedLogIds.map((id) => logStore.removeItem(id))).then(() => {
+            void refreshLogs();
+            useAssetStore.getState().cleanupImages();
+        });
         if (previewLog && selectedLogIds.includes(previewLog.id)) {
             setPreviewLog(null);
             setResults([]);
@@ -256,6 +263,17 @@ export default function ImagePage() {
     };
 
     const saveLog = (log: GenerationLog) => {
+        savePageGeneration({
+            id: log.id,
+            createdAt: log.createdAt,
+            mode: "image",
+            prompt: log.prompt,
+            parameters: generationParameters({ ...log.config, model: log.model }),
+            references: log.references,
+            results: log.images.map((image, index) => ({ ...createCanvasNode(CanvasNodeType.Image, { x: index * 400, y: 0 }, imageMetadata({ ...image, url: image.dataUrl, mimeType: image.mimeType || "image/png" })), id: image.id, title: log.title })),
+            status: log.status === "success" ? "success" : "error",
+            error: log.failCount ? `${log.failCount} 张图片生成失败` : undefined,
+        });
         void logStore.setItem(log.id, serializeLog(log)).then(refreshLogs);
     };
 
@@ -560,7 +578,7 @@ export default function ImagePage() {
                     </div>
                 </SheetContent>
             </Sheet>
-            <AssetPickerModal open={assetPickerOpen} defaultTab="my-assets" onInsert={(payload) => void insertPickedAsset(payload)} onClose={() => setAssetPickerOpen(false)} />
+            <AssetPickerModal allowedKinds={["text", "image"]} open={assetPickerOpen} defaultTab="my-assets" onInsert={(payload) => void insertPickedAsset(payload)} onClose={() => setAssetPickerOpen(false)} />
             <Dialog
                 open={deleteConfirmOpen}
                 onOpenChange={(open) => {

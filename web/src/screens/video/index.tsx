@@ -19,13 +19,17 @@ import { ArrowLeft, ArrowRight, CheckSquare, ClipboardPaste, Download, FolderPlu
 import { nanoid } from "nanoid";
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type DragEvent } from "react";
 
+import { savePageGeneration } from "@/lib/canvas/canvas-generation-history";
+import { createCanvasNode, videoMetadata } from "@/lib/canvas/canvas-node-factory";
+import { generationParameters, useCanvasGenerationStore } from "@/stores/canvas/use-canvas-generation-store";
+import { CanvasNodeType } from "@/types/canvas";
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { ModelPicker } from "@/components/model-picker";
 import { VideoSettingsPanel, normalizeVideoResolutionValue, normalizeVideoSizeValue, videoModeLabel, videoSizeLabel } from "@/components/video-settings-panel";
 import { formatBytes, formatDuration } from "@/lib/image-utils";
 import { clampVideoSeconds } from "@/lib/media-size";
 import { createVideoGenerationTask, pollVideoGenerationTask, storeGeneratedVideo, type VideoGenerationTask } from "@/services/api/video";
-import { deleteStoredMedia, resolveMediaUrl } from "@/services/file-storage";
+import { resolveMediaUrl } from "@/services/file-storage";
 import { ensureImagePreview, getImagePreviewRevision, previewUrlFor, resolveImageUrl, subscribeImagePreviews, uploadImage } from "@/services/image-storage";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { boolConfig, modelOptionLabel, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
@@ -246,11 +250,11 @@ export default function VideoPage() {
     };
 
     const deleteSelectedLogs = () => {
-        const mediaKeys = logs
-            .filter((log) => selectedLogIds.includes(log.id))
-            .map((log) => log.video?.storageKey)
-            .filter((key): key is string => Boolean(key));
-        void Promise.all([deleteStoredMedia(mediaKeys), ...selectedLogIds.map((id) => logStore.removeItem(id))]).then(() => refreshLogs());
+        selectedLogIds.forEach((id) => useCanvasGenerationStore.getState().remove(`video:${id}`));
+        void Promise.all(selectedLogIds.map((id) => logStore.removeItem(id))).then(() => {
+            void refreshLogs();
+            useAssetStore.getState().cleanupImages();
+        });
         if (previewLog && selectedLogIds.includes(previewLog.id)) {
             setPreviewLog(null);
             setResults([]);
@@ -260,6 +264,17 @@ export default function VideoPage() {
     };
 
     const saveLog = async (log: GenerationLog, resumePending = true) => {
+        savePageGeneration({
+            id: log.id,
+            createdAt: log.createdAt,
+            mode: "video",
+            prompt: log.prompt,
+            parameters: generationParameters({ ...log.config, model: log.model }),
+            references: log.references,
+            results: log.video ? [{ ...createCanvasNode(CanvasNodeType.Video, { x: 0, y: 0 }, videoMetadata(log.video)), id: log.video.id, title: log.title }] : [],
+            status: log.status === "pending" ? "loading" : log.status === "success" ? "success" : "error",
+            error: log.error,
+        });
         await logStore.setItem(log.id, serializeLog(log));
         await refreshLogs(resumePending);
     };
@@ -536,7 +551,7 @@ export default function VideoPage() {
                     </div>
                 </SheetContent>
             </Sheet>
-            <AssetPickerModal open={assetPickerOpen} defaultTab="my-assets" onInsert={(payload) => void insertPickedAsset(payload)} onClose={() => setAssetPickerOpen(false)} />
+            <AssetPickerModal allowedKinds={["text", "image"]} open={assetPickerOpen} defaultTab="my-assets" onInsert={(payload) => void insertPickedAsset(payload)} onClose={() => setAssetPickerOpen(false)} />
             <Dialog
                 open={deleteConfirmOpen}
                 onOpenChange={(open) => {

@@ -6,12 +6,13 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CANVAS_MAX_SCALE, CANVAS_MIN_SCALE } from "@/lib/canvas/canvas-viewport";
-import { Compass, Focus, Magnet, Minus, Plus, Workflow } from "lucide-react";
+import { Compass, LayoutGrid, Focus, Magnet, Minus, Plus, Workflow } from "lucide-react";
 import { useState } from "react";
 
 export function CanvasZoomControls({
     scale,
     onScaleChange,
+    onArrange,
     onFit,
     isMiniMapOpen,
     onToggleMiniMap,
@@ -22,6 +23,7 @@ export function CanvasZoomControls({
 }: {
     scale: number;
     onScaleChange: (scale: number) => void;
+    onArrange: () => void;
     onFit: () => void;
     isMiniMapOpen: boolean;
     onToggleMiniMap: () => void;
@@ -41,6 +43,7 @@ export function CanvasZoomControls({
     return (
         <div data-canvas-no-zoom className="absolute bottom-4 left-4 z-50 flex h-10 items-center gap-1 @max-[1000px]/canvas:bottom-20" aria-label="画布视图控制">
             {[
+                { label: "整理画布（Option / Alt + Shift + F）", icon: LayoutGrid, onClick: onArrange },
                 { label: "适合屏幕", icon: Focus, onClick: onFit },
                 { label: "小地图", icon: Compass, onClick: onToggleMiniMap, pressed: isMiniMapOpen },
                 { label: "显示连线", icon: Workflow, onClick: onToggleConnections, pressed: showConnections },

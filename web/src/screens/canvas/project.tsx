@@ -1,5 +1,7 @@
 "use client";
 
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { InputGroup, InputGroupTextarea } from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { saveAs } from "file-saver";
@@ -8,6 +10,7 @@ import type { ChangeEvent as ReactChangeEvent, DragEvent as ReactDragEvent, Mous
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
+import { CanvasGenerationHistory } from "@/components/canvas/canvas-generation-history";
 import { CanvasConfigComposer } from "@/components/canvas/canvas-config-composer";
 import { CanvasConfigNodePanel } from "@/components/canvas/canvas-config-node-panel";
 import { ActiveConnectionPath, ConnectionPath } from "@/components/canvas/canvas-connections";
@@ -16,6 +19,8 @@ import { ConnectionCreateMenu, NodeCreateMenu, type PendingConnectionCreate } fr
 import { CanvasEmptyState } from "@/components/canvas/canvas-empty-state";
 import { Minimap } from "@/components/canvas/canvas-mini-map";
 import { CanvasNode } from "@/components/canvas/canvas-node";
+import { CanvasNodeSearchDialog } from "@/components/canvas/canvas-node-search-dialog";
+import { CanvasNodeEditor } from "@/components/canvas/canvas-node-editor";
 import { CanvasNodeAngleDialog, type CanvasImageAngleParams } from "@/components/canvas/canvas-node-angle-dialog";
 import { CanvasNodeCropDialog, type CanvasImageCropRect } from "@/components/canvas/canvas-node-crop-dialog";
 import { buildNodeGenerationContext, buildNodeGenerationInputs, buildNodeResponseMessages, hydrateNodeGenerationContext, type NodeGenerationInput } from "@/components/canvas/canvas-node-generation";
@@ -56,6 +61,8 @@ import {
     resolveMetadataReferences,
     sourceNodeReferenceImages,
 } from "@/lib/canvas/canvas-generation-helpers";
+import { cloneCanvasSelection, layoutCanvasNodes, selectionWithChildren, type CanvasLayoutAction } from "@/lib/canvas/canvas-node-actions";
+import { isImeComposing } from "@/lib/keyboard-event";
 import { cropDataUrl, splitDataUrl, upscaleDataUrl } from "@/lib/canvas/canvas-image-data";
 import { applyNodeConfigPatch, audioMetadata, buildAudioGenerationMetadata, buildImageGenerationMetadata, createCanvasNode, imageMetadata, videoMetadata } from "@/lib/canvas/canvas-node-factory";
 import {
@@ -78,6 +85,8 @@ import { CANVAS_GRID_SIZE, canvasPoint, fitCanvasNodes, zoomAt } from "@/lib/can
 import { getNodeDefinition, isBuiltinNodeType as isBuiltinType, useNodeRegistryVersion } from "@/lib/canvas/node-registry";
 import { imageReferenceLabel } from "@/lib/image-reference-prompt";
 import { getDataUrlByteSize, readImageMeta } from "@/lib/image-utils";
+import { useCanvasGenerationHistory, type GenerationHistorySeed } from "@/screens/canvas/hooks/use-canvas-generation-history";
+import { generationParameters, type CanvasGenerationRecord } from "@/stores/canvas/use-canvas-generation-store";
 import { useCanvasOperations } from "@/screens/canvas/hooks/use-canvas-operations";
 import { usePluginHost } from "@/screens/canvas/hooks/use-plugin-host";
 import { requestAudioGeneration, storeGeneratedAudio } from "@/services/api/audio";
@@ -111,6 +120,7 @@ import { nanoid } from "nanoid";
 registerBuiltinNodes();
 
 type CanvasClipboard = {
+    selectedIds: string[];
     nodes: CanvasNodeData[];
     connections: CanvasConnection[];
 };
@@ -190,6 +200,7 @@ function InfiniteCanvasPage() {
     const dragRef = useRef<{
         isDraggingNode: boolean;
         hasMoved: boolean;
+        duplicateOnDrag: boolean;
         startX: number;
         startY: number;
         // Keyed by node id so drag frames look positions up in O(1) instead of scanning the array per node.
@@ -198,6 +209,7 @@ function InfiniteCanvasPage() {
     }>({
         isDraggingNode: false,
         hasMoved: false,
+        duplicateOnDrag: false,
         startX: 0,
         startY: 0,
         initialSelectedNodes: new Map(),
@@ -222,7 +234,7 @@ function InfiniteCanvasPage() {
     const [chatSessions, setChatSessions] = useState<CanvasAssistantSession[]>([]);
     const [activeChatId, setActiveChatId] = useState<string | null>(null);
     const [viewport, setViewport] = useState<ViewportTransform>({ x: 0, y: 0, k: 1 });
-    const [canvasTool, setCanvasTool] = useState<"select" | "pan">("pan");
+    const [canvasTool, setCanvasTool] = useState<"select" | "pan">("select");
     const [size, setSize] = useState({ width: 1200, height: 720 });
     const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
     const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
@@ -247,6 +259,7 @@ function InfiniteCanvasPage() {
     const [projectLoaded, setProjectLoaded] = useState(false);
     const [toolbarNodeId, setToolbarNodeId] = useState<string | null>(null);
     const [nodeImageSettingsOpen, setNodeImageSettingsOpen] = useState(false);
+    const [textContentEditing, setTextContentEditing] = useState(false);
     const [dialogNodeId, setDialogNodeId] = useState<string | null>(null);
     const [infoNodeId, setInfoNodeId] = useState<string | null>(null);
     const [pluginManagerOpen, setPluginManagerOpen] = useState(false);
@@ -265,6 +278,9 @@ function InfiniteCanvasPage() {
     const [isNodeDragging, setIsNodeDragging] = useState(false);
     const [isNodeResizing, setIsNodeResizing] = useState(false);
     const [dropTargetGroupId, setDropTargetGroupId] = useState<string | null>(null);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [generationHistoryOpen, setGenerationHistoryOpen] = useState(false);
+    const [connectionPicker, setConnectionPicker] = useState<ConnectionHandle | null>(null);
     const [referencePickerNodeId, setReferencePickerNodeId] = useState<string | null>(null);
 
     const nodesRef = useRef(nodes);
@@ -299,17 +315,27 @@ function InfiniteCanvasPage() {
         [cleanupAssetImages],
     );
 
-    const startGenerationRequest = useCallback((targetNodeId: string, originNodeId: string, runningId = originNodeId, controller = new AbortController()) => {
-        const previous = generationRequestsRef.current.get(targetNodeId);
-        if (previous?.controller !== controller) previous?.controller.abort();
-        generationRequestsRef.current.set(targetNodeId, { targetNodeId, originNodeId, runningNodeId: runningId, controller });
-        return controller;
-    }, []);
+    const { start: recordGenerationStart, finish: recordGenerationFinish } = useCanvasGenerationHistory(projectId, nodes, connections);
 
-    const finishGenerationRequest = useCallback((targetNodeId: string, controller: AbortController) => {
-        const request = generationRequestsRef.current.get(targetNodeId);
-        if (request?.controller === controller) generationRequestsRef.current.delete(targetNodeId);
-    }, []);
+    const startGenerationRequest = useCallback(
+        (targetNodeId: string, originNodeId: string, runningId = originNodeId, controller = new AbortController(), seed?: GenerationHistorySeed) => {
+            const previous = generationRequestsRef.current.get(targetNodeId);
+            if (previous?.controller !== controller) previous?.controller.abort();
+            generationRequestsRef.current.set(targetNodeId, { targetNodeId, originNodeId, runningNodeId: runningId, controller });
+            recordGenerationStart(controller, targetNodeId, originNodeId, { ...seed, nodes: nodesRef.current, connections: connectionsRef.current });
+            return controller;
+        },
+        [recordGenerationStart],
+    );
+
+    const finishGenerationRequest = useCallback(
+        (targetNodeId: string, controller: AbortController, error?: string) => {
+            const request = generationRequestsRef.current.get(targetNodeId);
+            if (request?.controller === controller) generationRequestsRef.current.delete(targetNodeId);
+            recordGenerationFinish(controller, targetNodeId, error);
+        },
+        [recordGenerationFinish],
+    );
 
     const completeVideoNodeTask = useCallback(
         async (
@@ -400,34 +426,38 @@ function InfiniteCanvasPage() {
         [effectiveConfig, finishGenerationRequest, isAiConfigReady, message, startGenerationRequest],
     );
 
-    const stopGenerationByRunningId = useCallback((runningId: string) => {
-        const affectedNodeIds = new Set<string>();
-        generationRequestsRef.current.forEach((request) => {
-            if (request.runningNodeId !== runningId) return;
-            request.controller.abort();
-            generationRequestsRef.current.delete(request.targetNodeId);
-            affectedNodeIds.add(request.targetNodeId);
-            affectedNodeIds.add(request.originNodeId);
-        });
-        setRunningNodeId((current) => (current === runningId ? null : current));
-        if (!affectedNodeIds.size) return;
-        setNodes((prev) =>
-            prev.map((node) =>
-                affectedNodeIds.has(node.id) && node.metadata?.status === NODE_STATUS_LOADING
-                    ? {
-                          ...node,
-                          metadata: {
-                              ...node.metadata,
-                              status: NODE_STATUS_IDLE,
-                              errorDetails: undefined,
-                              images: node.metadata.images?.map((image) => (image.status === NODE_STATUS_LOADING ? { ...image, status: NODE_STATUS_ERROR, errorDetails: "请求已取消" } : image)),
-                              texts: node.metadata.texts?.map((text) => (text.status === NODE_STATUS_LOADING ? { ...text, status: NODE_STATUS_ERROR, errorDetails: "请求已取消" } : text)),
-                          },
-                      }
-                    : node,
-            ),
-        );
-    }, []);
+    const stopGenerationByRunningId = useCallback(
+        (runningId: string) => {
+            const affectedNodeIds = new Set<string>();
+            generationRequestsRef.current.forEach((request) => {
+                if (request.runningNodeId !== runningId) return;
+                request.controller.abort();
+                generationRequestsRef.current.delete(request.targetNodeId);
+                recordGenerationFinish(request.controller, request.targetNodeId);
+                affectedNodeIds.add(request.targetNodeId);
+                affectedNodeIds.add(request.originNodeId);
+            });
+            setRunningNodeId((current) => (current === runningId ? null : current));
+            if (!affectedNodeIds.size) return;
+            setNodes((prev) =>
+                prev.map((node) =>
+                    affectedNodeIds.has(node.id) && node.metadata?.status === NODE_STATUS_LOADING
+                        ? {
+                              ...node,
+                              metadata: {
+                                  ...node.metadata,
+                                  status: NODE_STATUS_IDLE,
+                                  errorDetails: undefined,
+                                  images: node.metadata.images?.map((image) => (image.status === NODE_STATUS_LOADING ? { ...image, status: NODE_STATUS_ERROR, errorDetails: "请求已取消" } : image)),
+                                  texts: node.metadata.texts?.map((text) => (text.status === NODE_STATUS_LOADING ? { ...text, status: NODE_STATUS_ERROR, errorDetails: "请求已取消" } : text)),
+                              },
+                          }
+                        : node,
+                ),
+            );
+        },
+        [recordGenerationFinish],
+    );
 
     const confirmStopGeneration = useCallback(
         (nodeId: string) => {
@@ -637,7 +667,8 @@ function InfiniteCanvasPage() {
             setConnections((prev) => [...prev, { id: nanoid(), ...connection }]);
             setSelectedNodeIds(new Set([newNode.id]));
             setSelectedConnectionId(null);
-            if (type !== CanvasNodeType.Text && type !== CanvasNodeType.Audio) setDialogNodeId(newNode.id);
+            setTextContentEditing(false);
+            setDialogNodeId(newNode.id);
             setPendingConnectionCreate(null);
             setConnecting(null);
         },
@@ -721,7 +752,8 @@ function InfiniteCanvasPage() {
     // The toolbar follows a single selected node selected by click, creation, marquee, or keyboard.
     // It stays hidden for multi-selection and while isNodeDragging is true.
     const singleSelectedNodeId = selectedNodeIds.size === 1 ? Array.from(selectedNodeIds)[0] : null;
-    const toolbarNode = (toolbarNodeId ? nodeById.get(toolbarNodeId) || null : null) || (singleSelectedNodeId ? nodeById.get(singleSelectedNodeId) || null : null);
+    const toolbarNode = singleSelectedNodeId ? nodeById.get(singleSelectedNodeId) || null : toolbarNodeId ? nodeById.get(toolbarNodeId) || null : null;
+    const editorNode = !referencePickerNodeId && !isNodeDragging && !isNodeResizing && !selectionBox && selectedNodeIds.size === 1 && dialogNodeId && selectedNodeIds.has(dialogNodeId) ? nodeById.get(dialogNodeId) : undefined;
     const infoNode = infoNodeId ? nodeById.get(infoNodeId) || null : null;
     const cropNode = cropNodeId ? nodeById.get(cropNodeId) || null : null;
     const maskEditNode = maskEditNodeId ? nodeById.get(maskEditNodeId) || null : null;
@@ -847,15 +879,11 @@ function InfiniteCanvasPage() {
             const definition = getNodeDefinition(type);
             // Display-only plugin nodes with hidePanel do not open a panel; custom Panels require autoOpenPanel on creation.
             // Plugin nodes declaring useBuiltinPanel open the built-in generation panel on creation, like image nodes.
-            // Built-in image, video, and config nodes retain their existing open-on-create behavior.
-            const wantsPanel = definition?.hidePanel
-                ? false
-                : definition?.Panel
-                  ? Boolean(definition.autoOpenPanel)
-                  : definition?.useBuiltinPanel
-                    ? true
-                    : isBuiltinType(type) && type !== CanvasNodeType.Text && type !== CanvasNodeType.Audio && type !== CanvasNodeType.Group;
-            if (wantsPanel) setDialogNodeId(newNode.id);
+            // Creation always switches the editing target, including text and audio.
+            const wantsPanel = definition?.hidePanel ? false : definition?.Panel ? Boolean(definition.autoOpenPanel) : definition?.useBuiltinPanel ? true : isBuiltinType(type) && type !== CanvasNodeType.Group;
+            setTextContentEditing(false);
+            setDialogNodeId(wantsPanel ? newNode.id : null);
+            setToolbarNodeId(null);
         },
         [effectiveConfig.canvasImageCount, effectiveConfig.count, effectiveConfig.imageModel, effectiveConfig.model, effectiveConfig.size, getCanvasCenter],
     );
@@ -992,48 +1020,38 @@ function InfiniteCanvasPage() {
         cleanupCanvasFiles({ projectId, nodes: [], chatSessions: [] });
     }, [cleanupCanvasFiles, deselectCanvas, projectId]);
 
-    const duplicateNode = useCallback((nodeId: string) => {
-        const source = nodesRef.current.find((node) => node.id === nodeId);
-        if (!source) return;
-
-        const id = `${source.type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-        const next: CanvasNodeData = {
-            ...source,
-            id,
-            title: `${source.title} Copy`,
-            position: { x: source.position.x + 36, y: source.position.y + 36 },
-        };
-
-        setNodes((prev) => [...prev, next]);
-        setSelectedNodeIds(new Set([id]));
+    const duplicateSelection = useCallback((ids = selectedNodeIdsRef.current) => {
+        const copy = cloneCanvasSelection(nodesRef.current, connectionsRef.current, ids, { x: 36, y: 36 });
+        if (!copy.nodes.length) return;
+        setNodes((prev) => [...prev, ...copy.nodes]);
+        setConnections((prev) => [...prev, ...copy.connections]);
+        setSelectedNodeIds(copy.selectedIds);
         setSelectedConnectionId(null);
-        if (next.type !== CanvasNodeType.Group) setDialogNodeId(id);
+        setDialogNodeId(null);
+    }, []);
+
+    const duplicateNode = useCallback((nodeId: string) => duplicateSelection(new Set([nodeId])), [duplicateSelection]);
+
+    const layoutSelection = useCallback((action: CanvasLayoutAction) => {
+        const ids = selectedNodeIdsRef.current.size ? selectedNodeIdsRef.current : new Set(nodesRef.current.map((node) => node.id));
+        setNodes((prev) => layoutCanvasNodes(prev, ids, action));
+        setDialogNodeId(null);
     }, []);
 
     const copySelectedNodes = useCallback(() => {
-        const selectedIds = selectedNodeIdsRef.current;
-        if (!selectedIds.size) return;
-
-        const copiedNodes = nodesRef.current
-            .filter((node) => selectedIds.has(node.id))
-            .map((node) => ({
-                ...node,
-                position: { ...node.position },
-                metadata: node.metadata ? { ...node.metadata } : undefined,
-            }));
-
-        if (!copiedNodes.length) return;
-
+        const ids = selectedNodeIdsRef.current;
+        if (!ids.size) return;
+        const expanded = selectionWithChildren(nodesRef.current, ids);
         clipboardRef.current = {
-            nodes: copiedNodes,
-            connections: connectionsRef.current.filter((connection) => selectedIds.has(connection.fromNodeId) && selectedIds.has(connection.toNodeId)).map((connection) => ({ ...connection })),
+            selectedIds: [...ids],
+            nodes: structuredClone(nodesRef.current.filter((node) => expanded.has(node.id))),
+            connections: structuredClone(connectionsRef.current.filter((connection) => expanded.has(connection.fromNodeId) && expanded.has(connection.toNodeId))),
         };
     }, []);
 
     const pasteCopiedNodes = useCallback(() => {
         const clipboard = clipboardRef.current;
         if (!clipboard?.nodes.length) return false;
-
         const center = getCanvasCenter();
         const bounds = clipboard.nodes.reduce(
             (acc, node) => ({
@@ -1044,50 +1062,16 @@ function InfiniteCanvasPage() {
             }),
             { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity },
         );
-        const dx = center.x - (bounds.left + bounds.right) / 2;
-        const dy = center.y - (bounds.top + bounds.bottom) / 2;
-        const idMap = new Map<string, string>();
-        const nextNodes = clipboard.nodes.map((node, index) => {
-            const id = `${node.type}-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`;
-            idMap.set(node.id, id);
-            return {
-                ...node,
-                id,
-                title: node.title.endsWith(" Copy") ? node.title : `${node.title} Copy`,
-                position: {
-                    x: node.position.x + dx,
-                    y: node.position.y + dy,
-                },
-                metadata: node.metadata ? { ...node.metadata } : undefined,
-            };
+        const copy = cloneCanvasSelection(clipboard.nodes, clipboard.connections, new Set(clipboard.selectedIds), {
+            x: center.x - (bounds.left + bounds.right) / 2,
+            y: center.y - (bounds.top + bounds.bottom) / 2,
         });
-
-        const pastedNodes = nextNodes.map((node) => {
-            const groupId = node.metadata?.groupId;
-            if (!groupId) return node;
-            return { ...node, metadata: { ...node.metadata, groupId: idMap.get(groupId) } };
-        });
-
-        const nextConnections = clipboard.connections.flatMap((connection, index) => {
-            const fromNodeId = idMap.get(connection.fromNodeId);
-            const toNodeId = idMap.get(connection.toNodeId);
-            if (!fromNodeId || !toNodeId) return [];
-            return [
-                {
-                    ...connection,
-                    id: `conn-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
-                    fromNodeId,
-                    toNodeId,
-                },
-            ];
-        });
-
-        setNodes((prev) => [...prev, ...pastedNodes]);
-        setConnections((prev) => [...prev, ...nextConnections]);
-        setSelectedNodeIds(new Set(pastedNodes.map((node) => node.id)));
+        setNodes((prev) => [...prev, ...copy.nodes]);
+        setConnections((prev) => [...prev, ...copy.connections]);
+        setSelectedNodeIds(copy.selectedIds);
         setSelectedConnectionId(null);
         setContextMenu(null);
-        setDialogNodeId(pastedNodes[0]?.type === CanvasNodeType.Group ? null : pastedNodes[0]?.id || null);
+        setDialogNodeId(null);
         return true;
     }, [getCanvasCenter]);
 
@@ -1108,6 +1092,8 @@ function InfiniteCanvasPage() {
             setSelectedNodeIds(new Set([nodeId]));
             setSelectedConnectionId(null);
             setContextMenu(null);
+            setDialogNodeId(null);
+            setToolbarNodeId(nodeId);
 
             if (focusAnimRef.current) cancelAnimationFrame(focusAnimRef.current);
             const start = { ...viewportRef.current };
@@ -1258,6 +1244,7 @@ function InfiniteCanvasPage() {
             setContextMenu(null);
             setHoveredNodeId(null);
             setSelectedConnectionId(null);
+            setTextContentEditing(false);
             const { nextSelected } = selectNodeByEvent(event, nodeId);
             pendingSelectionRef.current = nextSelected;
         },
@@ -1283,6 +1270,7 @@ function InfiniteCanvasPage() {
         dragRef.current = {
             isDraggingNode: true,
             hasMoved: false,
+            duplicateOnDrag: event.altKey,
             startX: event.clientX,
             startY: event.clientY,
             initialSelectedNodes,
@@ -1339,6 +1327,7 @@ function InfiniteCanvasPage() {
 
             dragRef.current.isDraggingNode = false;
             dragRef.current.hasMoved = false;
+            dragRef.current.duplicateOnDrag = false;
             dragRef.current.initialSelectedNodes = new Map();
             dragRef.current.movedIds = new Set();
             if (wasClick && clickedNodeId) {
@@ -1359,12 +1348,23 @@ function InfiniteCanvasPage() {
         (event: MouseEvent) => {
             if (dragRef.current.isDraggingNode) {
                 const { x: dx, y: dy } = getNodeDragDelta(event.clientX, event.clientY);
-                const initialPositions = dragRef.current.initialSelectedNodes;
-                const movedIds = dragRef.current.movedIds;
                 if (Math.abs(event.clientX - dragRef.current.startX) > 3 || Math.abs(event.clientY - dragRef.current.startY) > 3) {
                     dragRef.current.hasMoved = true;
                 }
                 if (!dragRef.current.hasMoved) return;
+                if (dragRef.current.duplicateOnDrag) {
+                    const copy = cloneCanvasSelection(nodesRef.current, connectionsRef.current, selectedNodeIdsRef.current, { x: 0, y: 0 });
+                    nodesRef.current = [...nodesRef.current, ...copy.nodes];
+                    connectionsRef.current = [...connectionsRef.current, ...copy.connections];
+                    setNodes(nodesRef.current);
+                    setConnections(connectionsRef.current);
+                    setSelectedNodeIds(copy.selectedIds);
+                    dragRef.current.initialSelectedNodes = new Map(copy.nodes.map((node) => [node.id, node.position]));
+                    dragRef.current.movedIds = new Set(copy.nodes.map((node) => node.id));
+                    dragRef.current.duplicateOnDrag = false;
+                }
+                const initialPositions = dragRef.current.initialSelectedNodes;
+                const movedIds = dragRef.current.movedIds;
 
                 // Drop-target detection and node updates both run once per frame; mousemove can fire far more often than the display refreshes.
                 if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -1531,6 +1531,7 @@ function InfiniteCanvasPage() {
         ]);
         setSelectedNodeIds(new Set([id]));
         setSelectedConnectionId(null);
+        setDialogNodeId(id);
     }, []);
 
     const createTextNodeFromClipboard = useCallback(
@@ -1575,17 +1576,60 @@ function InfiniteCanvasPage() {
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             const target = event.target instanceof Element ? event.target : null;
+            if (isImeComposing(event) || event.defaultPrevented) return;
             if (
                 event.target instanceof HTMLInputElement ||
                 event.target instanceof HTMLTextAreaElement ||
                 event.target instanceof HTMLSelectElement ||
-                target?.closest("[contenteditable='true'],[data-canvas-no-zoom],[data-canvas-shortcuts-ignore],[role='dialog'],[role='alertdialog'],[role='menu'],[role='listbox'],[data-slot='popover-content']")
+                target?.closest("button,a,[contenteditable='true'],[data-canvas-no-zoom],[data-canvas-shortcuts-ignore],[role='dialog'],[role='alertdialog'],[role='menu'],[role='listbox'],[data-slot='popover-content']")
             )
                 return;
 
             const key = event.key.toLowerCase();
             const isModifierShortcut = event.metaKey || event.ctrlKey;
 
+            if (!isModifierShortcut && !event.altKey && (key === "h" || key === "v")) {
+                event.preventDefault();
+                setCanvasTool(key === "h" ? "pan" : "select");
+                return;
+            }
+            if (!isModifierShortcut && !event.altKey && !event.shiftKey && key === "tab" && !selectedNodeIdsRef.current.size && (target === document.body || target?.matches("[data-canvas-viewport]"))) {
+                event.preventDefault();
+                setNodeCreatePosition(getCanvasCenter());
+                return;
+            }
+            if (event.altKey && event.shiftKey && !isModifierShortcut && event.code === "KeyF") {
+                event.preventDefault();
+                layoutSelection("arrange");
+                return;
+            }
+            if (isModifierShortcut && !event.altKey && key === "d") {
+                event.preventDefault();
+                duplicateSelection();
+                return;
+            }
+            if (isModifierShortcut && !event.altKey && key === "f") {
+                event.preventDefault();
+                setSearchOpen(true);
+                return;
+            }
+            if (isModifierShortcut && !event.altKey && key === "l" && selectedNodeIdsRef.current.size === 1) {
+                const id = [...selectedNodeIdsRef.current][0];
+                if (nodesRef.current.find((node) => node.id === id)?.type !== CanvasNodeType.Group) {
+                    event.preventDefault();
+                    setConnectionPicker({ nodeId: id, handleType: "source" });
+                    return;
+                }
+            }
+            if (!isModifierShortcut && !event.altKey && key.startsWith("arrow") && selectedNodeIdsRef.current.size) {
+                event.preventDefault();
+                const ids = selectionWithChildren(nodesRef.current, selectedNodeIdsRef.current);
+                const step = event.shiftKey ? CANVAS_GRID_SIZE : 1;
+                const x = key === "arrowleft" ? -step : key === "arrowright" ? step : 0;
+                const y = key === "arrowup" ? -step : key === "arrowdown" ? step : 0;
+                setNodes((prev) => prev.map((node) => (ids.has(node.id) ? { ...node, position: { x: node.position.x + x, y: node.position.y + y } } : node)));
+                return;
+            }
             if (isModifierShortcut && key === "c" && window.getSelection()?.toString()) return;
             if (isModifierShortcut && ["0", "=", "+", "-"].includes(key)) {
                 event.preventDefault();
@@ -1644,6 +1688,7 @@ function InfiniteCanvasPage() {
             }
 
             if (event.key === "Delete" || event.key === "Backspace") {
+                event.preventDefault();
                 if (selectedNodeIdsRef.current.size) {
                     deleteNodes(new Set(selectedNodeIdsRef.current));
                 } else if (selectedConnectionId) {
@@ -1670,7 +1715,24 @@ function InfiniteCanvasPage() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [copySelectedNodes, deleteConnection, deleteNodes, groupSelection, pasteCopiedNodes, pasteSystemClipboard, redoCanvas, resetViewport, setZoomScale, selectedConnectionId, setConnecting, undoCanvas, ungroupSelection]);
+    }, [
+        duplicateSelection,
+        getCanvasCenter,
+        layoutSelection,
+        copySelectedNodes,
+        deleteConnection,
+        deleteNodes,
+        groupSelection,
+        pasteCopiedNodes,
+        pasteSystemClipboard,
+        redoCanvas,
+        resetViewport,
+        setZoomScale,
+        selectedConnectionId,
+        setConnecting,
+        undoCanvas,
+        ungroupSelection,
+    ]);
 
     const handleConnectStart = useCallback(
         (event: ReactMouseEvent, nodeId: string, handleType: "source" | "target") => {
@@ -1848,6 +1910,20 @@ function InfiniteCanvasPage() {
                 const content = node.metadata?.content?.trim();
                 if (!content) return message.error("没有可保存的文本");
                 addAsset({ kind: "text", title: node.metadata?.prompt?.slice(0, 24) || "画布文本", coverUrl: "", tags: [], source: "Canvas", data: { content }, metadata: { source: "canvas", nodeId: node.id } });
+                message.success("已加入我的资产");
+                return;
+            }
+            if (node.type === CanvasNodeType.Audio) {
+                if (!node.metadata?.content) return message.error("没有可保存的音频");
+                addAsset({
+                    kind: "audio",
+                    title: node.title || "画布音频",
+                    coverUrl: "",
+                    tags: [],
+                    source: "Canvas",
+                    data: { url: node.metadata.content, storageKey: node.metadata.storageKey, bytes: node.metadata.bytes || 0, mimeType: node.metadata.mimeType || "audio/mpeg", durationMs: node.metadata.durationMs },
+                    metadata: { source: "canvas", nodeId: node.id, prompt: node.metadata.prompt },
+                });
                 message.success("已加入我的资产");
                 return;
             }
@@ -2045,7 +2121,12 @@ function InfiniteCanvasPage() {
             setDialogNodeId(childId);
             if (!payload.generate) return;
             setRunningNodeId(childId);
-            const controller = startGenerationRequest(childId, node.id, childId);
+            const controller = startGenerationRequest(childId, node.id, childId, undefined, {
+                mode: "image",
+                prompt,
+                parameters: generationParameters(generationConfig),
+                references: [{ ...createCanvasNode(CanvasNodeType.Image, node.position, imageMetadata(maskImage)), id: maskNodeId }],
+            });
             try {
                 const image = await requestEdit(generationConfig, prompt, references, { signal: controller.signal }).then((items) => items[0]);
                 const uploaded = await uploadImage(image.dataUrl, { signal: controller.signal });
@@ -2121,7 +2202,7 @@ function InfiniteCanvasPage() {
             setConnections((prev) => [...prev, { id: nanoid(), fromNodeId: node.id, toNodeId: childId }]);
             setSelectedNodeIds(new Set([childId]));
             setDialogNodeId(childId);
-            const controller = startGenerationRequest(childId, node.id, childId);
+            const controller = startGenerationRequest(childId, node.id, childId, undefined, { mode: "image", prompt, parameters: generationParameters(generationConfig) });
             try {
                 const image = await requestEdit(generationConfig, prompt, [{ id: node.id, name: `${node.title || node.id}.png`, type: node.metadata.mimeType || "image/png", dataUrl: node.metadata.content, storageKey: node.metadata.storageKey }], {
                     signal: controller.signal,
@@ -2318,6 +2399,7 @@ function InfiniteCanvasPage() {
     const handleGenerateNode = useCallback(
         async (nodeId: string, mode: CanvasNodeGenerationMode, prompt: string) => {
             const sourceNode = nodesRef.current.find((node) => node.id === nodeId);
+            if (!sourceNode) return;
             const generationConfig = buildGenerationConfig(effectiveConfig, sourceNode, mode);
             if (!isAiConfigReady(generationConfig, generationConfig.model)) {
                 message.warning("生成服务尚未接入");
@@ -2331,7 +2413,7 @@ function InfiniteCanvasPage() {
                 const scene = prompt.trim();
                 if (!scene) return;
                 setRunningNodeId(nodeId);
-                const controller = startGenerationRequest(nodeId, nodeId, nodeId);
+                const controller = startGenerationRequest(nodeId, nodeId, nodeId, undefined, { mode: "image", prompt: scene, parameters: generationParameters(generationConfig) });
                 setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, prompt: scene, status: NODE_STATUS_LOADING, errorDetails: undefined } } : node)));
                 try {
                     const fullPrompt = (builtinPanel.promptPrefix || "") + scene;
@@ -2353,17 +2435,27 @@ function InfiniteCanvasPage() {
                     }
                 } finally {
                     finishGenerationRequest(nodeId, controller);
+                    setRunningNodeId(null);
                 }
                 return;
             }
 
             setRunningNodeId(nodeId);
-            const runController = startGenerationRequest(nodeId, nodeId, nodeId);
+            const runController = startGenerationRequest(nodeId, nodeId, nodeId, undefined, { mode, prompt, parameters: { ...generationParameters(generationConfig), textCount: sourceNode?.metadata?.textCount } });
             const sourceTextContent = sourceNode?.type === CanvasNodeType.Text ? sourceNode.metadata?.content?.trim() || "" : "";
             const editingTextNode = mode === "text" && Boolean(sourceTextContent);
-            const generationContext = await hydrateNodeGenerationContext(
-                buildNodeGenerationContext(nodeId, nodesRef.current, connectionsRef.current, editingTextNode ? `请根据要求修改以下文本。\n\n原文：\n${sourceTextContent}\n\n修改要求：\n${prompt}` : prompt),
-            );
+            let generationContext: Awaited<ReturnType<typeof hydrateNodeGenerationContext>>;
+            try {
+                generationContext = await hydrateNodeGenerationContext(
+                    buildNodeGenerationContext(nodeId, nodesRef.current, connectionsRef.current, editingTextNode ? `请根据要求修改以下文本。\n\n原文：\n${sourceTextContent}\n\n修改要求：\n${prompt}` : prompt),
+                );
+            } catch (error) {
+                const errorDetails = error instanceof Error ? error.message : "无法读取参考素材";
+                if (!isGenerationCanceled(error)) message.error(errorDetails);
+                finishGenerationRequest(nodeId, runController, errorDetails);
+                setRunningNodeId(null);
+                return;
+            }
             const effectivePrompt = generationContext.prompt.trim();
             if (runController.signal.aborted) {
                 finishGenerationRequest(nodeId, runController);
@@ -2748,6 +2840,7 @@ function InfiniteCanvasPage() {
                 if (isGenerationCanceled(error)) return;
                 const errorDetails = error instanceof Error ? error.message : "生成失败";
                 message.error(errorDetails);
+                finishGenerationRequest(nodeId, runController, errorDetails);
                 setNodes((prev) =>
                     prev.map((node) =>
                         node.id === nodeId || pendingChildIds.includes(node.id)
@@ -2848,7 +2941,11 @@ function InfiniteCanvasPage() {
                         : item,
                 ),
             );
-            const controller = startGenerationRequest(node.id, sourceNode.id, node.id);
+            const controller = startGenerationRequest(node.id, sourceNode.id, node.id, undefined, {
+                mode: node.type === CanvasNodeType.Video ? "video" : node.type === CanvasNodeType.Audio ? "audio" : node.type === CanvasNodeType.Text ? "text" : "image",
+                prompt,
+                parameters: generationParameters(generationConfig),
+            });
 
             try {
                 if (node.type === CanvasNodeType.Text) {
@@ -3070,6 +3167,15 @@ function InfiniteCanvasPage() {
         (payload: InsertAssetPayload) => {
             if (payload.kind === "text") {
                 insertAssistantText(payload.content, payload.title);
+            } else if (payload.kind === "audio") {
+                const node = {
+                    ...createCanvasNode(CanvasNodeType.Audio, getCanvasCenter(), { content: payload.url, storageKey: payload.storageKey, status: NODE_STATUS_SUCCESS, bytes: payload.bytes, mimeType: payload.mimeType, durationMs: payload.durationMs }),
+                    title: payload.title,
+                };
+                setNodes((prev) => [...prev, node]);
+                setSelectedNodeIds(new Set([node.id]));
+                setSelectedConnectionId(null);
+                setDialogNodeId(null);
             } else if (payload.kind === "video") {
                 const spec = NODE_DEFAULT_SIZE[CanvasNodeType.Video];
                 const center = screenToCanvas((containerRef.current?.getBoundingClientRect().left || 0) + size.width / 2, (containerRef.current?.getBoundingClientRect().top || 0) + size.height / 2);
@@ -3093,13 +3199,68 @@ function InfiniteCanvasPage() {
             }
             setAssetPickerOpen(false);
         },
-        [insertAssistantImage, insertAssistantText, screenToCanvas, size.height, size.width],
+        [getCanvasCenter, insertAssistantImage, insertAssistantText, screenToCanvas, size.height, size.width],
+    );
+
+    const reuseGenerationRecord = useCallback(
+        async (record: CanvasGenerationRecord, retry = false) => {
+            const snapshots = await hydrateCanvasImages([record.source, ...record.references]);
+            const center = getCanvasCenter();
+            const copy = cloneCanvasSelection(snapshots, record.connections, new Set(snapshots.map((node) => node.id)), {
+                x: center.x - record.source.position.x - record.source.width / 2,
+                y: center.y - record.source.position.y - record.source.height / 2,
+            });
+            const sourceId = copy.idMap.get(record.source.id)!;
+            const prompt = record.prompt.replace(/@\[node:([^\]]+)\]/g, (token, id: string) => (copy.idMap.has(id) ? `@[node:${copy.idMap.get(id)}]` : token));
+            const restored = copy.nodes.map((node) =>
+                node.id === sourceId
+                    ? {
+                          ...node,
+                          title: record.source.title,
+                          metadata: { ...node.metadata, ...record.parameters, generationMode: record.mode, prompt, composerContent: prompt, status: node.metadata?.content ? NODE_STATUS_SUCCESS : NODE_STATUS_IDLE, errorDetails: undefined },
+                      }
+                    : node,
+            );
+            nodesRef.current = [...nodesRef.current, ...restored];
+            connectionsRef.current = [...connectionsRef.current, ...copy.connections];
+            setNodes(nodesRef.current);
+            setConnections(connectionsRef.current);
+            setSelectedNodeIds(new Set([sourceId]));
+            setSelectedConnectionId(null);
+            setDialogNodeId(sourceId);
+            setGenerationHistoryOpen(false);
+            setTextContentEditing(false);
+            if (retry) await handleGenerateNode(sourceId, record.mode, prompt);
+        },
+        [getCanvasCenter, handleGenerateNode],
+    );
+
+    const insertGenerationResults = useCallback(
+        async (record: CanvasGenerationRecord) => {
+            const results = await hydrateCanvasImages(record.results);
+            if (!results.length) return;
+            const center = getCanvasCenter();
+            const copy = cloneCanvasSelection(results, [], new Set(results.map((node) => node.id)), { x: center.x - results[0].position.x - results[0].width / 2, y: center.y - results[0].position.y - results[0].height / 2 });
+            setNodes((prev) => [...prev, ...copy.nodes]);
+            setSelectedNodeIds(copy.selectedIds);
+            setSelectedConnectionId(null);
+            setDialogNodeId(null);
+            setGenerationHistoryOpen(false);
+        },
+        [getCanvasCenter],
     );
 
     // Memoize every callback and render function passed to CanvasNode.
     // CanvasNode uses React.memo, but new prop references would invalidate it on every render and rerender every node
     // during click, hover, or viewport changes, which is especially expensive for Markdown. These useCallback values
     // and their memoized map/handler dependencies remain stable during interaction, so unchanged nodes do not rerender.
+    const handleNodeSelectKeyboard = useCallback((id: string, openEditor: boolean, editText = false) => {
+        setTextContentEditing(editText);
+        setSelectedNodeIds(new Set([id]));
+        setSelectedConnectionId(null);
+        if (openEditor && nodesRef.current.find((node) => node.id === id)?.type !== CanvasNodeType.Group) setDialogNodeId(id);
+    }, []);
+    const handleNodeConnectKeyboard = useCallback((id: string, handleType: "source" | "target") => setConnectionPicker({ nodeId: id, handleType }), []);
     const handleNodeHoverStart = useCallback((nodeId: string) => {
         if (nodeDraggingRef.current) return;
         setHoveredNodeId(nodeId);
@@ -3134,17 +3295,33 @@ function InfiniteCanvasPage() {
             getNodeDefinition(panelNode.type)?.Panel ? (
                 renderPluginPanel(panelNode)
             ) : panelNode.type === CanvasNodeType.Config ? (
-                <CanvasConfigComposer
-                    nodeId={panelNode.id}
-                    nodes={nodes}
-                    value={panelNode.metadata?.composerContent ?? panelNode.metadata?.prompt ?? ""}
-                    inputs={configInputsById.get(panelNode.id) || []}
-                    connectedNodes={connectedNodesByNodeId.get(panelNode.id) || []}
-                    onChange={(composerContent) => handleConfigNodeChange(panelNode.id, { composerContent })}
-                    onClose={() => setDialogNodeId(null)}
-                    onDisconnectReference={disconnectNodeReference}
-                    onStartReferenceSelection={startNodeReferenceSelection}
-                />
+                <>
+                    <CanvasConfigNodePanel
+                        node={panelNode}
+                        isRunning={runningNodeId === panelNode.id}
+                        inputSummary={getInputSummary(configInputsById.get(panelNode.id) || [])}
+                        onConfigChange={handleConfigNodeChange}
+                        onGenerate={(id) => void handleGenerateNode(id, panelNode.metadata?.generationMode || "image", panelNode.metadata?.composerContent ?? panelNode.metadata?.prompt ?? "")}
+                        onStop={confirmStopGeneration}
+                        onComposerToggle={() => document.querySelector<HTMLElement>("[data-canvas-node-editor] [role='textbox']")?.focus({ preventScroll: true })}
+                    />
+                    <CanvasConfigComposer
+                        nodeId={panelNode.id}
+                        nodes={nodes}
+                        value={panelNode.metadata?.composerContent ?? panelNode.metadata?.prompt ?? ""}
+                        inputs={configInputsById.get(panelNode.id) || []}
+                        connectedNodes={connectedNodesByNodeId.get(panelNode.id) || []}
+                        onChange={(composerContent) => handleConfigNodeChange(panelNode.id, { composerContent })}
+                        onSubmit={(value) => {
+                            const mode = panelNode.metadata?.generationMode || "image";
+                            const config = buildGenerationConfig(effectiveConfig, panelNode, mode);
+                            if (runningNodeId !== panelNode.id && isAiConfigReady(config, config.model)) void handleGenerateNode(panelNode.id, mode, value);
+                        }}
+                        onClose={() => setDialogNodeId(null)}
+                        onDisconnectReference={disconnectNodeReference}
+                        onStartReferenceSelection={startNodeReferenceSelection}
+                    />
+                </>
             ) : (
                 <CanvasNodePromptPanel
                     node={panelNode}
@@ -3166,6 +3343,8 @@ function InfiniteCanvasPage() {
                 />
             ),
         [
+            effectiveConfig,
+            isAiConfigReady,
             configInputsById,
             confirmStopGeneration,
             connectedNodesByNodeId,
@@ -3184,6 +3363,7 @@ function InfiniteCanvasPage() {
     const renderNodeContentPanel = useCallback(
         (contentNode: CanvasNodeData) => (
             <CanvasConfigNodePanel
+                compact
                 node={contentNode}
                 isRunning={runningNodeId === contentNode.id}
                 inputSummary={getInputSummary(configInputsById.get(contentNode.id) || [])}
@@ -3197,6 +3377,45 @@ function InfiniteCanvasPage() {
             />
         ),
         [configInputsById, confirmStopGeneration, handleConfigNodeChange, handleGenerateNode, runningNodeId],
+    );
+
+    const renderNodeToolbar = (node: CanvasNodeData | null, inline = false) => (
+        <CanvasNodeHoverToolbar
+            node={node}
+            inline={inline}
+            onDismiss={deselectCanvas}
+            viewport={viewport}
+            extraTools={node ? buildNodeToolbarItems(node) : undefined}
+            onKeep={keepNodeToolbar}
+            onLeave={hideNodeToolbar}
+            onInfo={(node) => setInfoNodeId(node.id)}
+            onDecreaseFont={(node) => handleFontSizeChange(node.id, Math.max(10, (node.metadata?.fontSize || 14) - 2))}
+            onIncreaseFont={(node) => handleFontSizeChange(node.id, Math.min(32, (node.metadata?.fontSize || 14) + 2))}
+            onToggleDialog={(node) => {
+                setTextContentEditing(false);
+                setDialogNodeId((current) => (current === node.id ? null : node.id));
+            }}
+            onEditText={(node) => {
+                setTextContentEditing(true);
+                setDialogNodeId(node.id);
+            }}
+            onGenerateImage={generateImageFromTextNode}
+            onUpload={(node) => handleUploadRequest(node.id)}
+            onDownload={downloadNodeImage}
+            onSaveAsset={(node) => void saveNodeAsset(node)}
+            onMaskEdit={(node) => setMaskEditNodeId(node.id)}
+            onCrop={(node) => setCropNodeId(node.id)}
+            onSplit={(node) => setSplitNodeId(node.id)}
+            onUpscale={(node) => setUpscaleNodeId(node.id)}
+            onSuperResolve={(node) => setSuperResolveNodeId(node.id)}
+            onAngle={(node) => setAngleNodeId(node.id)}
+            onViewImage={handleNodeViewImage}
+            onReversePrompt={createImageReversePromptNodes}
+            onRetry={(node) => void handleRetryNode(node)}
+            onToggleFreeResize={(node) => toggleNodeFreeResize(node.id)}
+            onDelete={(node) => deleteNodes(new Set([node.id]))}
+            onUngroup={(node) => ungroupSelection(new Set([node.id]))}
+        />
     );
 
     if (!projectLoaded) return <CanvasRefreshShell />;
@@ -3282,25 +3501,23 @@ function InfiniteCanvasPage() {
                             isConnectionTarget={connectionTargetNodeId === node.id}
                             isConnecting={Boolean(connectingParams)}
                             referenceSelectionState={!referencePickerNodeId ? undefined : node.id === referencePickerNodeId ? "target" : referenceConnectedNodeIds.has(node.id) || !isCanvasReferenceNode(node, nodes) ? "disabled" : "available"}
-                            showPanel={!isNodeResizing && dialogNodeId === node.id && !selectionBox && !getNodeDefinition(node.type)?.hidePanel}
                             groupChildCount={groupChildCountById.get(node.id) || 0}
                             isGroupDropTarget={dropTargetGroupId === node.id}
                             batchExpanded={expandedBatchNodeIds.has(node.id)}
                             showImageInfo={showImageInfo}
-                            mentionReferences={mentionReferencesByNodeId.get(node.id) || EMPTY_REFERENCES}
                             pluginHost={pluginHost}
                             registryVersion={nodeRegistryVersion}
-                            renderPanel={renderNodePanel}
                             renderNodeContent={renderNodeContentPanel}
                             onMouseDown={handleNodeMouseDown}
                             onSelectCapture={handleNodeSelectCapture}
                             onHoverStart={handleNodeHoverStart}
                             onHoverEnd={handleNodeHoverEnd}
+                            onSelectKeyboard={handleNodeSelectKeyboard}
+                            onConnectKeyboard={handleNodeConnectKeyboard}
                             onConnectStart={handleConnectStart}
                             onResizeStart={handleNodeResizeStart}
                             onResize={handleNodeResize}
                             onResizeEnd={handleNodeResizeEnd}
-                            onContentChange={handleNodeContentChange}
                             onTitleChange={handleNodeTitleChange}
                             onToggleBatch={toggleBatchExpanded}
                             onSetBatchPrimary={setBatchPrimary}
@@ -3314,18 +3531,6 @@ function InfiniteCanvasPage() {
                             onContextMenu={handleNodeContextMenu}
                         />
                     ))}
-
-                    {referencePickerNodeId ? (
-                        <Button
-                            variant="ghost"
-                            type="button"
-                            className="absolute left-1/2 top-4 z-[90] -translate-x-1/2 rounded-full border px-4 py-2 text-sm font-medium shadow-lg backdrop-blur"
-                            style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border }}
-                            onClick={exitNodeReferenceSelection}
-                        >
-                            {"从画布选择参考 · ESC 返回输入框"}
-                        </Button>
-                    ) : null}
 
                     {selectionBox ? (
                         <svg
@@ -3353,38 +3558,70 @@ function InfiniteCanvasPage() {
                     ) : null}
                 </InfiniteCanvas>
 
-                {!nodes.length ? <CanvasEmptyState onCreate={createNode} /> : null}
+                {referencePickerNodeId ? (
+                    <Button variant="ghost" type="button" data-canvas-no-zoom className="absolute left-1/2 top-16 z-[90] -translate-x-1/2" onClick={exitNodeReferenceSelection}>
+                        {"从画布选择参考 · ESC 返回输入框"}
+                    </Button>
+                ) : null}
 
-                <CanvasNodeHoverToolbar
-                    node={isNodeDragging || isNodeResizing || nodeImageSettingsOpen || expandedBatchNodeIds.has(toolbarNode?.id || "") ? null : toolbarNode}
-                    viewport={viewport}
-                    extraTools={toolbarNode ? buildNodeToolbarItems(toolbarNode) : undefined}
-                    onKeep={keepNodeToolbar}
-                    onLeave={hideNodeToolbar}
-                    onInfo={(node) => setInfoNodeId(node.id)}
-                    onDecreaseFont={(node) => handleFontSizeChange(node.id, Math.max(10, (node.metadata?.fontSize || 14) - 2))}
-                    onIncreaseFont={(node) => handleFontSizeChange(node.id, Math.min(32, (node.metadata?.fontSize || 14) + 2))}
-                    onToggleDialog={(node) => setDialogNodeId((current) => (current === node.id ? null : node.id))}
-                    onGenerateImage={generateImageFromTextNode}
-                    onUpload={(node) => handleUploadRequest(node.id)}
-                    onDownload={downloadNodeImage}
-                    onSaveAsset={(node) => void saveNodeAsset(node)}
-                    onMaskEdit={(node) => setMaskEditNodeId(node.id)}
-                    onCrop={(node) => setCropNodeId(node.id)}
-                    onSplit={(node) => setSplitNodeId(node.id)}
-                    onUpscale={(node) => setUpscaleNodeId(node.id)}
-                    onSuperResolve={(node) => setSuperResolveNodeId(node.id)}
-                    onAngle={(node) => setAngleNodeId(node.id)}
-                    onViewImage={handleNodeViewImage}
-                    onReversePrompt={createImageReversePromptNodes}
-                    onRetry={(node) => void handleRetryNode(node)}
-                    onToggleFreeResize={(node) => toggleNodeFreeResize(node.id)}
-                    onDelete={(node) => deleteNodes(new Set([node.id]))}
-                    onUngroup={(node) => ungroupSelection(new Set([node.id]))}
-                />
+                {editorNode && !getNodeDefinition(editorNode.type)?.hidePanel ? (
+                    <CanvasNodeEditor
+                        key={`${editorNode.id}:${textContentEditing && editorNode.type === CanvasNodeType.Text}`}
+                        node={editorNode}
+                        viewport={viewport}
+                        onClose={() => setDialogNodeId(null)}
+                        boundary={containerRef.current}
+                        actions={renderNodeToolbar(editorNode, true)}
+                    >
+                        {textContentEditing && editorNode.type === CanvasNodeType.Text ? (
+                            <FieldGroup className="p-3">
+                                <Field data-disabled={editorNode.metadata?.status === NODE_STATUS_LOADING}>
+                                    <FieldLabel htmlFor="canvas-node-text-content">节点文本</FieldLabel>
+                                    <InputGroup>
+                                        <InputGroupTextarea
+                                            id="canvas-node-text-content"
+                                            role="textbox"
+                                            value={editorNode.metadata?.content || ""}
+                                            disabled={editorNode.metadata?.status === NODE_STATUS_LOADING}
+                                            onChange={(event) => handleNodeContentChange(editorNode.id, event.target.value)}
+                                            className="max-h-72 min-h-24"
+                                        />
+                                    </InputGroup>
+                                </Field>
+                            </FieldGroup>
+                        ) : null}
+                        {renderNodePanel(editorNode)}
+                    </CanvasNodeEditor>
+                ) : null}
+
+                {!nodes.length ? (
+                    <CanvasEmptyState onCreate={createNode} />
+                ) : !nodes.some(
+                      (node) =>
+                          viewport.x + (node.position.x + node.width) * viewport.k > 0 &&
+                          viewport.x + node.position.x * viewport.k < size.width &&
+                          viewport.y + (node.position.y + node.height) * viewport.k > 0 &&
+                          viewport.y + node.position.y * viewport.k < size.height,
+                  ) ? (
+                    <Button variant="ghost" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" data-canvas-no-zoom onClick={resetViewport}>
+                        返回节点
+                    </Button>
+                ) : null}
+
+                {renderNodeToolbar(editorNode || hasMultipleSelectedNodes || isNodeDragging || isNodeResizing || nodeImageSettingsOpen || expandedBatchNodeIds.has(toolbarNode?.id || "") ? null : toolbarNode)}
 
                 {hasMultipleSelectedNodes && !selectionBox ? (
-                    <CanvasSelectionToolbar nodes={selectedNodes} viewport={viewport} showToolbar={!isNodeDragging && !isNodeResizing} canGroup={canGroupSelection} canUngroup={canUngroupSelection} onGroup={groupSelection} onUngroup={ungroupSelection} />
+                    <CanvasSelectionToolbar
+                        nodes={selectedNodes}
+                        viewport={viewport}
+                        showToolbar={!isNodeDragging && !isNodeResizing}
+                        canGroup={canGroupSelection}
+                        canUngroup={canUngroupSelection}
+                        onGroup={groupSelection}
+                        onUngroup={ungroupSelection}
+                        onLayout={layoutSelection}
+                        onDismiss={deselectCanvas}
+                    />
                 ) : null}
 
                 <CanvasToolbar
@@ -3400,6 +3637,8 @@ function InfiniteCanvasPage() {
                     onUpload={() => handleUploadRequest()}
                     onDelete={() => deleteNodes(new Set(selectedNodeIds))}
                     onClear={() => setClearConfirmOpen(true)}
+                    onOpenSearch={() => setSearchOpen(true)}
+                    onOpenHistory={() => setGenerationHistoryOpen(true)}
                     onCanvasToolChange={setCanvasTool}
                     onBackgroundModeChange={setBackgroundMode}
                     onShowImageInfoChange={setShowImageInfo}
@@ -3410,6 +3649,7 @@ function InfiniteCanvasPage() {
                 <CanvasZoomControls
                     scale={viewport.k}
                     onScaleChange={setZoomScale}
+                    onArrange={() => layoutSelection("arrange")}
                     onFit={resetViewport}
                     isMiniMapOpen={isMiniMapOpen}
                     onToggleMiniMap={() => setIsMiniMapOpen((value) => !value)}
@@ -3527,6 +3767,24 @@ function InfiniteCanvasPage() {
                     </DialogContent>
                 </Dialog>
 
+                <CanvasGenerationHistory
+                    open={generationHistoryOpen}
+                    projectId={projectId}
+                    onClose={() => setGenerationHistoryOpen(false)}
+                    onReuse={(record) => void reuseGenerationRecord(record).catch(() => message.error("无法读取历史参考素材"))}
+                    onInsert={(record) => void insertGenerationResults(record).catch(() => message.error("无法读取历史结果"))}
+                    onRetry={(record) => void reuseGenerationRecord(record, true).catch(() => message.error("无法读取历史参考素材"))}
+                />
+                <CanvasNodeSearchDialog open={searchOpen} nodes={nodes} onSelect={focusNode} onClose={() => setSearchOpen(false)} />
+                <CanvasNodeSearchDialog
+                    open={Boolean(connectionPicker)}
+                    title="选择连接节点"
+                    nodes={nodes.filter((node) => node.id !== connectionPicker?.nodeId && node.type !== CanvasNodeType.Group)}
+                    onSelect={(id) => {
+                        if (connectionPicker) connectNodes(connectionPicker, id);
+                    }}
+                    onClose={() => setConnectionPicker(null)}
+                />
                 <AssetPickerModal open={assetPickerOpen} onInsert={handleAssetInsert} onClose={() => setAssetPickerOpen(false)} />
             </section>
         </main>

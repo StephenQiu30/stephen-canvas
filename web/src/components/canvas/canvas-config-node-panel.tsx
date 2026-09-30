@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -6,7 +7,7 @@ import type { CSSProperties } from "react";
 
 import { ModelPicker } from "@/components/model-picker";
 import { canvasThemes } from "@/lib/canvas-theme";
-import { defaultConfig, resolveModelForCapability, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
+import { defaultConfig, resolveModelForCapability, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 import type { CanvasGenerationMode, CanvasNodeData, CanvasNodeMetadata } from "@/types/canvas";
 import { CanvasAudioSettingsPopover, type CanvasAudioSettingKey } from "./canvas-audio-settings-popover";
@@ -15,6 +16,7 @@ import { CanvasTextSettingsPopover } from "./canvas-text-settings-popover";
 import { CanvasVideoSettingsPopover } from "./canvas-video-settings-popover";
 
 type CanvasConfigNodePanelProps = {
+    compact?: boolean;
     node: CanvasNodeData;
     isRunning: boolean;
     inputSummary: { textCount: number; imageCount: number; videoCount: number; audioCount: number };
@@ -24,7 +26,7 @@ type CanvasConfigNodePanelProps = {
     onComposerToggle: () => void;
 };
 
-export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigChange, onGenerate, onStop, onComposerToggle }: CanvasConfigNodePanelProps) {
+export function CanvasConfigNodePanel({ compact = false, node, isRunning, inputSummary, onConfigChange, onGenerate, onStop, onComposerToggle }: CanvasConfigNodePanelProps) {
     const globalConfig = useEffectiveConfig();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const mode = node.metadata?.generationMode || "image";
@@ -32,10 +34,28 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
     const chipStyle = { background: theme.node.fill, borderColor: theme.node.stroke, color: theme.node.text };
     const hasAnyInput = Boolean(inputSummary.textCount || inputSummary.imageCount || inputSummary.videoCount || inputSummary.audioCount);
     const hasComposerContent = Boolean((node.metadata?.composerContent ?? node.metadata?.prompt ?? "").trim());
-    const canGenerate = hasComposerContent || (mode === "audio" ? inputSummary.textCount > 0 : hasAnyInput);
+    const isAiConfigReady = useConfigStore((state) => state.isAiConfigReady);
+    const ready = isAiConfigReady(config, config.model);
+    const unavailableReason = config.model.trim() ? "生成服务尚未接入" : "暂无可用模型，等待宿主接入生成服务";
+    const canGenerate = ready && (hasComposerContent || (mode === "audio" ? inputSummary.textCount > 0 : hasAnyInput));
+    if (compact)
+        return (
+            <div className="flex h-full flex-col gap-3 px-3 pb-3 pt-7 text-sm">
+                <span className="font-semibold">生成配置 · {{ image: "图片", text: "文本", video: "视频", audio: "音频" }[mode]}</span>
+                <span className="truncate text-xs text-muted-foreground">{config.model || "暂无可用模型"}</span>
+                <span className="text-xs text-muted-foreground">
+                    文本 {inputSummary.textCount} · 图片 {inputSummary.imageCount} · 视频 {inputSummary.videoCount} · 音频 {inputSummary.audioCount}
+                </span>
+                {!ready ? <span className="text-xs text-muted-foreground">{unavailableReason}</span> : null}
+                <Button variant="ghost" size="sm" className="mt-auto" onMouseDown={(event) => event.stopPropagation()} onClick={onComposerToggle}>
+                    <Settings2 data-icon="inline-start" aria-hidden />
+                    编辑配置与提示词
+                </Button>
+            </div>
+        );
 
     return (
-        <div className="flex h-full w-full cursor-move flex-col px-3 pb-3 pt-7 text-sm" style={{ color: theme.node.text }} onWheel={(event) => event.stopPropagation()}>
+        <div className="flex w-full flex-col px-3 pb-3 pt-3 text-sm" style={{ color: theme.node.text }} onWheel={(event) => event.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="shrink-0 text-sm font-semibold">{"生成配置"}</div>
                 <div className="cursor-default" onMouseDown={(event) => event.stopPropagation()}>
@@ -130,6 +150,11 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                 )}
             </div>
 
+            {!ready && !isRunning ? (
+                <Alert className="mb-2">
+                    <AlertDescription>{unavailableReason}</AlertDescription>
+                </Alert>
+            ) : null}
             <Button
                 onMouseDown={(event) => event.stopPropagation()}
                 onClick={() => (isRunning ? onStop(node.id) : onGenerate(node.id))}
@@ -137,6 +162,8 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                 variant={isRunning ? "destructive" : "default"}
                 size="lg"
                 disabled={!isRunning && !canGenerate}
+                data-disabled={!isRunning && !canGenerate}
+                title={!ready && !isRunning ? unavailableReason : "开始生成（Ctrl / Cmd + Enter）"}
                 className="mt-auto w-full"
             >
                 <span className="inline-flex items-center gap-1.5">

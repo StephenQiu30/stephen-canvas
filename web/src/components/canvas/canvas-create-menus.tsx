@@ -32,20 +32,34 @@ export function ConnectionCreateMenu({
             <PopoverAnchor asChild>
                 <span className="absolute" style={{ left: pending.position.x, top: pending.position.y }} />
             </PopoverAnchor>
-            <PopoverContent align="start" sideOffset={0} className="w-[300px] p-3" data-connection-create-menu onMouseDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+            <PopoverContent
+                collisionPadding={{ top: 72, bottom: 88, left: 16, right: 16 }}
+                updatePositionStrategy="always"
+                onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    (document.querySelector<HTMLElement>("[data-canvas-node-editor] [role='textbox']") || document.querySelector<HTMLElement>("[data-canvas-viewport]"))?.focus({ preventScroll: true });
+                }}
+                align="start"
+                sideOffset={0}
+                className="w-[300px] p-3"
+                data-connection-create-menu
+                data-canvas-no-zoom
+                onMouseDown={(event) => event.stopPropagation()}
+                onPointerDown={(event) => event.stopPropagation()}
+            >
                 <div className="mb-2 flex items-center justify-between px-1">
                     <span className="text-sm font-medium" style={{ color: theme.node.muted }}>
                         {"引用该节点生成"}
                     </span>
-                    <Button variant="ghost" type="button" className="grid size-7 place-items-center rounded-lg text-base opacity-55 transition hover:bg-white/10 hover:opacity-100" onClick={onClose} aria-label={"关闭"}>
-                        ×
+                    <Button variant="ghost" type="button" size="icon-sm" onClick={onClose} aria-label={"关闭"}>
+                        <X data-icon="inline-start" aria-hidden />
                     </Button>
                 </div>
                 <div className="grid gap-1">
                     <ConnectionCreateOption theme={theme} icon={<List className="size-5" />} title={"文本生成"} description={"脚本、广告词、品牌文案"} onClick={() => onCreate(CanvasNodeType.Text)} />
                     <ConnectionCreateOption theme={theme} icon={<ImageIcon className="size-5" />} title={"图片生成"} onClick={() => onCreate(CanvasNodeType.Image)} />
                     <ConnectionCreateOption theme={theme} icon={<Video className="size-5" />} title={"视频生成"} onClick={() => onCreate(CanvasNodeType.Video)} />
-                    <ConnectionCreateOption theme={theme} icon={<Music2 className="size-5" />} title={"音频参考"} onClick={() => onCreate(CanvasNodeType.Audio)} />
+                    <ConnectionCreateOption theme={theme} icon={<Music2 className="size-5" />} title={"音频生成"} onClick={() => onCreate(CanvasNodeType.Audio)} />
                     <ConnectionCreateOption theme={theme} icon={<Settings2 className="size-5" />} title={"配置节点"} description={"模型、尺寸、数量和输入顺序"} onClick={() => onCreate(CanvasNodeType.Config)} />
                 </div>
             </PopoverContent>
@@ -83,7 +97,19 @@ export function NodeCreateMenu({ position, onCreate, onClose }: { position: Posi
             <PopoverAnchor asChild>
                 <span className="absolute" style={{ left: position.x, top: position.y }} />
             </PopoverAnchor>
-            <PopoverContent align="start" sideOffset={0} className="max-h-[70vh] w-[300px] overflow-y-auto p-3" data-canvas-no-zoom onPointerDown={(event) => event.stopPropagation()}>
+            <PopoverContent
+                collisionPadding={{ top: 72, bottom: 88, left: 16, right: 16 }}
+                updatePositionStrategy="always"
+                onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    (document.querySelector<HTMLElement>("[data-canvas-node-editor] [role='textbox']") || document.querySelector<HTMLElement>("[data-canvas-viewport]"))?.focus({ preventScroll: true });
+                }}
+                align="start"
+                sideOffset={0}
+                className="max-h-[70vh] w-[300px] overflow-y-auto p-3"
+                data-canvas-no-zoom
+                onPointerDown={(event) => event.stopPropagation()}
+            >
                 <div className="mb-2 flex items-center justify-between px-1">
                     <span className="text-sm font-medium" style={{ color: theme.node.muted }}>
                         {"选择节点"}

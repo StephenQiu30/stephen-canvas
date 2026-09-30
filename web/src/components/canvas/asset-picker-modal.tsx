@@ -5,7 +5,7 @@ import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Pagination, PaginationContent, PaginationItem } from "@/components/ui/pagination";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Search, X } from "lucide-react";
+import { FileText, ImageIcon, Music2, Search, Video, X } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { getImagePreviewRevision, subscribeImagePreviews } from "@/services/image-storage";
@@ -14,16 +14,18 @@ import { assetCoverUrl, useAssetStore, type Asset } from "@/stores/use-asset-sto
 export type InsertAssetPayload =
     | { kind: "text"; content: string; title: string }
     | { kind: "image"; dataUrl: string; title: string; storageKey?: string }
+    | { kind: "audio"; url: string; title: string; storageKey?: string; bytes?: number; mimeType?: string; durationMs?: number }
     | { kind: "video"; url: string; title: string; storageKey?: string; width?: number; height?: number };
 
 type Props = {
     open: boolean;
     defaultTab?: string;
+    allowedKinds?: Asset["kind"][];
     onInsert: (payload: InsertAssetPayload) => void;
     onClose: () => void;
 };
 
-export function AssetPickerModal({ open, onInsert, onClose }: Props) {
+export function AssetPickerModal({ open, allowedKinds, onInsert, onClose }: Props) {
     return (
         <Dialog
             open={open}
@@ -36,7 +38,7 @@ export function AssetPickerModal({ open, onInsert, onClose }: Props) {
                     <DialogTitle>{"选择资产"}</DialogTitle>
                 </DialogHeader>
                 <div style={{ padding: "0 24px 24px", minHeight: 480 }}>
-                    <MyAssetsTab onInsert={onInsert} />
+                    <MyAssetsTab onInsert={onInsert} allowedKinds={allowedKinds} />
                 </div>
             </DialogContent>
         </Dialog>
@@ -45,12 +47,19 @@ export function AssetPickerModal({ open, onInsert, onClose }: Props) {
 
 const PAGE_SIZE = 8;
 
-const kindOptions = ["all", "text", "image", "video"];
+const kindOptions = ["all", "text", "image", "video", "audio"];
 
 function PickerCard({ title, kind, cover, onClick }: { title: string; kind: string; cover: string; onClick: () => void }) {
+    const Icon = ({ text: FileText, image: ImageIcon, video: Video, audio: Music2 } as const)[kind as Asset["kind"]];
     return (
-        <Button variant="ghost" type="button" className="group relative cursor-pointer overflow-hidden rounded-lg border border-border bg-card text-left transition hover:border-foreground/30 hover:shadow-md" onClick={onClick}>
-            {cover ? <img src={cover} alt={title} className="aspect-[4/3] w-full object-cover" /> : <div className="flex aspect-[4/3] items-center justify-center bg-muted p-3 text-center text-xs leading-5 text-muted-foreground  ">{title}</div>}
+        <Button variant="ghost" type="button" className="group relative flex h-auto flex-col cursor-pointer overflow-hidden rounded-lg border border-border bg-card text-left transition hover:border-foreground/30 hover:shadow-md" onClick={onClick}>
+            {cover ? (
+                <img src={cover} alt={title} className="aspect-[4/3] w-full object-cover" />
+            ) : (
+                <div className="flex aspect-[4/3] w-full items-center justify-center p-3 text-muted-foreground">
+                    <Icon className="size-8" aria-hidden />
+                </div>
+            )}
             <div className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
                     <span className="line-clamp-1 text-xs font-medium text-brand-body ">{title}</span>
@@ -64,7 +73,7 @@ function PickerCard({ title, kind, cover, onClick }: { title: string; kind: stri
     );
 }
 
-function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => void }) {
+function MyAssetsTab({ onInsert, allowedKinds }: { onInsert: (payload: InsertAssetPayload) => void; allowedKinds?: Asset["kind"][] }) {
     useSyncExternalStore(subscribeImagePreviews, getImagePreviewRevision);
     const assets = useAssetStore((state) => state.assets);
     const [keyword, setKeyword] = useState("");
@@ -74,10 +83,10 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
     const filtered = useMemo(() => {
         const query = keyword.trim().toLowerCase();
         return assets
-            .filter((a) => a.kind === "text" || a.kind === "image" || a.kind === "video")
+            .filter((asset) => !allowedKinds || allowedKinds.includes(asset.kind))
             .filter((a) => kindFilter === "all" || a.kind === kindFilter)
             .filter((a) => !query || [a.title, ...(a.tags || [])].join(" ").toLowerCase().includes(query));
-    }, [assets, keyword, kindFilter]);
+    }, [allowedKinds, assets, keyword, kindFilter]);
 
     const visible = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
 
@@ -89,6 +98,8 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
     const handleInsert = (asset: Asset) => {
         if (asset.kind === "text") {
             onInsert({ kind: "text", content: asset.data.content, title: asset.title });
+        } else if (asset.kind === "audio") {
+            onInsert({ kind: "audio", ...asset.data, title: asset.title });
         } else {
             onInsert(
                 asset.kind === "video"
@@ -135,16 +146,18 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
                     className="flex-wrap"
                     aria-label="资产类型"
                 >
-                    {kindOptions.map((option) => (
-                        <ToggleGroupItem key={option} value={option}>
-                            {option === "all" ? "全部" : ({ text: "文本", image: "图片", video: "视频", audio: "音频" } as Record<string, string>)[String(option)] || String(option)}
-                        </ToggleGroupItem>
-                    ))}
+                    {kindOptions
+                        .filter((option) => option === "all" || !allowedKinds || allowedKinds.includes(option as Asset["kind"]))
+                        .map((option) => (
+                            <ToggleGroupItem key={option} value={option}>
+                                {option === "all" ? "全部" : ({ text: "文本", image: "图片", video: "视频", audio: "音频" } as Record<string, string>)[String(option)] || String(option)}
+                            </ToggleGroupItem>
+                        ))}
                 </ToggleGroup>
             </div>
 
             {visible.length ? (
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {visible.map((asset) => (
                         <PickerCard key={asset.id} title={asset.title} kind={asset.kind} cover={assetCoverUrl(asset)} onClick={() => handleInsert(asset)} />
                     ))}

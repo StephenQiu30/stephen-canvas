@@ -31,6 +31,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { WorkspaceCardSkeleton } from "@/components/workspace/workspace-card-skeleton";
 import { Select as PageSizeSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCopyText } from "@/hooks/use-copy-text";
+import { audioExtension } from "@/lib/canvas/canvas-generation-helpers";
 import { formatBytes, readFileAsDataUrl } from "@/lib/image-utils";
 import { cn } from "@/lib/utils";
 import { getMediaBlob } from "@/services/file-storage";
@@ -51,7 +52,7 @@ type AssetFormValues = {
 
 type ImageDraft = ImageAsset["data"] | null;
 
-const kindOptions = ["all", "text", "image", "video"] as const;
+const kindOptions = ["all", "text", "image", "video", "audio"] as const;
 
 export default function AssetsPage() {
     const { message } = useAppFeedback();
@@ -84,7 +85,7 @@ export default function AssetsPage() {
     const title = form.watch("title") || "";
     const tags = form.watch("tags") || [];
     const content = form.watch("content") || "";
-    const validAssets = useMemo(() => assets.filter((asset) => asset.kind === "text" || asset.kind === "image" || asset.kind === "video"), [assets]);
+    const validAssets = useMemo(() => assets, [assets]);
 
     useEffect(() => {
         if (!requestedAssetId || openedAssetId.current === requestedAssetId) return;
@@ -155,6 +156,8 @@ export default function AssetsPage() {
         if (values.kind === "text") {
             const asset = { ...base, kind: "text" as const, data: { content: (values.content || "").trim() } };
             editingAsset ? updateAsset(editingAsset.id, asset) : addAsset(asset);
+        } else if (editingAsset && (editingAsset.kind === "audio" || editingAsset.kind === "video")) {
+            updateAsset(editingAsset.id, { ...base, kind: editingAsset.kind, data: editingAsset.data });
         } else {
             if (!imageDraft) {
                 message.error("请选择图片文件");
@@ -189,14 +192,14 @@ export default function AssetsPage() {
     };
 
     const downloadImage = async (asset: Asset) => {
-        if (asset.kind !== "image" && asset.kind !== "video") return;
+        if (asset.kind === "text") return;
         try {
             const blob = await readAssetMediaBlob(asset);
             if (!blob) {
                 message.error("下载失败，请稍后重试");
                 return;
             }
-            const ext = asset.data.mimeType?.split("/")[1]?.split("+")[0] || (asset.kind === "video" ? "mp4" : "png");
+            const ext = asset.kind === "audio" ? audioExtension(asset.data.mimeType) : asset.data.mimeType?.split("/")[1]?.split("+")[0] || (asset.kind === "video" ? "mp4" : "png");
             saveAs(blob, `${asset.title || "asset"}.${ext}`);
         } catch {
             message.error("下载失败，请稍后重试");
@@ -322,7 +325,7 @@ export default function AssetsPage() {
                                                   <DropdownMenuContent align="end">
                                                       <DropdownMenuGroup>
                                                           <DropdownMenuItem onSelect={() => setPreviewAsset(asset)}>查看详情</DropdownMenuItem>
-                                                          {asset.kind !== "video" && (
+                                                          {(asset.kind === "text" || asset.kind === "image" || asset.kind === "audio") && (
                                                               <DropdownMenuItem onSelect={() => openEdit(asset)}>
                                                                   <PencilLine aria-hidden />
                                                                   编辑素材
@@ -465,10 +468,11 @@ export default function AssetsPage() {
                                     name="kind"
                                     control={form.control}
                                     render={({ field, fieldState }) => (
-                                        <Field data-invalid={fieldState.invalid}>
+                                        <Field data-invalid={fieldState.invalid} data-disabled={formKind === "audio" || formKind === "video"}>
                                             <FieldLabel htmlFor="asset-kind">{"类型"}</FieldLabel>
                                             <Select
                                                 value={field.value}
+                                                disabled={formKind === "audio" || formKind === "video"}
                                                 onValueChange={(value) => {
                                                     field.onChange(value);
                                                     setFormKind(value as AssetKind);
@@ -481,6 +485,8 @@ export default function AssetsPage() {
                                                     <SelectGroup>
                                                         <SelectItem value="text">{"文本"}</SelectItem>
                                                         <SelectItem value="image">{"图片"}</SelectItem>
+                                                        {formKind === "audio" ? <SelectItem value="audio">音频</SelectItem> : null}
+                                                        {formKind === "video" ? <SelectItem value="video">视频</SelectItem> : null}
                                                     </SelectGroup>
                                                 </SelectContent>
                                             </Select>
@@ -631,6 +637,11 @@ export default function AssetsPage() {
                                             </Field>
                                         )}
                                     />
+                                ) : formKind === "audio" && editingAsset?.kind === "audio" ? (
+                                    <Field>
+                                        <FieldLabel>音频内容</FieldLabel>
+                                        <audio src={editingAsset.data.url} controls className="w-full" />
+                                    </Field>
                                 ) : (
                                     <Field>
                                         <FieldLabel>{"图片内容"}</FieldLabel>
@@ -776,11 +787,13 @@ function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | nu
                                 </p>
                             </div>
                             <div className="rounded-lg border border-border p-4 ">
-                                <span className="block text-xs text-muted-foreground">{asset.kind === "text" ? "文本内容" : asset.kind === "video" ? "视频预览" : "图片信息"}</span>
+                                <span className="block text-xs text-muted-foreground">{asset.kind === "text" ? "文本内容" : asset.kind === "video" ? "视频预览" : asset.kind === "audio" ? "音频预览" : "图片信息"}</span>
                                 {asset.kind === "text" ? (
                                     <p className={"mt-2 whitespace-pre-wrap"}>{asset.data.content}</p>
                                 ) : asset.kind === "video" ? (
                                     <video src={asset.data.url} controls className="mt-2 aspect-video w-full rounded-lg bg-muted" />
+                                ) : asset.kind === "audio" ? (
+                                    <audio src={asset.data.url} controls className="mt-2 w-full" />
                                 ) : (
                                     <span className={"mt-2 block"}>
                                         {asset.data.width}x{asset.data.height}· {formatBytes(asset.data.bytes)}· {asset.data.mimeType}
@@ -800,10 +813,10 @@ function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | nu
                                         {"复制文本"}
                                     </Button>
                                 ) : null}
-                                {asset.kind === "image" || asset.kind === "video" ? (
+                                {asset.kind !== "text" ? (
                                     <Button onClick={() => onDownload(asset)} type={"button"} variant={"default"} size="default">
                                         {<Download data-icon="inline-start" aria-hidden />}
-                                        {asset.kind === "video" ? "下载视频" : "下载图片"}
+                                        {asset.kind === "video" ? "下载视频" : asset.kind === "audio" ? "下载音频" : "下载图片"}
                                     </Button>
                                 ) : null}
                             </div>
@@ -815,13 +828,13 @@ function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | nu
     );
 }
 
-async function readAssetMediaBlob(asset: Extract<Asset, { kind: "image" | "video" }>) {
+async function readAssetMediaBlob(asset: Extract<Asset, { kind: "image" | "video" | "audio" }>) {
     const storageKey = asset.data.storageKey;
     if (storageKey) {
         const stored = asset.kind === "image" ? await getImageBlob(storageKey) : await getMediaBlob(storageKey);
         if (stored) return stored;
     }
-    const url = asset.kind === "video" ? asset.data.url : asset.data.dataUrl || asset.coverUrl;
+    const url = asset.kind === "image" ? asset.data.dataUrl || asset.coverUrl : asset.data.url;
     if (!url) return null;
     const response = await fetch(url);
     return response.ok ? response.blob() : null;

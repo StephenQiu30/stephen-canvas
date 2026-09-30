@@ -203,8 +203,18 @@ export function CanvasTopBar({
                     </DialogHeader>
                     <div>
                         <div className="flex flex-col gap-2 border-t pt-4 text-sm" style={{ borderColor: theme.node.stroke }}>
-                            <Shortcut keys={["Ctrl / Space", "拖动"]} value={"临时切换选择 / 移动"} />
-                            <Shortcut keys={["滚轮"]} value={"缩放画布"} />
+                            <Shortcut keys={["V / H"]} value="选择 / 移动工具" />
+                            <Shortcut keys={["Space", "拖动"]} value="临时移动画布" />
+                            <Shortcut keys={["滚轮 / 触控板"]} value="平移画布" />
+                            <Shortcut keys={["Ctrl / Cmd", "滚轮 / 捏合"]} value="缩放画布" />
+                            <Shortcut keys={["Tab / 双击画布"]} value="在未选节点的画布添加节点" />
+                            <Shortcut keys={["Ctrl / Cmd", "D"]} value="创建选区副本" />
+                            <Shortcut keys={["Option / Alt", "拖动"]} value="拖动复制节点" />
+                            <Shortcut keys={["Ctrl / Cmd", "F"]} value="搜索并定位节点" />
+                            <Shortcut keys={["Ctrl / Cmd", "L"]} value="连接选中节点" />
+                            <Shortcut keys={["Option / Alt", "Shift", "F"]} value="整理选区或画布" />
+                            <Shortcut keys={["方向键 / Shift + 方向键"]} value="微调选区位置 / 按网格移动" />
+                            <Shortcut keys={["Ctrl / Cmd", "Enter"]} value="在创作输入框生成，Enter 换行" />
                             <Shortcut keys={["Ctrl / Cmd", "0"]} value="适合屏幕" />
                             <Shortcut keys={["Ctrl / Cmd", "+ / −"]} value="放大 / 缩小画布" />
                             <Shortcut keys={["拖动"]} value={"框选多个节点"} />

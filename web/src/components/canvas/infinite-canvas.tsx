@@ -4,6 +4,7 @@ import { canvasThemes, type CanvasBackgroundMode } from "@/lib/canvas-theme";
 import { CANVAS_GRID_SIZE, zoomAt } from "@/lib/canvas/canvas-viewport";
 import { useThemeStore } from "@/stores/use-theme-store";
 import type { ViewportTransform } from "@/types/canvas";
+import { isImeComposing } from "@/lib/keyboard-event";
 
 type InfiniteCanvasProps = {
     containerRef: React.RefObject<HTMLDivElement | null>;
@@ -36,7 +37,6 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
     const frameRef = useRef<number | null>(null);
     const nextViewportRef = useRef<ViewportTransform | null>(null);
     const [isSpacePressed, setIsSpacePressed] = useState(false);
-    const [isControlPressed, setIsControlPressed] = useState(false);
     const [isPanning, setIsPanning] = useState(false);
 
     useLayoutEffect(() => {
@@ -55,8 +55,7 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             const target = event.target instanceof Element ? event.target : null;
-            if (target?.closest("input,textarea,select,button,a,[contenteditable='true'],[role='dialog'],[role='menu'],[role='listbox'],[data-canvas-no-zoom],[data-slot='popover-content']")) return;
-            if (event.key === "Control") setIsControlPressed(true);
+            if (isImeComposing(event) || target?.closest("input,textarea,select,button,a,[contenteditable='true'],[role='dialog'],[role='menu'],[role='listbox'],[data-canvas-no-zoom],[data-slot='popover-content']")) return;
             if (event.code !== "Space") return;
             event.preventDefault();
             setIsSpacePressed(true);
@@ -66,7 +65,6 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
             if (event.code === "Space") {
                 setIsSpacePressed(false);
             }
-            if (event.key === "Control") setIsControlPressed(false);
         };
 
         const handleBlur = () => {
@@ -74,7 +72,6 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
             frameRef.current = null;
             nextViewportRef.current = null;
             setIsSpacePressed(false);
-            setIsControlPressed(false);
             panState.current.isPanning = false;
             setIsPanning(false);
             document.body.style.cursor = "";
@@ -95,8 +92,7 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
         if (target?.closest("[data-canvas-no-zoom],[data-canvas-no-pan]")) return;
         if (target?.closest("[data-connection-create-menu]")) return;
         const isBackgroundClick = !target?.closest("[data-node-id],[data-connection-id]");
-        const temporaryTool = event.ctrlKey || isSpacePressed;
-        const activeTool = temporaryTool ? (tool === "select" ? "pan" : "select") : tool;
+        const activeTool = isSpacePressed ? "pan" : tool;
         const shouldPan = event.button === 1 || (event.button === 0 && activeTool === "pan");
 
         if (shouldPan) {
@@ -119,6 +115,7 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
 
         if (event.eventPhase === 1) return;
         if (event.button === 0 && isBackgroundClick) {
+            event.currentTarget.focus({ preventScroll: true });
             event.preventDefault();
             event.currentTarget.setPointerCapture(event.pointerId);
             onCanvasMouseDown?.(event);
@@ -194,10 +191,14 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
             const target = event.target instanceof Element ? event.target : null;
             if (target?.closest('[data-canvas-no-zoom],[data-slot="dialog-content"],[data-slot="popover-content"],[data-slot="dropdown-menu-content"],[data-slot="select-content"]')) return;
             event.preventDefault();
-            if (panState.current.isPanning || event.deltaY === 0) return;
+            if (panState.current.isPanning) return;
             const rect = container.getBoundingClientRect();
-            const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? rect.height : 1);
-            const next = zoomAt(viewportRef.current, { x: event.clientX - rect.left, y: event.clientY - rect.top }, viewportRef.current.k * Math.pow(1.1, -delta / 100));
+            const dx = event.deltaX * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? rect.width : 1);
+            const dy = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? rect.height : 1);
+            const next =
+                event.ctrlKey || event.metaKey
+                    ? zoomAt(viewportRef.current, { x: event.clientX - rect.left, y: event.clientY - rect.top }, viewportRef.current.k * Math.pow(1.1, -dy / 100))
+                    : { ...viewportRef.current, x: viewportRef.current.x - dx, y: viewportRef.current.y - dy };
             // Update immediately: multiple wheel events can arrive before React commits a frame.
             viewportRef.current = next;
             changeRef.current(next);
@@ -206,8 +207,7 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
         return () => container.removeEventListener("wheel", handleWheel);
     }, [containerRef]);
 
-    const temporaryTool = isControlPressed || isSpacePressed;
-    const activeTool = temporaryTool ? (tool === "select" ? "pan" : "select") : tool;
+    const activeTool = isSpacePressed ? "pan" : tool;
     const cursor = isPanning ? "grabbing" : activeTool === "pan" ? "grab" : undefined;
 
     return (
@@ -215,6 +215,9 @@ export function InfiniteCanvas({ containerRef, viewport, tool, backgroundMode = 
             ref={containerRef}
             className="relative h-full w-full touch-none select-none overflow-hidden"
             data-canvas-viewport
+            tabIndex={0}
+            role="region"
+            aria-label="创作画布"
             style={{ background: theme.canvas.background, cursor }}
             onPointerDownCapture={(event) => {
                 const target = event.target instanceof Element ? event.target : null;
@@ -251,7 +254,9 @@ function CanvasGrid({ viewport, mode }: { viewport: ViewportTransform; mode: Can
     const y = viewport.y % gridSize;
     const dotSize = 0.65;
     const backgroundImage =
-        mode === "dots" ? `radial-gradient(circle at 0.5px 0.5px, ${theme.canvas.dot} ${dotSize}px, transparent ${dotSize + 0.2}px)` : `linear-gradient(${theme.canvas.line} 1px, transparent 1px), linear-gradient(90deg, ${theme.canvas.line} 1px, transparent 1px)`;
+        mode === "dots"
+            ? `radial-gradient(circle at 0.5px 0.5px, ${theme.canvas.dot} ${dotSize}px, transparent ${dotSize + 0.2}px)`
+            : `linear-gradient(${theme.canvas.line} 1px, transparent 1px), linear-gradient(90deg, ${theme.canvas.line} 1px, transparent 1px)`;
 
     return (
         <div

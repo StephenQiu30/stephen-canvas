@@ -2,6 +2,7 @@ import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,8 @@ import { IMAGE_QUICK_TOOLS_STORAGE_KEY, buildImageToolbarTools, defaultImageQuic
 
 type CanvasNodeHoverToolbarProps = {
     node: CanvasNodeData | null;
+    inline?: boolean;
+    onDismiss: () => void;
     viewport: ViewportTransform;
     onKeep: (nodeId: string) => void;
     onLeave: () => void;
@@ -27,6 +30,7 @@ type CanvasNodeHoverToolbarProps = {
     onDecreaseFont: (node: CanvasNodeData) => void;
     onIncreaseFont: (node: CanvasNodeData) => void;
     onToggleDialog: (node: CanvasNodeData) => void;
+    onEditText: (node: CanvasNodeData) => void;
     onGenerateImage: (node: CanvasNodeData) => void;
     onUpload: (node: CanvasNodeData) => void;
     onDownload: (node: CanvasNodeData) => void;
@@ -58,6 +62,8 @@ type ToolbarTool = {
 
 export function CanvasNodeHoverToolbar({
     node,
+    inline = false,
+    onDismiss,
     viewport,
     onKeep,
     onLeave,
@@ -65,6 +71,7 @@ export function CanvasNodeHoverToolbar({
     onDecreaseFont,
     onIncreaseFont,
     onToggleDialog,
+    onEditText,
     onGenerateImage,
     onUpload,
     onDownload,
@@ -112,8 +119,8 @@ export function CanvasNodeHoverToolbar({
     if (!node) return null;
 
     const activeNode = node;
-    const left = viewport.x + (node.position.x + node.width / 2) * viewport.k;
-    const top = viewport.y + node.position.y * viewport.k - 14;
+    const left = viewport.x + node.position.x * viewport.k;
+    const top = viewport.y + node.position.y * viewport.k;
     const isImage = node.type === CanvasNodeType.Image;
     const isVideo = node.type === CanvasNodeType.Video;
     const isAudio = node.type === CanvasNodeType.Audio;
@@ -150,9 +157,11 @@ export function CanvasNodeHoverToolbar({
     const nodeToolbarTools: ToolbarTool[] = [
         ...(canQueryVideoTask ? [{ id: "queryVideoTask", title: "使用任务 ID 查询视频生成状态", label: "获取任务状态", icon: <RefreshCw data-icon="inline-start" aria-hidden />, onClick: () => onRetry(node) }] : []),
         ...(canRetry ? [{ id: "retry", title: "重新生成", label: "重试", icon: <RefreshCw data-icon="inline-start" aria-hidden />, onClick: () => onRetry(node) }] : []),
-        ...(hasImage || hasVideo || isText ? [{ id: "saveAsset", title: "加入我的资产", label: "存资产", icon: <FolderPlus data-icon="inline-start" aria-hidden />, onClick: () => onSaveAsset(node) }] : []),
+        ...(hasImage || hasVideo || hasAudio || isText ? [{ id: "saveAsset", title: "加入我的资产", label: "存资产", icon: <FolderPlus data-icon="inline-start" aria-hidden />, onClick: () => onSaveAsset(node) }] : []),
         ...(hasImage || hasVideo || hasAudio ? [{ id: "download", title: hasAudio ? "下载音频" : hasVideo ? "下载视频" : "下载图片", label: "下载", icon: <Download data-icon="inline-start" aria-hidden />, onClick: () => onDownload(node) }] : []),
-        ...(isVideo ? [{ id: "edit", title: "编辑", label: "编辑", icon: <MessageSquare data-icon="inline-start" aria-hidden />, onClick: () => onToggleDialog(node) }] : []),
+        ...(isImage || isVideo || isAudio || isText
+            ? [{ id: "edit", title: isText ? "编辑节点文本" : "编辑", label: "编辑", icon: <MessageSquare data-icon="inline-start" aria-hidden />, onClick: () => (isText ? onEditText(node) : onToggleDialog(node)) }]
+            : []),
         ...(isText ? [{ id: "generateImage", title: "用文本生图", label: "生图", icon: <ImageIcon data-icon="inline-start" aria-hidden />, onClick: () => onGenerateImage(node) }] : []),
         ...(isConfig ? [{ id: "config", title: "生成配置", label: "生成配置", icon: <Settings2 data-icon="inline-start" aria-hidden />, onClick: () => onToggleDialog(node) }] : []),
         ...(isText ? [{ id: "decreaseFont", title: "减小字号", label: "缩小", icon: <Minus data-icon="inline-start" aria-hidden />, onClick: () => onDecreaseFont(node) }] : []),
@@ -187,23 +196,59 @@ export function CanvasNodeHoverToolbar({
         closeImageToolSettings();
     };
 
+    const actions = (
+        <div
+            data-node-toolbar
+            data-canvas-no-zoom
+            className="flex flex-wrap items-center gap-1 px-1"
+            onMouseEnter={() => onKeep(node.id)}
+            onMouseLeave={() => {
+                if (!imageToolSettingsOpen) onLeave();
+            }}
+        >
+            {toolbarTools.map((tool) => (
+                <ToolbarAction key={tool.id} {...tool} showLabel={inline ? false : isImage ? showImageToolLabels : true} />
+            ))}
+            {hasImage ? (
+                <ToolbarAction id="more" title="配置快捷工具" label="更多" icon={<Ellipsis data-icon="inline-start" aria-hidden />} active={imageToolSettingsOpen} onClick={openImageToolSettings} showLabel={inline ? false : showImageToolLabels} />
+            ) : null}
+        </div>
+    );
     return (
         <>
-            <div
-                className="absolute z-[70] flex h-12 -translate-x-1/2 -translate-y-full items-center overflow-visible rounded-xl border text-[15px] shadow-overlay"
-                style={{ left, top, background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.node.text }}
-                onMouseEnter={() => onKeep(node.id)}
-                onMouseLeave={() => {
-                    if (!imageToolSettingsOpen) onLeave();
-                }}
-                onMouseDown={(event) => event.stopPropagation()}
-                onPointerDown={(event) => event.stopPropagation()}
-            >
-                {toolbarTools.map((tool) => (
-                    <ToolbarAction key={tool.id} {...tool} showLabel={isImage ? showImageToolLabels : true} />
-                ))}
-                {hasImage ? <ToolbarAction id="more" title={"配置快捷工具"} label={"更多"} icon={<Ellipsis data-icon="inline-start" aria-hidden />} active={imageToolSettingsOpen} onClick={openImageToolSettings} showLabel={showImageToolLabels} /> : null}
-            </div>
+            {inline ? (
+                actions
+            ) : (
+                <Popover
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) onDismiss();
+                    }}
+                >
+                    <PopoverAnchor asChild>
+                        <div className="pointer-events-none absolute" style={{ left, top, width: node.width * viewport.k, height: node.height * viewport.k }} />
+                    </PopoverAnchor>
+                    <PopoverContent
+                        role="toolbar"
+                        aria-label="节点操作"
+                        side="top"
+                        sideOffset={14}
+                        collisionPadding={{ top: 72, bottom: 88, left: 16, right: 16 }}
+                        updatePositionStrategy="always"
+                        className="z-[70] w-auto max-w-[calc(100vw-2rem)] p-0"
+                        data-node-toolbar
+                        data-canvas-no-zoom
+                        onOpenAutoFocus={(event) => event.preventDefault()}
+                        onCloseAutoFocus={(event) => {
+                            event.preventDefault();
+                            (document.querySelector<HTMLElement>("[data-canvas-node-editor] [role='textbox']") || document.querySelector<HTMLElement>("[data-canvas-viewport]"))?.focus({ preventScroll: true });
+                        }}
+                        onInteractOutside={(event) => event.preventDefault()}
+                    >
+                        {actions}
+                    </PopoverContent>
+                </Popover>
+            )}
             {hasImage ? (
                 <ImageToolSettingsModal
                     open={imageToolSettingsOpen}

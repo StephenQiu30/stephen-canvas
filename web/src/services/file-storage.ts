@@ -5,6 +5,7 @@ export type UploadedFile = { url: string; storageKey: string; bytes: number; mim
 
 const store = localforage.createInstance({ name: "stephen-canvas", storeName: "media_files" });
 const objectUrls = new Map<string, string>();
+const videoLogStore = localforage.createInstance({ name: "stephen-canvas", storeName: "video_generation_logs" });
 
 export async function uploadMediaFile(input: string | Blob, prefix = "file"): Promise<UploadedFile> {
     const blob = typeof input === "string" ? await (await fetch(input)).blob() : input;
@@ -51,6 +52,9 @@ export async function deleteStoredMedia(keys: Iterable<string>) {
 
 export async function cleanupUnusedMedia(usedData: unknown) {
     const usedKeys = collectMediaStorageKeys(usedData);
+    await videoLogStore.iterate((value) => {
+        collectMediaStorageKeys(value, usedKeys);
+    });
     const unused: string[] = [];
     await store.iterate((_value, key) => {
         if (!usedKeys.has(key)) unused.push(key);

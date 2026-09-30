@@ -13,6 +13,7 @@ export function imageExtension(dataUrl: string) {
 }
 
 export function audioExtension(mimeType?: string) {
+    if (mimeType?.includes("ogg")) return "ogg";
     if (mimeType?.includes("wav")) return "wav";
     if (mimeType?.includes("opus")) return "opus";
     if (mimeType?.includes("aac")) return "aac";
@@ -47,7 +48,7 @@ export async function hydrateCanvasImages(nodes: CanvasNodeData[]) {
             const metadata = node.metadata;
             const content = metadata?.content;
             if ((node.type === CanvasNodeType.Video || node.type === CanvasNodeType.Audio) && metadata?.storageKey) return { ...node, metadata: { ...metadata, content: await resolveMediaUrl(metadata.storageKey, content) } };
-            if (node.type !== CanvasNodeType.Image || !metadata || !content) return node;
+            if (!metadata || !content || (node.type !== CanvasNodeType.Image && !metadata.mimeType?.startsWith("image/") && !metadata.storageKey?.startsWith("image:"))) return node;
             const images = await Promise.all(
                 (metadata.images || []).map(async (image) => {
                     if (!image.content) return image;
@@ -183,7 +184,7 @@ export function isAudioFile(file: File) {
 export function buildAngleLabel(params: CanvasImageAngleParams) {
     const horizontal = params.horizontalAngle === 0 ? "正面视角" : params.horizontalAngle > 0 ? `向右旋转 ${params.horizontalAngle} 度` : `向左旋转 ${Math.abs(params.horizontalAngle)} 度`;
     const pitch = params.pitchAngle === 0 ? "水平视角" : params.pitchAngle > 0 ? `俯视 ${params.pitchAngle} 度` : `仰视 ${Math.abs(params.pitchAngle)} 度`;
-    return `AI 多角度：${horizontal}，${pitch}，镜头距离 ${params.cameraDistance.toFixed(1)}，${(params.wideAngle ? "广角" : "标准")}镜头`;
+    return `AI 多角度：${horizontal}，${pitch}，镜头距离 ${params.cameraDistance.toFixed(1)}，${params.wideAngle ? "广角" : "标准"}镜头`;
 }
 
 export function buildAnglePrompt(params: CanvasImageAngleParams) {

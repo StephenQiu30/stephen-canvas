@@ -10,7 +10,7 @@ import { canvasThemes, type CanvasBackgroundMode } from "@/lib/canvas-theme";
 import { listNodeDefinitions, useNodeRegistryVersion } from "@/lib/canvas/node-registry";
 import { useCanvasSidePanelStore } from "@/stores/use-canvas-side-panel-store";
 import { useThemeStore } from "@/stores/use-theme-store";
-import { Eraser, Hand, Images, Info, MoreHorizontal, MousePointer2, Palette, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
+import { Eraser, Hand, History, Search, Images, Info, MoreHorizontal, MousePointer2, Palette, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
 import { useState } from "react";
 
 export function CanvasToolbar({
@@ -26,6 +26,8 @@ export function CanvasToolbar({
     onUpload,
     onDelete,
     onClear,
+    onOpenSearch,
+    onOpenHistory,
     onCanvasToolChange,
     onBackgroundModeChange,
     onShowImageInfoChange,
@@ -42,6 +44,8 @@ export function CanvasToolbar({
     onUpload: () => void;
     onDelete: () => void;
     onClear: () => void;
+    onOpenSearch: () => void;
+    onOpenHistory: () => void;
     onCanvasToolChange: (tool: "select" | "pan") => void;
     onBackgroundModeChange: (mode: CanvasBackgroundMode) => void;
     onShowImageInfoChange: (show: boolean) => void;
@@ -56,7 +60,7 @@ export function CanvasToolbar({
     const definitions = listNodeDefinitions().filter((definition) => definition.showInCreateMenu !== false);
 
     return (
-        <div data-canvas-no-zoom className="absolute bottom-4 left-1/2 z-50 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2" aria-label="画布工具栏">
+        <div data-canvas-toolbar data-canvas-no-zoom className="absolute bottom-4 left-1/2 z-50 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2" aria-label="画布工具栏">
             <div className="flex h-12 items-center gap-1 rounded-xl border px-2" style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border }}>
                 <Popover open={createOpen} onOpenChange={setCreateOpen}>
                     <Tooltip>
@@ -69,7 +73,18 @@ export function CanvasToolbar({
                         </TooltipTrigger>
                         <TooltipContent side="top">添加节点</TooltipContent>
                     </Tooltip>
-                    <PopoverContent side="top" align="start" sideOffset={12} className="w-64 max-h-[min(70dvh,480px)] overflow-y-auto" data-canvas-no-zoom>
+                    <PopoverContent
+                        side="top"
+                        align="start"
+                        sideOffset={12}
+                        className="w-64 max-h-[min(70dvh,480px)] overflow-y-auto"
+                        data-canvas-no-zoom
+                        onCloseAutoFocus={(event) => {
+                            event.preventDefault();
+                            const editor = document.querySelector<HTMLElement>("[data-canvas-node-editor] [role='textbox']");
+                            (editor || document.querySelector<HTMLElement>("[data-canvas-viewport]"))?.focus({ preventScroll: true });
+                        }}
+                    >
                         <p className="mb-3 text-sm font-medium">添加节点</p>
                         <div className="grid grid-cols-2 gap-1">
                             {definitions.map((definition) => (
@@ -109,10 +124,10 @@ export function CanvasToolbar({
                     }}
                     aria-label="画布操作模式"
                 >
-                    <ToggleGroupItem value="select" aria-label="选择工具" title="选择工具">
+                    <ToggleGroupItem value="select" aria-label="选择工具" title="选择工具（V）">
                         <MousePointer2 data-icon="inline-start" aria-hidden />
                     </ToggleGroupItem>
-                    <ToggleGroupItem value="pan" aria-label="移动工具" title="移动工具">
+                    <ToggleGroupItem value="pan" aria-label="移动工具" title="移动工具（H，空格临时移动）">
                         <Hand data-icon="inline-start" aria-hidden />
                     </ToggleGroupItem>
                 </ToggleGroup>
@@ -124,6 +139,14 @@ export function CanvasToolbar({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">资产管理</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon-sm" aria-label="生成历史" onClick={onOpenHistory}>
+                            <History data-icon="inline-start" aria-hidden />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">生成历史</TooltipContent>
                 </Tooltip>
                 <div className="hidden items-center @min-[560px]/canvas:flex">
                     <Button variant="ghost" size="icon-sm" aria-label="撤销" title="撤销" disabled={!canUndo} onClick={onUndo}>
@@ -188,6 +211,15 @@ export function CanvasToolbar({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="top" align="end">
                         <DropdownMenuGroup>
+                            <DropdownMenuItem onSelect={onOpenSearch}>
+                                <Search aria-hidden />
+                                搜索节点
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={onOpenHistory}>
+                                <History aria-hidden />
+                                生成历史
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem disabled={!canUndo} onSelect={onUndo}>
                                 <Undo2 aria-hidden />
                                 撤销

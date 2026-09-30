@@ -7,16 +7,16 @@ import type { ReactNode } from "react";
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
-import type { CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
 import { getNodeDefinition } from "@/lib/canvas/node-registry";
 import { buildNodeContext } from "@/lib/canvas/plugin-node-context";
+import { isImeComposing } from "@/lib/keyboard-event";
+import { CANVAS_GRID_SIZE } from "@/lib/canvas/canvas-viewport";
 import { pickImageSource } from "@/lib/image-thumbnail";
 import { formatBytes } from "@/lib/image-utils";
 import { getImagePreviewRevision, previewUrlFor, subscribeImagePreviews } from "@/services/image-storage";
 import { useThemeStore } from "@/stores/use-theme-store";
 import { CanvasNodeType, type CanvasNodeData, type CanvasNodeImage, type CanvasNodeText, type Position } from "@/types/canvas";
 import type { CanvasNodeContext, CanvasPluginHost } from "@/types/canvas-plugin";
-import { CanvasResourceMentionTextarea } from "./canvas-resource-mention-textarea";
 
 type ResizeCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 const selectionBlue = "#2f80ff";
@@ -30,12 +30,9 @@ type CanvasNodeProps = {
     isConnectionTarget: boolean;
     isConnecting: boolean;
     referenceSelectionState?: "target" | "disabled" | "available";
-    showPanel: boolean;
     showImageInfo: boolean;
-    mentionReferences?: CanvasResourceReference[];
     pluginHost?: CanvasPluginHost;
     registryVersion?: number;
-    renderPanel?: (node: CanvasNodeData) => ReactNode;
     renderNodeContent?: (node: CanvasNodeData) => ReactNode;
     groupChildCount?: number;
     isGroupDropTarget?: boolean;
@@ -44,11 +41,12 @@ type CanvasNodeProps = {
     onSelectCapture?: (event: React.MouseEvent, nodeId: string) => void;
     onHoverStart: (nodeId: string) => void;
     onHoverEnd: (nodeId: string) => void;
+    onSelectKeyboard: (nodeId: string, openEditor: boolean, editText?: boolean) => void;
+    onConnectKeyboard: (nodeId: string, handleType: "source" | "target") => void;
     onConnectStart: (event: React.MouseEvent, nodeId: string, handleType: "source" | "target") => void;
     onResizeStart: (nodeId: string) => void;
     onResize: (nodeId: string, width: number, height: number, position?: Position) => void;
     onResizeEnd: (nodeId: string) => void;
-    onContentChange: (nodeId: string, content: string) => void;
     onTitleChange: (nodeId: string, title: string) => void;
     onToggleBatch?: (nodeId: string) => void;
     onSetBatchPrimary?: (nodeId: string, itemId: string) => void;
@@ -65,17 +63,12 @@ type CanvasNodeProps = {
 type NodeContentRendererProps = {
     node: CanvasNodeData;
     theme: (typeof canvasThemes)[keyof typeof canvasThemes];
-    isEditingContent: boolean;
-    textareaRef: React.RefObject<HTMLTextAreaElement | null>;
     isBatchRoot: boolean;
     batchCount: number;
     batchExpanded: boolean;
     scale: number;
     renderNodeContent?: (node: CanvasNodeData) => ReactNode;
     pluginContext?: CanvasNodeContext | null;
-    onContentChange: (nodeId: string, content: string) => void;
-    onStopEditing: () => void;
-    mentionReferences: CanvasResourceReference[];
     onRetry?: (node: CanvasNodeData) => void;
     onToggleBatch?: () => void;
     onSetBatchPrimary?: (itemId: string) => void;
@@ -96,11 +89,8 @@ export const CanvasNode = React.memo(function CanvasNode({
     isConnectionTarget,
     isConnecting,
     referenceSelectionState,
-    showPanel,
     showImageInfo,
-    mentionReferences = [],
     pluginHost,
-    renderPanel,
     renderNodeContent,
     groupChildCount = 0,
     isGroupDropTarget = false,
@@ -109,11 +99,12 @@ export const CanvasNode = React.memo(function CanvasNode({
     onSelectCapture,
     onHoverStart,
     onHoverEnd,
+    onSelectKeyboard,
+    onConnectKeyboard,
     onConnectStart,
     onResizeStart,
     onResize,
     onResizeEnd,
-    onContentChange,
     onTitleChange,
     onToggleBatch,
     onSetBatchPrimary,
@@ -130,7 +121,6 @@ export const CanvasNode = React.memo(function CanvasNode({
     const [hovered, setHovered] = useState(false);
     const definition = getNodeDefinition(data.type);
     const pluginContext = useMemo<CanvasNodeContext | null>(() => (pluginHost ? buildNodeContext(pluginHost, data, theme, scale, isSelected) : null), [pluginHost, data, theme, scale, isSelected]);
-    const [isEditingContent, setIsEditingContent] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [titleDraft, setTitleDraft] = useState(data.title || "");
     const hasImageContent = data.type === CanvasNodeType.Image && Boolean(data.metadata?.content);
@@ -148,7 +138,6 @@ export const CanvasNode = React.memo(function CanvasNode({
     const transparentBg = Boolean(definition?.transparentBackground);
     const isActive = isConnectionTarget || isSelected || isFocusRelated;
     const imageBorderColor = isActive ? selectionBlue : isRelated ? theme.node.muted : "transparent";
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
     const resizeRef = useRef({
         isResizing: false,
@@ -190,37 +179,6 @@ export const CanvasNode = React.memo(function CanvasNode({
         window.addEventListener("pointerdown", handleOutsidePointerDown, true);
         return () => window.removeEventListener("pointerdown", handleOutsidePointerDown, true);
     }, [finishTitleEditing, isEditingTitle]);
-
-    useEffect(() => {
-        const textarea = textareaRef.current;
-        if (!textarea) return;
-
-        const handleWheel = (event: WheelEvent) => event.stopPropagation();
-        textarea.addEventListener("wheel", handleWheel, { passive: false });
-        return () => textarea.removeEventListener("wheel", handleWheel);
-    }, [data.type, isEditingContent]);
-
-    useEffect(() => {
-        if (!isEditingContent) return;
-        const textarea = textareaRef.current;
-        textarea?.focus();
-        textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
-    }, [isEditingContent]);
-
-    useEffect(() => {
-        if (!isEditingContent) return;
-
-        const handleOutsidePointerDown = (event: PointerEvent) => {
-            const target = event.target;
-            if (!(target instanceof Node)) return;
-            if (isEditingContent && textareaRef.current?.contains(target)) return;
-
-            setIsEditingContent(false);
-        };
-
-        window.addEventListener("pointerdown", handleOutsidePointerDown, true);
-        return () => window.removeEventListener("pointerdown", handleOutsidePointerDown, true);
-    }, [isEditingContent]);
 
     const handleResizeMove = useCallback(
         (event: MouseEvent) => {
@@ -270,15 +228,13 @@ export const CanvasNode = React.memo(function CanvasNode({
         onResizeEnd(data.id);
     }, [data.id, handleResizeMove, onResizeEnd]);
 
-    const handleResizeMouseDown = (event: React.MouseEvent, corner: ResizeCorner) => {
-        event.stopPropagation();
-        event.preventDefault();
+    const prepareResize = (corner: ResizeCorner, x: number, y: number) => {
         onResizeStart(data.id);
         resizeRef.current = {
             isResizing: true,
             corner,
-            startX: event.clientX,
-            startY: event.clientY,
+            startX: x,
+            startY: y,
             startLeft: data.position.x,
             startTop: data.position.y,
             startWidth: data.width,
@@ -286,8 +242,25 @@ export const CanvasNode = React.memo(function CanvasNode({
             keepRatio: (data.type === CanvasNodeType.Image && !data.metadata?.freeResize) || data.type === CanvasNodeType.Video || Boolean(definition?.keepAspectRatio?.(data)),
             ratio: (data.metadata?.naturalWidth || data.width) / (data.metadata?.naturalHeight || data.height || 1),
         };
+    };
+
+    const handleResizeMouseDown = (event: React.MouseEvent, corner: ResizeCorner) => {
+        event.stopPropagation();
+        event.preventDefault();
+        prepareResize(corner, event.clientX, event.clientY);
         window.addEventListener("mousemove", handleResizeMove);
         window.addEventListener("mouseup", handleResizeUp);
+    };
+
+    const handleResizeKeyDown = (event: React.KeyboardEvent, corner: ResizeCorner) => {
+        if (!event.key.startsWith("Arrow") || isImeComposing(event)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const step = (event.shiftKey ? CANVAS_GRID_SIZE : 1) * scale;
+        prepareResize(corner, 0, 0);
+        handleResizeMove(new MouseEvent("mousemove", { clientX: event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0, clientY: event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0 }));
+        resizeRef.current.isResizing = false;
+        onResizeEnd(data.id);
     };
 
     useEffect(() => {
@@ -300,8 +273,20 @@ export const CanvasNode = React.memo(function CanvasNode({
     return (
         <div
             data-node-id={data.id}
+            tabIndex={0}
+            role="group"
+            aria-label={`${data.title || "未命名节点"}，${definition?.title || data.type}`}
+            onKeyDown={(event) => {
+                if (event.target !== event.currentTarget || isImeComposing(event)) return;
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (referenceSelectionState === "available") onSelectReference?.(data.id);
+                    else if (!referenceSelectionState) onSelectKeyboard(data.id, true);
+                }
+            }}
             className={cn(
-                "node-element group/node absolute flex select-none flex-col transition-shadow duration-200",
+                "node-element group/node absolute flex select-none flex-col transition-shadow duration-200 outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isGroup ? "z-[5]" : isSelected ? "z-50" : "z-10",
                 referenceSelectionState === "available" ? "cursor-pointer" : referenceSelectionState ? "cursor-not-allowed" : "",
             )}
@@ -329,7 +314,12 @@ export const CanvasNode = React.memo(function CanvasNode({
             }}
         >
             {!referenceSelectionState && (isSelected || hovered || isEditingTitle) && (
-                <div className="absolute left-3 top-[-28px] z-[65] max-w-[calc(100%-24px)]" onMouseDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+                <div
+                    style={{ scale: isEditingTitle ? 1 / scale : undefined, transformOrigin: "left bottom" }}
+                    className="absolute left-3 top-[-28px] z-[65] max-w-[calc(100%-24px)]"
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => event.stopPropagation()}
+                >
                     {isEditingTitle ? (
                         <Input
                             ref={titleInputRef}
@@ -408,7 +398,7 @@ export const CanvasNode = React.memo(function CanvasNode({
                     }
                     if (data.type !== CanvasNodeType.Text) return;
                     event.stopPropagation();
-                    setIsEditingContent(true);
+                    onSelectKeyboard(data.id, true, true);
                 }}
             >
                 <div
@@ -423,17 +413,12 @@ export const CanvasNode = React.memo(function CanvasNode({
                     <NodeContent
                         node={data}
                         theme={theme}
-                        isEditingContent={isEditingContent}
-                        textareaRef={textareaRef}
                         isBatchRoot={isBatchRoot}
                         batchCount={batchCount}
                         batchExpanded={batchExpanded}
                         scale={scale}
                         renderNodeContent={renderNodeContent}
                         pluginContext={pluginContext}
-                        mentionReferences={mentionReferences}
-                        onContentChange={onContentChange}
-                        onStopEditing={() => setIsEditingContent(false)}
                         onRetry={onRetry}
                         onToggleBatch={() => onToggleBatch?.(data.id)}
                         onSetBatchPrimary={(itemId) => onSetBatchPrimary?.(data.id, itemId)}
@@ -468,18 +453,18 @@ export const CanvasNode = React.memo(function CanvasNode({
                     </div>
                 ) : null}
 
-                {!referenceSelectionState ? <ResizeHandle corner="top-left" onMouseDown={handleResizeMouseDown} /> : null}
-                {!referenceSelectionState ? <ResizeHandle corner="top-right" onMouseDown={handleResizeMouseDown} /> : null}
-                {!referenceSelectionState ? <ResizeHandle corner="bottom-left" onMouseDown={handleResizeMouseDown} /> : null}
-                {!referenceSelectionState ? <ResizeHandle corner="bottom-right" onMouseDown={handleResizeMouseDown} /> : null}
+                {!referenceSelectionState ? <ResizeHandle corner="top-left" onMouseDown={handleResizeMouseDown} onKeyDown={handleResizeKeyDown} scale={scale} /> : null}
+                {!referenceSelectionState ? <ResizeHandle corner="top-right" onMouseDown={handleResizeMouseDown} onKeyDown={handleResizeKeyDown} scale={scale} /> : null}
+                {!referenceSelectionState ? <ResizeHandle corner="bottom-left" onMouseDown={handleResizeMouseDown} onKeyDown={handleResizeKeyDown} scale={scale} /> : null}
+                {!referenceSelectionState ? <ResizeHandle corner="bottom-right" onMouseDown={handleResizeMouseDown} onKeyDown={handleResizeKeyDown} scale={scale} /> : null}
             </div>
 
-            {!referenceSelectionState && !isGroup ? <ConnectionHandleDot side="left" visible={hovered || isSelected || isConnecting} onMouseDown={(event) => onConnectStart(event, data.id, "target")} /> : null}
-            {!referenceSelectionState && (definition?.hasSourceHandle ?? true) && data.type !== CanvasNodeType.Config ? (
-                <ConnectionHandleDot side="right" visible={hovered || isSelected || isConnecting} onMouseDown={(event) => onConnectStart(event, data.id, "source")} />
+            {!referenceSelectionState && !isGroup ? (
+                <ConnectionHandleDot scale={scale} side="left" visible={hovered || isSelected || isConnecting} onMouseDown={(event) => onConnectStart(event, data.id, "target")} onActivate={() => onConnectKeyboard(data.id, "target")} />
             ) : null}
-
-            {showPanel && !isGroup && renderPanel ? <div className="absolute left-1/2 top-full z-[70] w-[600px] -translate-x-1/2 pt-4">{renderPanel(data)}</div> : null}
+            {!referenceSelectionState && (definition?.hasSourceHandle ?? true) && data.type !== CanvasNodeType.Config ? (
+                <ConnectionHandleDot scale={scale} side="right" visible={hovered || isSelected || isConnecting} onMouseDown={(event) => onConnectStart(event, data.id, "source")} onActivate={() => onConnectKeyboard(data.id, "source")} />
+            ) : null}
         </div>
     );
 });
@@ -566,7 +551,7 @@ function MissingPluginContent({ theme, type }: Pick<NodeContentRendererProps, "t
     );
 }
 
-function TextContent({ node, theme, isEditingContent, textareaRef, mentionReferences, batchExpanded, onContentChange, onStopEditing, onToggleBatch, onSetBatchPrimary }: NodeContentRendererProps) {
+function TextContent({ node, theme, batchExpanded, onToggleBatch, onSetBatchPrimary }: NodeContentRendererProps) {
     const fontSize = node.metadata?.fontSize || 14;
     const textStyle = { fontSize: `${fontSize}px`, lineHeight: `${Math.round(fontSize * 1.65)}px`, color: theme.node.text, boxSizing: "border-box" } as React.CSSProperties;
     const texts = node.metadata?.texts || [];
@@ -581,24 +566,7 @@ function TextContent({ node, theme, isEditingContent, textareaRef, mentionRefere
         <BatchFrame batchCount={batchCount} batchExpanded={batchExpanded}>
             {batchExpanded ? texts.filter((text) => text.id !== primaryTextId).map((text, index) => <ExpandedTextCard key={text.id} node={node} text={text} index={index} onSetPrimary={() => onSetBatchPrimary?.(text.id)} />) : null}
             <div className="flex h-full w-full flex-col overflow-hidden rounded-3xl">
-                {isEditingContent ? (
-                    <CanvasResourceMentionTextarea
-                        ref={textareaRef}
-                        className={cn("thin-scrollbar block h-full w-full resize-none overflow-y-auto whitespace-pre-wrap break-words border-none bg-transparent m-0 font-mono outline-none select-text appearance-none", paddingClass)}
-                        style={textStyle}
-                        value={content}
-                        references={mentionReferences}
-                        highlightLabels={false}
-                        onChange={(value) => onContentChange(node.id, value)}
-                        onBlur={onStopEditing}
-                        onKeyDown={(event) => {
-                            if (event.key === "Escape") onStopEditing();
-                        }}
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onWheel={(event) => event.stopPropagation()}
-                    />
-                ) : content ? (
+                {content ? (
                     <div className={cn("thin-scrollbar block h-full w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent font-mono", paddingClass)} style={textStyle} onWheel={(event) => event.stopPropagation()}>
                         {content}
                     </div>
@@ -1066,7 +1034,7 @@ function BatchFrame({ batchCount, batchExpanded, children }: { batchCount: numbe
         </div>
     );
 }
-function ResizeHandle({ corner, onMouseDown }: { corner: ResizeCorner; onMouseDown: (event: React.MouseEvent, corner: ResizeCorner) => void }) {
+function ResizeHandle({ corner, onMouseDown, onKeyDown, scale }: { scale: number; corner: ResizeCorner; onMouseDown: (event: React.MouseEvent, corner: ResizeCorner) => void; onKeyDown: (event: React.KeyboardEvent, corner: ResizeCorner) => void }) {
     const positionClass = {
         "top-left": "-left-[14px] -top-[14px] cursor-nwse-resize",
         "top-right": "-right-[14px] -top-[14px] cursor-nesw-resize",
@@ -1074,23 +1042,41 @@ function ResizeHandle({ corner, onMouseDown }: { corner: ResizeCorner; onMouseDo
         "bottom-right": "-bottom-[14px] -right-[14px] cursor-nwse-resize",
     }[corner];
 
-    return <div data-canvas-no-pan className={cn("absolute z-50 size-7", positionClass)} onMouseDown={(event) => onMouseDown(event, corner)} />;
+    return (
+        <Button
+            variant="ghost"
+            size="icon-sm"
+            data-canvas-no-pan
+            aria-label={`调整节点${{ "top-left": "左上", "top-right": "右上", "bottom-left": "左下", "bottom-right": "右下" }[corner]}角尺寸，使用方向键`}
+            style={{ scale: 1 / scale }}
+            className={cn("absolute z-50 size-7", positionClass)}
+            onMouseDown={(event) => onMouseDown(event, corner)}
+            onKeyDown={(event) => onKeyDown(event, corner)}
+        />
+    );
 }
 
-function ConnectionHandleDot({ side, visible, onMouseDown }: { side: "left" | "right"; visible: boolean; onMouseDown: (event: React.MouseEvent) => void }) {
+function ConnectionHandleDot({ side, visible, onMouseDown, onActivate, scale }: { scale: number; side: "left" | "right"; visible: boolean; onMouseDown: (event: React.MouseEvent) => void; onActivate: () => void }) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
 
     return (
-        <div
+        <Button
+            variant="ghost"
+            size="icon"
             data-canvas-no-pan
+            style={{ scale: 1 / scale }}
+            aria-label={side === "left" ? "选择输入参考节点" : "选择输出连接节点"}
+            onClick={(event) => {
+                if (event.detail === 0) onActivate();
+            }}
             className={cn(
                 "absolute top-1/2 z-30 flex size-12 -translate-y-1/2 cursor-crosshair items-center justify-center transition-opacity duration-150",
                 side === "left" ? "-left-6" : "-right-6",
-                visible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+                visible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0 focus-visible:pointer-events-auto focus-visible:opacity-100",
             )}
             onMouseDown={onMouseDown}
         >
             <div className="size-3 rounded-full border-2 transition-all hover:scale-125" style={{ background: theme.node.panel, borderColor: theme.node.muted }} />
-        </div>
+        </Button>
     );
 }

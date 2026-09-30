@@ -2,13 +2,15 @@ import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowUp, Maximize2, Square } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { ArrowUp, Info, Maximize2, Square } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { ModelPicker } from "@/components/model-picker";
 import { canvasThemes } from "@/lib/canvas-theme";
 import type { CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
-import { defaultConfig, resolveModelForCapability, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
+import { defaultConfig, resolveModelForCapability, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 import { CanvasNodeType, type CanvasGenerationMode, type CanvasNodeData } from "@/types/canvas";
 import { CanvasAudioSettingsPopover, type CanvasAudioSettingKey } from "./canvas-audio-settings-popover";
@@ -55,6 +57,9 @@ export function CanvasNodePromptPanel({
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const mode = modeOverride ?? defaultMode(node.type);
     const config = buildNodeConfig(globalConfig, node, mode);
+    const isAiConfigReady = useConfigStore((state) => state.isAiConfigReady);
+    const ready = isAiConfigReady(config, config.model);
+    const unavailableReason = !config.model ? "暂无可用模型，等待宿主接入生成服务" : "生成服务尚未接入";
     const hasTextContent = node.type === CanvasNodeType.Text && Boolean(node.metadata?.content?.trim());
     const hasImageContent = node.type === CanvasNodeType.Image && Boolean(node.metadata?.content);
     const isEditingExistingContent = hasTextContent || hasImageContent;
@@ -87,7 +92,7 @@ export function CanvasNodePromptPanel({
 
     const submit = () => {
         const text = prompt.trim();
-        if (!text || isRunning) return;
+        if (!text || isRunning || !ready) return;
         onGenerate(node.id, mode, text);
     };
 
@@ -98,25 +103,36 @@ export function CanvasNodePromptPanel({
     return (
         <div
             data-canvas-no-zoom
-            className="rounded-2xl border p-3 shadow-2xl backdrop-blur"
-            style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.node.text }}
+            className="flex min-h-0 flex-col gap-2 p-3"
+            style={{ color: theme.node.text }}
             onMouseDown={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
             onWheel={(event) => event.stopPropagation()}
         >
             <CanvasNodeReferenceBar nodeId={node.id} nodes={nodes} connectedNodes={connectedNodes} onDisconnect={onDisconnectReference} onStartSelection={onStartReferenceSelection} />
-            <CanvasPromptChipInput
-                value={prompt}
-                references={mentionReferences}
-                onChange={updatePrompt}
-                onSubmit={submit}
-                className="thin-scrollbar h-40 w-full cursor-text resize-none rounded-xl px-3 py-2 text-sm leading-5 outline-none"
-                style={{ background: "transparent", color: theme.node.text }}
-                placeholder={promptPlaceholder}
-            />
+            <FieldGroup>
+                <Field>
+                    <FieldLabel className="sr-only">创作提示词</FieldLabel>
+                    <CanvasPromptChipInput
+                        value={prompt}
+                        references={mentionReferences}
+                        onChange={updatePrompt}
+                        onSubmit={submit}
+                        className="thin-scrollbar max-h-40 min-h-20 w-full cursor-text rounded-xl px-3 py-2 text-sm leading-5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        style={{ background: "transparent", color: theme.node.text }}
+                        placeholder={promptPlaceholder}
+                    />
+                </Field>
+            </FieldGroup>
+            {!ready && !isRunning ? (
+                <Alert>
+                    <Info aria-hidden />
+                    <AlertDescription>{unavailableReason}</AlertDescription>
+                </Alert>
+            ) : null}
 
-            <div className="mt-2 flex min-w-0 items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button style={{ color: theme.node.text }} onClick={openExpandedEditor} aria-label={"放大编辑"} type={"button"} variant={"ghost"} size="icon" className="shrink-0">
@@ -164,8 +180,10 @@ export function CanvasNodePromptPanel({
                     aria-label={isRunning ? "停止生成" : "生成"}
                     type={"button"}
                     variant={isRunning ? "destructive" : "default"}
-                    size="lg"
-                    disabled={!isRunning && !prompt.trim()}
+                    size="sm"
+                    disabled={!isRunning && (!prompt.trim() || !ready)}
+                    data-disabled={!isRunning && (!prompt.trim() || !ready)}
+                    title={isRunning ? "停止生成" : ready ? "生成（Ctrl/Cmd + Enter）" : unavailableReason}
                     className="shrink-0"
                 >
                     <span className="flex items-center gap-1.5">
@@ -176,7 +194,10 @@ export function CanvasNodePromptPanel({
                                 <span className="text-xs font-medium">{"停止"}</span>
                             </>
                         ) : (
-                            <ArrowUp data-icon="inline-start" aria-hidden />
+                            <>
+                                <ArrowUp data-icon="inline-start" aria-hidden />
+                                <span>生成</span>
+                            </>
                         )}
                     </span>
                 </Button>
@@ -207,6 +228,7 @@ export function CanvasNodePromptPanel({
                                 value={prompt}
                                 references={mentionReferences}
                                 onChange={updatePrompt}
+                                onSubmit={submit}
                                 className="thin-scrollbar h-[52dvh] min-h-80 w-full cursor-text overflow-y-auto rounded-xl border p-4 text-[15px] leading-6 outline-none"
                                 style={{ background: "transparent", borderColor: theme.toolbar.border, color: theme.node.text }}
                                 placeholder={promptPlaceholder}

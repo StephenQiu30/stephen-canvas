@@ -381,10 +381,12 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
 const ASSET_GROUPS: { kind: AssetKind; icon: typeof Square }[] = [
     { kind: "image", icon: ImageIcon },
     { kind: "video", icon: Video },
+    { kind: "audio", icon: Music2 },
     { kind: "text", icon: FileText },
 ];
 
 function buildInsertPayload(asset: Asset): InsertAssetPayload {
+    if (asset.kind === "audio") return { kind: "audio", ...asset.data, title: asset.title };
     if (asset.kind === "text") return { kind: "text", content: asset.data.content, title: asset.title };
     if (asset.kind === "video") return { kind: "video", url: asset.data.url, storageKey: asset.data.storageKey, title: asset.title, width: asset.data.width, height: asset.data.height };
     return { kind: "image", dataUrl: asset.data.dataUrl, storageKey: asset.data.storageKey, title: asset.title };
@@ -422,6 +424,10 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
                     const image = await uploadImage(file);
                     addAsset({ kind: "image", title: file.name || "图片", coverUrl: image.url, tags: [], data: { dataUrl: image.url, storageKey: image.storageKey, width: image.width, height: image.height, bytes: image.bytes, mimeType: image.mimeType } });
                     added += 1;
+                } else if (file.type.startsWith("audio/")) {
+                    const audio = await uploadMediaFile(file, "audio");
+                    addAsset({ kind: "audio", title: file.name || "音频", coverUrl: "", tags: [], data: { url: audio.url, storageKey: audio.storageKey, bytes: audio.bytes, mimeType: audio.mimeType, durationMs: audio.durationMs } });
+                    added += 1;
                 } else if (file.type.startsWith("video/")) {
                     const media = await uploadMediaFile(file, "video");
                     addAsset({ kind: "video", title: file.name || "视频", coverUrl: "", tags: [], data: { url: media.url, storageKey: media.storageKey, width: media.width || 0, height: media.height || 0, bytes: media.bytes, mimeType: media.mimeType } });
@@ -429,7 +435,7 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
                 }
             }
             if (added) message.success(`已添加 ${added} 个资产`);
-            else message.warning("仅支持图片或视频文件");
+            else message.warning("仅支持图片、视频或音频文件");
         } catch (error) {
             console.error(error);
             message.error("添加失败，请重试");
@@ -463,7 +469,7 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
                     <Plus data-icon="inline-start" aria-hidden />
                     {"添加"}
                 </Button>
-                <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => void handleFiles(e.target.files)} />
+                <input ref={fileInputRef} type="file" accept="image/*,video/*,audio/*" multiple className="hidden" onChange={(e) => void handleFiles(e.target.files)} />
             </div>
             {allTags.length ? (
                 <ToggleGroup type="single" value={tagFilter} onValueChange={(value) => setTagFilter(value || "all")} className="flex-wrap px-3 pb-2" aria-label="素材标签">
@@ -520,13 +526,18 @@ function AssetCard({ asset, theme, onInsert, onRemove }: { asset: Asset; theme: 
     return (
         <div className="group relative aspect-square overflow-hidden rounded-xl border transition duration-200 hover:-translate-y-0.5 hover:shadow-lg" style={{ borderColor: theme.node.stroke, background: theme.node.panel }}>
             <AssetCover asset={asset} />
+            {asset.kind === "audio" ? (
+                <span className="absolute inset-x-2 bottom-2 truncate text-xs" style={{ color: theme.node.text }} title={asset.title}>
+                    {asset.title}
+                </span>
+            ) : null}
             <div className="absolute inset-0 flex items-center justify-center gap-2.5 opacity-0 transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
-                <Button variant="secondary" size="icon" type="button" onClick={onInsert} aria-label={"插入画布"}>
+                <Button variant="ghost" size="icon" type="button" onClick={onInsert} aria-label={`插入画布：${asset.title}`}>
                     <Plus data-icon="inline-start" aria-hidden />
                 </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="icon" type="button" aria-label={"移除资产"}>
+                        <Button variant="ghost" size="icon" type="button" className="text-destructive" aria-label={`移除资产：${asset.title}`}>
                             <Trash2 data-icon="inline-start" aria-hidden />
                         </Button>
                     </AlertDialogTrigger>
@@ -546,6 +557,12 @@ function AssetCard({ asset, theme, onInsert, onRemove }: { asset: Asset; theme: 
 }
 
 function AssetCover({ asset }: { asset: Asset }) {
+    if (asset.kind === "audio")
+        return (
+            <div className="flex size-full items-center justify-center">
+                <Music2 className="size-7" aria-hidden />
+            </div>
+        );
     if (asset.kind === "text") return <div className="size-full overflow-hidden whitespace-pre-wrap break-words p-2.5 text-[11px] leading-snug opacity-80">{asset.data.content}</div>;
     if (asset.kind === "video") {
         if (asset.coverUrl) return <img src={asset.coverUrl} alt="" className="size-full object-cover transition duration-300 group-hover:scale-[1.04]" />;

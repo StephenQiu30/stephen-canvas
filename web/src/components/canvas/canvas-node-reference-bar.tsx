@@ -25,6 +25,13 @@ export function CanvasNodeReferenceBar({
 }) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const references = connectedNodes.flatMap((sourceNode) => (sourceNode.type === CanvasNodeType.Group ? getGroupResourceNodes(sourceNode.id, nodes) : [sourceNode]).map((node) => ({ node, sourceNodeId: sourceNode.id })));
+    if (!references.length)
+        return (
+            <Button variant="ghost" size="sm" className="self-start" aria-label="从画布选择参考节点" onClick={() => onStartSelection?.(nodeId)}>
+                <Plus data-icon="inline-start" aria-hidden />
+                参考
+            </Button>
+        );
     return (
         <div className="mb-2">
             <div className="mb-1.5 text-[11px] font-medium" style={{ color: theme.node.muted }}>
@@ -39,7 +46,7 @@ export function CanvasNodeReferenceBar({
                     type="button"
                     className="grid size-12 shrink-0 place-items-center rounded-xl border bg-transparent transition hover:opacity-70"
                     style={{ borderColor: theme.toolbar.border, color: theme.node.muted }}
-                    title={"从画布选择参考节点"}
+                    aria-label={"从画布选择参考节点"}
                     onClick={() => onStartSelection?.(nodeId)}
                 >
                     <Plus data-icon="inline-start" aria-hidden />

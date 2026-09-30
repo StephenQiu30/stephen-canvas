@@ -5,6 +5,7 @@ import { FileText, Group, Image as ImageIcon, Music2, Video, X } from "lucide-re
 import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { isImeComposing } from "@/lib/keyboard-event";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
 import type { CanvasNodeData } from "@/types/canvas";
@@ -19,6 +20,7 @@ type CanvasConfigComposerProps = {
     connectedNodes?: CanvasNodeData[];
     onChange: (value: string) => void;
     onClose: () => void;
+    onSubmit?: (value: string) => void;
     onDisconnectReference?: (fromNodeId: string, toNodeId: string) => void;
     onStartReferenceSelection?: (nodeId: string) => void;
 };
@@ -31,7 +33,7 @@ type MentionState = {
 
 export const CONFIG_REFERENCE_PATTERN = /@\[node:([^\]]+)\]/g;
 
-export function CanvasConfigComposer({ nodeId, nodes, value, inputs, connectedNodes = [], onChange, onClose, onDisconnectReference, onStartReferenceSelection }: CanvasConfigComposerProps) {
+export function CanvasConfigComposer({ nodeId, nodes, value, inputs, connectedNodes = [], onChange, onClose, onSubmit, onDisconnectReference, onStartReferenceSelection }: CanvasConfigComposerProps) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const editorRef = useRef<HTMLDivElement>(null);
     const composingRef = useRef(false);
@@ -112,14 +114,7 @@ export function CanvasConfigComposer({ nodeId, nodes, value, inputs, connectedNo
     const stopCanvasInteraction = (event: PointerEvent | MouseEvent) => event.stopPropagation();
 
     return (
-        <div
-            data-canvas-no-zoom
-            className="rounded-2xl border p-3 shadow-2xl backdrop-blur"
-            style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.node.text }}
-            onMouseDown={stopCanvasInteraction}
-            onPointerDown={stopCanvasInteraction}
-            onWheel={(event) => event.stopPropagation()}
-        >
+        <div data-canvas-no-zoom className="p-3" style={{ color: theme.node.text }} onMouseDown={stopCanvasInteraction} onPointerDown={stopCanvasInteraction} onWheel={(event) => event.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-baseline gap-2">
                     <div className="shrink-0 text-xs font-semibold">{"组装提示词"}</div>
@@ -139,8 +134,11 @@ export function CanvasConfigComposer({ nodeId, nodes, value, inputs, connectedNo
                 <div
                     ref={editorRef}
                     contentEditable
+                    role="textbox"
+                    aria-label="组装创作提示词"
+                    aria-multiline="true"
                     suppressContentEditableWarning
-                    className="thin-scrollbar min-h-28 max-h-72 w-full overflow-y-auto overscroll-contain whitespace-pre-wrap break-words px-3 py-2 text-sm leading-7 outline-none"
+                    className="thin-scrollbar min-h-28 max-h-72 w-full overflow-y-auto overscroll-contain whitespace-pre-wrap break-words rounded-xl px-3 py-2 text-sm leading-7 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     style={{ color: theme.node.text }}
                     onInput={() => {
                         if (!composingRef.current) syncFromEditor();
@@ -153,6 +151,15 @@ export function CanvasConfigComposer({ nodeId, nodes, value, inputs, connectedNo
                         syncFromEditor();
                     }}
                     onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                        if (isImeComposing(event) || composingRef.current) return;
+                        if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !event.shiftKey && onSubmit) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            const value = serializeEditor(event.currentTarget);
+                            onChange(value);
+                            onSubmit(value);
+                            return;
+                        }
                         event.stopPropagation();
                         if (mention && candidates.length) {
                             if (event.key === "ArrowDown") {
@@ -172,6 +179,7 @@ export function CanvasConfigComposer({ nodeId, nodes, value, inputs, connectedNo
                             }
                             if (event.key === "Escape") {
                                 event.preventDefault();
+                                event.stopPropagation();
                                 closeMention();
                                 return;
                             }

@@ -32,6 +32,16 @@ export function ConnectionPath({
         <g>
             <path
                 data-connection-id={connection.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`连接：${from.title}到${to.title}`}
+                onFocus={onSelect}
+                onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelect();
+                    }
+                }}
                 d={pathD}
                 stroke="transparent"
                 strokeWidth="16"
