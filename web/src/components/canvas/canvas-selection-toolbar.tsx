@@ -76,7 +76,7 @@ function SelectionAction({ title, label, icon, onClick }: { title: string; label
         <Tooltip>
             <TooltipTrigger asChild>
                 <Button variant="ghost" type="button" className="group relative flex h-12 items-center whitespace-nowrap px-1.5" onClick={onClick} aria-label={title}>
-                    <span className="flex h-9 items-center gap-2 rounded-lg px-2.5 transition group-hover:bg-black/5 dark:group-hover:bg-white/10">
+                    <span className="flex h-9 items-center gap-2 rounded-lg px-2.5 transition group-hover:bg-accent">
                         {icon}
                         <span>{label}</span>
                     </span>

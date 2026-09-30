@@ -42,7 +42,7 @@ export function CanvasNodeReferenceBar({
                     title={"从画布选择参考节点"}
                     onClick={() => onStartSelection?.(nodeId)}
                 >
-                    <Plus className="size-4" />
+                    <Plus data-icon="inline-start" aria-hidden />
                 </Button>
             </div>
         </div>
@@ -67,34 +67,34 @@ function ReferenceItem({ node, onRemove }: { node: CanvasNodeData; onRemove: () 
                   : Puzzle;
     return (
         <Popover>
-            <PopoverTrigger asChild>
-                <div className="group relative grid size-12 shrink-0 place-items-center rounded-xl border" style={{ background: theme.toolbar.activeBg, borderColor: theme.toolbar.border }}>
-                    <span className="grid size-full place-items-center overflow-hidden rounded-[inherit]">
+            <div className="group relative grid size-12 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.toolbar.border }}>
+                <PopoverTrigger asChild>
+                    <Button variant="ghost" className="grid size-full overflow-hidden p-0" aria-label={`预览参考：${node.title}`}>
                         {(resource?.kind === "image" || node.type === CanvasNodeType.Image) && thumbnail ? (
                             <img src={thumbnail} alt="" className="size-full object-cover" />
                         ) : (resource?.kind === "video" || node.type === CanvasNodeType.Video) && content ? (
                             <video src={content} className="size-full object-cover" muted />
                         ) : (
-                            <Icon className="size-4 opacity-65" />
+                            <Icon data-icon="inline-start" className="opacity-65" aria-hidden />
                         )}
-                    </span>
-                    <Button
-                        variant="ghost"
-                        type="button"
-                        className="absolute right-0 top-0 grid size-5 place-items-center rounded-full border opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                        style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border }}
-                        aria-label={"断开参考连接"}
-                        title={"断开参考连接"}
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onRemove();
-                        }}
-                    >
-                        <X className="size-3" />
                     </Button>
-                </div>
-            </PopoverTrigger>
+                </PopoverTrigger>
+                <Button
+                    variant="ghost"
+                    type="button"
+                    size="icon-xs"
+                    className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
+                    aria-label={"断开参考连接"}
+                    title={"断开参考连接"}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onRemove();
+                    }}
+                >
+                    <X data-icon="inline-start" aria-hidden />
+                </Button>
+            </div>
             <PopoverContent side="top" align="start">
                 {<ReferencePreview node={node} content={content} />}
             </PopoverContent>

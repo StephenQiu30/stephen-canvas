@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ImagePlus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { MAX_UPSCALE_LONG_EDGE, resolveUpscaleSize, type ImageUpscaleAlgorithm, type ImageUpscaleParams } from "@/lib/canvas/canvas-image-data";
 import { readImageMeta } from "@/lib/image-utils";
@@ -24,6 +25,7 @@ const defaultParams: CanvasImageUpscaleParams = {
 };
 
 export function CanvasNodeUpscaleDialog({ dataUrl, open, onClose, onConfirm }: { dataUrl: string; open: boolean; onClose: () => void; onConfirm: (params: CanvasImageUpscaleParams) => void }) {
+    const id = useId();
     const [params, setParams] = useState<CanvasImageUpscaleParams>(defaultParams);
     const [image, setImage] = useState<{ width: number; height: number } | null>(null);
     const sourceLongEdge = image ? Math.max(image.width, image.height) : 0;
@@ -66,7 +68,7 @@ export function CanvasNodeUpscaleDialog({ dataUrl, open, onClose, onConfirm }: {
                         </div>
                         <div className="grid gap-6 md:grid-cols-[minmax(260px,1fr)_360px]">
                             <div className="rounded-xl border p-4">
-                                <div className="grid min-h-[280px] place-items-center rounded-lg bg-black/5">
+                                <div className="grid min-h-[280px] place-items-center rounded-lg bg-muted">
                                     <img src={dataUrl} alt="" className="max-h-[320px] max-w-full rounded-lg object-contain shadow-xl" draggable={false} />
                                 </div>
                                 <div className="mt-3 flex items-center justify-between text-sm">
@@ -74,10 +76,11 @@ export function CanvasNodeUpscaleDialog({ dataUrl, open, onClose, onConfirm }: {
                                     <span className="font-semibold">{image ? `${image.width} x ${image.height} px` : "读取中"}</span>
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-6 py-2">
-                                <div className="flex flex-col gap-2">
-                                    <div className="font-medium opacity-75">{"目标像素"}</div>
+                            <FieldGroup className="gap-6 py-2">
+                                <Field>
+                                    <FieldLabel id={`${id}-target`}>目标像素</FieldLabel>
                                     <ToggleGroup
+                                        aria-labelledby={`${id}-target`}
                                         type="single"
                                         variant="outline"
                                         value={String(params.targetLongEdge)}
@@ -96,11 +99,12 @@ export function CanvasNodeUpscaleDialog({ dataUrl, open, onClose, onConfirm }: {
                                                 );
                                             })}
                                     </ToggleGroup>
-                                    {image && !canUpscale ? <div className="text-xs font-medium text-[#ef4444]">{reachedMax ? "图片已达到 4K，无需放大" : "图片已达到当前目标像素，无需放大"}</div> : null}
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <div className="font-medium opacity-75">{"放大算法"}</div>
+                                    {image && !canUpscale ? <FieldDescription>{reachedMax ? "图片已达到 4K，无需放大" : "图片已达到当前目标像素，无需放大"}</FieldDescription> : null}
+                                </Field>
+                                <Field>
+                                    <FieldLabel id={`${id}-algorithm`}>放大算法</FieldLabel>
                                     <ToggleGroup
+                                        aria-labelledby={`${id}-algorithm`}
                                         type="single"
                                         variant="outline"
                                         value={String(params.algorithm)}
@@ -127,18 +131,18 @@ export function CanvasNodeUpscaleDialog({ dataUrl, open, onClose, onConfirm }: {
                                                 );
                                             })}
                                     </ToggleGroup>
-                                </div>
+                                </Field>
                                 <div className="rounded-xl border px-4 py-3 text-sm">
                                     <div className="flex items-center justify-between">
                                         <span className="opacity-60">{"输出尺寸"}</span>
                                         <span className="font-semibold">{outputSize ? `${outputSize.width} x ${outputSize.height} px` : "未知"}</span>
                                     </div>
                                 </div>
-                            </div>
+                            </FieldGroup>
                         </div>
                         <div className="flex justify-end">
                             <Button onClick={() => onConfirm(params)} type={"button"} variant={"default"} size="lg" disabled={!canUpscale}>
-                                {<ImagePlus data-icon="inline-start" />}
+                                {<ImagePlus data-icon="inline-start" aria-hidden />}
                                 {"生成放大图"}
                             </Button>
                         </div>

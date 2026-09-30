@@ -63,7 +63,7 @@ export function CanvasToolbar({
                         <TooltipTrigger asChild>
                             <PopoverTrigger asChild>
                                 <Button size="icon-sm" aria-label="添加节点">
-                                    <Plus />
+                                    <Plus data-icon="inline-start" aria-hidden />
                                 </Button>
                             </PopoverTrigger>
                         </TooltipTrigger>
@@ -96,7 +96,7 @@ export function CanvasToolbar({
                                 setCreateOpen(false);
                             }}
                         >
-                            <Upload />
+                            <Upload data-icon="inline-start" aria-hidden />
                             上传图片、视频或音频
                         </Button>
                     </PopoverContent>
@@ -110,33 +110,33 @@ export function CanvasToolbar({
                     aria-label="画布操作模式"
                 >
                     <ToggleGroupItem value="select" aria-label="选择工具" title="选择工具">
-                        <MousePointer2 />
+                        <MousePointer2 data-icon="inline-start" aria-hidden />
                     </ToggleGroupItem>
                     <ToggleGroupItem value="pan" aria-label="移动工具" title="移动工具">
-                        <Hand />
+                        <Hand data-icon="inline-start" aria-hidden />
                     </ToggleGroupItem>
                 </ToggleGroup>
                 <Separator orientation="vertical" className="h-5" />
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon-sm" aria-label="资产管理" aria-pressed={panelOpen} onClick={togglePanel}>
-                            <Images />
+                            <Images data-icon="inline-start" aria-hidden />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">资产管理</TooltipContent>
                 </Tooltip>
                 <div className="hidden items-center @min-[560px]/canvas:flex">
                     <Button variant="ghost" size="icon-sm" aria-label="撤销" title="撤销" disabled={!canUndo} onClick={onUndo}>
-                        <Undo2 />
+                        <Undo2 data-icon="inline-start" aria-hidden />
                     </Button>
                     <Button variant="ghost" size="icon-sm" aria-label="重做" title="重做" disabled={!canRedo} onClick={onRedo}>
-                        <Redo2 />
+                        <Redo2 data-icon="inline-start" aria-hidden />
                     </Button>
                 </div>
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button variant="ghost" size="icon-sm" aria-label="画布外观" title="画布外观">
-                            <Palette />
+                            <Palette data-icon="inline-start" aria-hidden />
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent side="top" sideOffset={12} className="w-64" data-canvas-no-zoom>
@@ -183,26 +183,26 @@ export function CanvasToolbar({
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon-sm" aria-label="更多画布操作">
-                            <MoreHorizontal />
+                            <MoreHorizontal data-icon="inline-start" aria-hidden />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="top" align="end">
                         <DropdownMenuGroup>
                             <DropdownMenuItem disabled={!canUndo} onSelect={onUndo}>
-                                <Undo2 />
+                                <Undo2 aria-hidden />
                                 撤销
                             </DropdownMenuItem>
                             <DropdownMenuItem disabled={!canRedo} onSelect={onRedo}>
-                                <Redo2 />
+                                <Redo2 aria-hidden />
                                 重做
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem variant="destructive" disabled={!selectedCount} onSelect={onDelete}>
-                                <Trash2 />
+                                <Trash2 aria-hidden />
                                 删除选中
                             </DropdownMenuItem>
                             <DropdownMenuItem variant="destructive" onSelect={onClear}>
-                                <Eraser />
+                                <Eraser aria-hidden />
                                 清空画布
                             </DropdownMenuItem>
                         </DropdownMenuGroup>

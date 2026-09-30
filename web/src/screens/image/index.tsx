@@ -2,11 +2,14 @@
 
 import { MediaPreview } from "@/components/media-preview";
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,20 +17,18 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { saveAs } from "file-saver";
 import localforage from "localforage";
-import { ArrowLeft, ArrowRight, CheckSquare, ClipboardPaste, Download, FolderPlus, History, ImagePlus, LoaderCircle, PenLine, Plus, SlidersHorizontal, Sparkles, Trash2, Upload } from "lucide-react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { ArrowLeft, ArrowRight, CheckSquare, ClipboardPaste, Download, FolderPlus, History, ImagePlus, PenLine, Plus, SlidersHorizontal, Sparkles, Trash2, Upload } from "lucide-react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { ImageSettingsPanel } from "@/components/image-settings-panel";
 import { ModelPicker } from "@/components/model-picker";
-import { canvasThemes } from "@/lib/canvas-theme";
 import { imageReferenceLabel } from "@/lib/image-reference-prompt";
 import { formatBytes, formatDuration } from "@/lib/image-utils";
 import { requestEdit, requestGeneration } from "@/services/api/image";
 import { deleteStoredImages, ensureImagePreview, getImagePreviewRevision, previewUrlFor, resolveImageUrl, subscribeImagePreviews, uploadImage } from "@/services/image-storage";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { modelOptionLabel, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
-import { useThemeStore } from "@/stores/use-theme-store";
 import type { ReferenceImage } from "@/types/image";
 import { nanoid } from "nanoid";
 
@@ -79,6 +80,7 @@ const logStore = localforage.createInstance({ name: "stephen-canvas", storeName:
 export default function ImagePage() {
     const { message } = useAppFeedback();
     useSyncExternalStore(subscribeImagePreviews, getImagePreviewRevision);
+    const promptId = useId();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dragDepthRef = useRef(0);
     const config = useConfigStore((state) => state.config);
@@ -360,47 +362,50 @@ export default function ImagePage() {
                                 </div>
                                 <div className="flex shrink-0 gap-2 @min-[1280px]:hidden">
                                     <Button onClick={() => setLogsOpen(true)} type={"button"} variant={"secondary"} size="default">
-                                        {<History data-icon="inline-start" />}
+                                        {<History data-icon="inline-start" aria-hidden />}
                                         {"生成记录"}
                                     </Button>
                                     <Button onClick={() => setSettingsOpen(true)} type={"button"} variant={"secondary"} size="default">
-                                        {<SlidersHorizontal data-icon="inline-start" />}
+                                        {<SlidersHorizontal data-icon="inline-start" aria-hidden />}
                                         {"参数"}
                                     </Button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-6 flex flex-col gap-5">
-                            <div>
+                        <FieldGroup className="mt-6 gap-5">
+                            <Field>
                                 <div className="mb-2 flex items-center justify-between gap-3">
-                                    <span className="text-base font-semibold">{"提示词"}</span>
+                                    <FieldLabel htmlFor={promptId}>{"提示词"}</FieldLabel>
                                     <div className="flex gap-2">
                                         <Button onClick={() => setAssetPickerOpen(true)} type={"button"} variant={"secondary"} size="sm">
-                                            {<FolderPlus data-icon="inline-start" />}
+                                            {<FolderPlus data-icon="inline-start" aria-hidden />}
                                             {"查看我的资产"}
                                         </Button>
                                     </div>
                                 </div>
-                                <Textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} placeholder={"描述画面主体、风格、构图、光线和用途"} />
-                            </div>
+                                <Textarea id={promptId} value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} placeholder={"描述画面主体、风格、构图、光线和用途"} />
+                            </Field>
 
-                            <div className="min-w-0">
+                            <Field className="min-w-0">
                                 <div className="mb-2 flex items-center justify-between gap-3">
-                                    <span className="text-base font-semibold">{"参考图"}</span>
+                                    <FieldLabel>{"参考图"}</FieldLabel>
                                     <div className="flex gap-2">
                                         <Button onClick={() => void addReferencesFromClipboard()} type={"button"} variant={"secondary"} size="sm">
-                                            {<ClipboardPaste data-icon="inline-start" />}
+                                            {<ClipboardPaste data-icon="inline-start" aria-hidden />}
                                             {"剪切板"}
                                         </Button>
                                         <Button onClick={() => fileInputRef.current?.click()} type={"button"} variant={"secondary"} size="sm">
-                                            {<Upload data-icon="inline-start" />}
+                                            {<Upload data-icon="inline-start" aria-hidden />}
                                             {"上传"}
                                         </Button>
                                     </div>
                                 </div>
                                 <div
-                                    className={`hover-scrollbar hover-scrollbar-hint relative flex min-h-24 w-full min-w-0 max-w-full gap-2 overflow-x-scroll overflow-y-hidden rounded-lg border border-dashed p-2 pb-3 overscroll-x-contain transition-colors ${isReferenceDragActive ? "border-border bg-muted/80  " : "border-border "}`}
+                                    className={cn(
+                                        "hover-scrollbar hover-scrollbar-hint relative flex min-h-24 w-full min-w-0 max-w-full gap-2 overflow-x-scroll overflow-y-hidden rounded-lg border border-dashed p-2 pb-3 overscroll-x-contain transition-colors",
+                                        isReferenceDragActive ? "border-border bg-muted/80  " : "border-border ",
+                                    )}
                                     onDragEnter={(event) => {
                                         event.preventDefault();
                                         dragDepthRef.current += 1;
@@ -433,26 +438,27 @@ export default function ImagePage() {
                                             <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">{imageReferenceLabel(index)}</span>
                                             <ReferenceOrderButtons index={index} total={references.length} onMove={(offset) => setReferences((value) => moveListItem(value, index, offset))} />
                                             <Button
-                                                variant="ghost"
+                                                variant="secondary"
+                                                size="icon-xs"
                                                 type="button"
-                                                className="absolute right-1 top-1 hidden size-6 items-center justify-center rounded bg-black/60 text-white group-hover:flex"
+                                                className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
                                                 onClick={() => setReferences((value) => value.filter((ref) => ref.id !== item.id))}
                                                 aria-label={"移除参考图"}
                                             >
-                                                <Trash2 className="size-3.5" />
+                                                <Trash2 data-icon="inline-start" aria-hidden />
                                             </Button>
                                         </div>
                                     ))}
                                     {!references.length ? <div className="flex min-w-full items-center justify-center text-sm text-muted-foreground">{isReferenceDragActive ? "松开即可添加参考图" : "暂无参考图，可将图片拖到这里"}</div> : null}
                                 </div>
-                            </div>
+                            </Field>
 
                             <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2 text-sm   sm:hidden">
                                 <span className="truncate text-muted-foreground ">
                                     {modelOptionLabel(effectiveConfig, model)} · {effectiveConfig.size} · {effectiveConfig.quality}
                                 </span>
                                 <Button onClick={() => setSettingsOpen(true)} type={"button"} variant={"ghost"} size="sm">
-                                    {<SlidersHorizontal data-icon="inline-start" />}
+                                    {<SlidersHorizontal data-icon="inline-start" aria-hidden />}
                                     {"调整"}
                                 </Button>
                             </div>
@@ -460,11 +466,11 @@ export default function ImagePage() {
                             <div className="hidden gap-4 sm:grid sm:grid-cols-2">
                                 <GenerationSettings config={effectiveConfig} model={model} updateConfig={updateConfig} />
                             </div>
-                        </div>
+                        </FieldGroup>
 
                         <div className="mt-auto pt-6">
-                            <Button onClick={() => void generate()} type={"button"} variant={"default"} size="lg" disabled={Boolean(running) || !canGenerate || running} className={true && "w-full"}>
-                                {running ? <Spinner data-icon="inline-start" /> : <Sparkles data-icon="inline-start" />}
+                            <Button onClick={() => void generate()} type={"button"} variant={"default"} size="lg" disabled={running || !canGenerate} className="w-full">
+                                {running ? <Spinner data-icon="inline-start" /> : <Sparkles data-icon="inline-start" aria-hidden />}
                                 {"开始生成"}
                             </Button>
                         </div>
@@ -490,14 +496,15 @@ export default function ImagePage() {
                                 )}
                             </div>
                         ) : (
-                            <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-border text-center  lg:min-h-[560px]">
-                                <ImagePlus className="mb-4 size-11 text-muted-foreground" />
-                                <Empty>
-                                    <EmptyHeader>
-                                        <EmptyDescription>{"还没有生成图片"}</EmptyDescription>
-                                    </EmptyHeader>
-                                </Empty>
-                            </div>
+                            <Empty className="min-h-[320px] border border-dashed lg:min-h-[560px]">
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <ImagePlus aria-hidden />
+                                    </EmptyMedia>
+                                    <EmptyTitle>还没有生成图片</EmptyTitle>
+                                    <EmptyDescription>输入提示词，开始创建作品。</EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
                         )}
                     </div>
                 </section>
@@ -580,18 +587,18 @@ export default function ImagePage() {
 }
 
 function GenerationSettings({ config, model, updateConfig }: { config: AiConfig; model: string; updateConfig: UpdateAiConfig }) {
-    const theme = canvasThemes[useThemeStore((state) => state.theme)];
+    const modelId = useId();
 
     return (
-        <>
-            <label className="col-span-2 block min-w-0 sm:col-span-1">
-                <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">{"模型"}</span>
-                <ModelPicker config={config} value={model} onChange={(value) => updateConfig("imageModel", value)} capability="image" fullWidth />
-            </label>
+        <FieldGroup className="col-span-2 grid sm:grid-cols-2">
+            <Field className="col-span-2 min-w-0 sm:col-span-1">
+                <FieldLabel htmlFor={modelId}>模型</FieldLabel>
+                <ModelPicker id={modelId} config={config} value={model} onChange={(value) => updateConfig("imageModel", value)} capability="image" fullWidth />
+            </Field>
             <div className="col-span-2">
-                <ImageSettingsPanel config={config} onConfigChange={(key, value) => updateConfig(key, value)} theme={theme} showTitle={false} className="flex flex-col gap-4" maxCount={10} />
+                <ImageSettingsPanel config={config} onConfigChange={(key, value) => updateConfig(key, value)} showTitle={false} className="flex flex-col gap-4" maxCount={10} />
             </div>
-        </>
+        </FieldGroup>
     );
 }
 
@@ -624,7 +631,7 @@ function ResultImageCard({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button onClick={() => void onSaveAsset(image, index)} type={"button"} variant={"secondary"} size="sm" className={RESULT_ACTION_BUTTON_CLASS}>
-                                {<FolderPlus data-icon="inline-start" />}
+                                {<FolderPlus data-icon="inline-start" aria-hidden />}
                                 {"加入我的资产"}
                             </Button>
                         </TooltipTrigger>
@@ -633,7 +640,7 @@ function ResultImageCard({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button onClick={() => void onEdit(image, index)} type={"button"} variant={"secondary"} size="sm" className={RESULT_ACTION_BUTTON_CLASS}>
-                                {<PenLine data-icon="inline-start" />}
+                                {<PenLine data-icon="inline-start" aria-hidden />}
                                 {"加入参考图"}
                             </Button>
                         </TooltipTrigger>
@@ -642,7 +649,7 @@ function ResultImageCard({
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button onClick={() => onDownload(image, index)} type={"button"} variant={"secondary"} size="sm" className={RESULT_ACTION_BUTTON_CLASS}>
-                                {<Download data-icon="inline-start" />}
+                                {<Download data-icon="inline-start" aria-hidden />}
                                 {"下载"}
                             </Button>
                         </TooltipTrigger>
@@ -660,12 +667,12 @@ function PendingImageCard() {
             <div
                 className="absolute inset-0 opacity-60"
                 style={{
-                    backgroundImage: "radial-gradient(circle, rgba(120,113,108,0.35) 1.4px, transparent 1.6px)",
+                    backgroundImage: "radial-gradient(circle, var(--border) 1.4px, transparent 1.6px)",
                     backgroundSize: "16px 16px",
                 }}
             />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground ">
-                <LoaderCircle className="size-6 animate-spin" />
+                <Spinner className="size-6" />
                 <span>{"生成中"}</span>
             </div>
         </div>
@@ -674,17 +681,13 @@ function PendingImageCard() {
 
 function FailedImageCard({ error, onRetry }: { error: string; onRetry: () => void }) {
     return (
-        <div className="overflow-hidden rounded-lg border border-red-200 bg-red-50 dark:border-red-950 dark:bg-red-950/20">
-            <div className="flex aspect-square flex-col items-center justify-center gap-3 p-5 text-center">
-                <div className="text-sm font-medium text-red-600 dark:text-red-300">{"生成失败"}</div>
-                <p className={cn("truncate", "!mb-0 !text-xs !text-red-500 dark:!text-red-300")}>{error}</p>
-            </div>
-            <div className="flex justify-end border-t border-red-200 p-3 dark:border-red-950">
-                <Button onClick={onRetry} type={"button"} variant={"destructive"} size="sm">
-                    {"重试"}
-                </Button>
-            </div>
-        </div>
+        <Alert variant="destructive" className="flex aspect-square flex-col items-center justify-center gap-3">
+            <AlertTitle>生成失败</AlertTitle>
+            <AlertDescription className="min-w-0 break-words">{error}</AlertDescription>
+            <Button onClick={onRetry} type="button" variant="destructive" size="sm">
+                重试
+            </Button>
+        </Alert>
     );
 }
 
@@ -724,15 +727,15 @@ function LogPanel({
             </div>
             <div className="mb-4 flex flex-wrap gap-2">
                 <Button onClick={onCreateSession} type={"button"} variant={"secondary"} size="sm">
-                    {<Plus data-icon="inline-start" />}
+                    {<Plus data-icon="inline-start" aria-hidden />}
                     {"新建"}
                 </Button>
                 <Button onClick={toggleAll} type={"button"} variant={"secondary"} size="sm" disabled={!logs.length}>
-                    {<CheckSquare data-icon="inline-start" />}
+                    {<CheckSquare data-icon="inline-start" aria-hidden />}
                     {allSelected ? "取消" : "全选"}
                 </Button>
                 <Button onClick={onDeleteSelected} type={"button"} variant={"destructive"} size="sm" disabled={!selectedLogIds.length}>
-                    {<Trash2 data-icon="inline-start" />}
+                    {<Trash2 data-icon="inline-start" aria-hidden />}
                     {"删除"}
                 </Button>
             </div>
@@ -747,7 +750,13 @@ function LogPanel({
                         onClick={() => onPreviewLog(log)}
                     />
                 ))}
-                {!logs.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-border text-center text-sm text-muted-foreground ">{"暂无生成记录"}</div> : null}
+                {!logs.length ? (
+                    <Empty className="min-h-48 border border-dashed">
+                        <EmptyHeader>
+                            <EmptyDescription>暂无生成记录</EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                ) : null}
             </div>
         </>
     );
@@ -756,42 +765,28 @@ function LogPanel({
 function LogCard({ log, selected, active, onSelectedChange, onClick }: { log: GenerationLog; selected: boolean; active: boolean; onSelectedChange: (checked: boolean) => void; onClick: () => void }) {
     useSyncExternalStore(subscribeImagePreviews, getImagePreviewRevision);
     const thumbnails = log.images.filter((image) => image.dataUrl).slice(0, 4);
-
     return (
-        <Button variant="ghost" type="button" className={`block w-full rounded-lg border p-2 text-left transition ${active ? "border-border bg-blue-50 dark:bg-blue-950/20" : "border-border bg-background hover:bg-muted"}`} onClick={onClick}>
-            <div className="grid grid-cols-[minmax(128px,1fr)_auto] gap-2">
-                <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-2">
-                    <Checkbox className="mt-0.5" onClick={(event) => event.stopPropagation()} checked={selected} onCheckedChange={(checked) => onSelectedChange(checked === true)} />
-                    <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold leading-5">{log.title}</div>
-                        {thumbnails.length ? (
-                            <div className="mt-2 flex gap-1 overflow-hidden">
-                                {thumbnails.map((image) => (
-                                    <img key={image.id} src={previewUrlFor(image.storageKey) || image.dataUrl} alt="" className="size-8 shrink-0 rounded-md object-cover" />
-                                ))}
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
-                <div className="grid justify-items-end gap-2">
-                    <div className="flex gap-1">
-                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant="secondary">{`成功 ${log.successCount ?? log.imageCount}`}</Badge>
-                        {log.failCount ? <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={"red" === "red" ? "destructive" : "secondary"}>{`失败 ${log.failCount}`}</Badge> : null}
-                    </div>
-                    <div className="flex flex-wrap justify-end gap-1">
-                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={"secondary"}>{`${log.imageCount} 张`}</Badge>
-                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant="secondary">
-                            {formatDuration(log.durationMs)}
-                        </Badge>
-                    </div>
-                    <div className="flex justify-end">
-                        <Badge className="m-0 flex h-6 items-center rounded-md px-1.5 text-xs leading-none" variant={"secondary"}>
-                            {log.time}
-                        </Badge>
-                    </div>
-                </div>
-            </div>
-        </Button>
+        <Card variant="interactive" size="sm" data-selected={active}>
+            <Button variant="ghost" type="button" className="absolute inset-0 size-full" aria-label={`查看生成记录：${log.title}`} onClick={onClick} />
+            <CardHeader className="pointer-events-none grid-cols-[auto_minmax(0,1fr)] items-start">
+                <Checkbox className="pointer-events-auto relative z-10" aria-label={`选择生成记录：${log.title}`} checked={selected} onCheckedChange={(checked) => onSelectedChange(checked === true)} />
+                <CardTitle className="truncate">{log.title}</CardTitle>
+            </CardHeader>
+            {thumbnails.length ? (
+                <CardContent className="pointer-events-none flex gap-1 overflow-hidden">
+                    {thumbnails.map((image) => (
+                        <img key={image.id} src={previewUrlFor(image.storageKey) || image.dataUrl} alt="" className="size-8 shrink-0 rounded-md object-cover" />
+                    ))}
+                </CardContent>
+            ) : null}
+            <CardFooter className="pointer-events-none flex-wrap gap-1">
+                <Badge variant="secondary">{`成功 ${log.successCount ?? log.imageCount}`}</Badge>
+                {log.failCount ? <Badge variant="destructive">{`失败 ${log.failCount}`}</Badge> : null}
+                <Badge variant="secondary">{`${log.imageCount} 张`}</Badge>
+                <Badge variant="secondary">{formatDuration(log.durationMs)}</Badge>
+                <Badge variant="secondary">{log.time}</Badge>
+            </CardFooter>
+        </Card>
     );
 }
 
@@ -873,11 +868,11 @@ function ReferenceOrderButtons({ index, total, onMove }: { index: number; total:
     if (total <= 1) return null;
     return (
         <div className="absolute inset-x-1 bottom-1 flex justify-between">
-            <Button onClick={() => onMove(-1)} type={"button"} variant={"secondary"} size="icon-sm" disabled={index <= 0} className={"!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm"}>
-                {<ArrowLeft data-icon="inline-start" />}
+            <Button onClick={() => onMove(-1)} type={"button"} variant={"secondary"} size="icon-xs" disabled={index <= 0} aria-label="参考图前移">
+                {<ArrowLeft data-icon="inline-start" aria-hidden />}
             </Button>
-            <Button onClick={() => onMove(1)} type={"button"} variant={"secondary"} size="icon-sm" disabled={index >= total - 1} className={"!h-6 !w-6 !min-w-6 !rounded-full !bg-white/85 !p-0 !shadow-sm"}>
-                {<ArrowRight data-icon="inline-start" />}
+            <Button onClick={() => onMove(1)} type={"button"} variant={"secondary"} size="icon-xs" disabled={index >= total - 1} aria-label="参考图后移">
+                {<ArrowRight data-icon="inline-start" aria-hidden />}
             </Button>
         </div>
     );

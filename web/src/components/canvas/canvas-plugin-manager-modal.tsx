@@ -1,6 +1,10 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
@@ -92,23 +96,26 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
     // Highlight the update action when a newer remote version is available.
     const installedControls = (record: InstalledPlugin, upgradable = false) => (
         <>
-            <Switch checked={record.enabled} disabled={busyId === record.id} onCheckedChange={(checked) => runOnPlugin(record, () => setPluginEnabled(record, checked), checked ? "已启用" : "已禁用")} />
+            <Field orientation="horizontal" data-disabled={busyId === record.id} className="w-auto">
+                <Switch aria-label={`启用 ${record.name}`} checked={record.enabled} disabled={busyId === record.id} onCheckedChange={(checked) => runOnPlugin(record, () => setPluginEnabled(record, checked), checked ? "已启用" : "已禁用")} />
+            </Field>
             {!record.local && (
                 <>
                     <Button
                         title={upgradable ? "有新版本，点击升级" : "从来源更新"}
                         onClick={() => runOnPlugin(record, async () => void (await updatePlugin(record)), "已更新")}
                         type={"button"}
-                        variant={({ primary: "default", text: "ghost", link: "link", default: "secondary", dashed: "outline" } as const)[upgradable ? "primary" : "text"]}
+                        variant={upgradable ? "default" : "ghost"}
+                        aria-label={`更新 ${record.name}`}
                         size="icon-sm"
                         disabled={Boolean(busyId === record.id) || false}
                     >
-                        {busyId === record.id ? <Spinner data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}
+                        {busyId === record.id ? <Spinner data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" aria-hidden />}
                     </Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button title={"卸载"} type={"button"} variant={"destructive"} size="icon-sm">
-                                {<Trash2 data-icon="inline-start" />}
+                            <Button title={"卸载"} aria-label={`卸载 ${record.name}`} type={"button"} variant={"destructive"} size="icon-sm">
+                                {<Trash2 data-icon="inline-start" aria-hidden />}
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -126,33 +133,29 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
         </>
     );
 
-    // Add a green dot at the icon's top-right corner when an update is available.
+    // Mark the icon when an update is available.
     // A card-colored box shadow separates the dot visually from the icon.
     const withUpgradeDot = (icon: ReactNode) => (
         <span className="relative inline-flex">
             {icon}
-            <span className="absolute -right-1 -top-1 size-2 rounded-full" style={{ background: "#22c55e", boxShadow: `0 0 0 2px ${theme.node.fill}` }} title={"有新版本可升级"} />
+            <span className="absolute -right-1 -top-1 size-2 rounded-full bg-primary ring-2 ring-card" title={"有新版本可升级"} />
         </span>
     );
 
-    const versionTag = (version: ReactNode) => (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px]" style={{ background: theme.toolbar.activeBg, color: theme.node.muted }}>
-            v{version}
-        </span>
-    );
+    const versionTag = (version: ReactNode) => <Badge variant="secondary">v{version}</Badge>;
 
     const emptyHint = (text: string) => (
-        <div className="py-10 text-center text-sm" style={{ color: theme.node.muted }}>
-            {text}
-        </div>
+        <Empty>
+            <EmptyHeader>
+                <EmptyDescription>{text}</EmptyDescription>
+            </EmptyHeader>
+        </Empty>
     );
 
     // Shared plugin row: icon, title with name and version, description, and actions.
     const row = (key: string, icon: ReactNode, name: string, version: ReactNode, subtitle: string | undefined, right: ReactNode) => (
         <div key={key} className="flex items-center gap-3 rounded-xl border px-3 py-2.5" style={{ borderColor: theme.node.stroke, background: theme.node.fill }}>
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg text-base" style={{ background: theme.toolbar.activeBg, color: theme.node.muted }}>
-                {icon}
-            </span>
+            <span className="grid size-9 shrink-0 place-items-center text-muted-foreground">{icon}</span>
             <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-2 text-sm font-medium" style={{ color: theme.node.text }}>
                     <span className="truncate">{name}</span>
@@ -175,16 +178,20 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
                     {"本项目官方插件，来自仓库注册表"}
                 </div>
                 <Button onClick={loadOfficial} type={"button"} variant={"ghost"} size="sm" disabled={loadingOfficial}>
-                    {<RefreshCw data-icon="inline-start" className={`size-4 ${loadingOfficial ? "animate-spin" : ""}`} />}
+                    {loadingOfficial ? <Spinner data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" aria-hidden />}
                     {"刷新"}
                 </Button>
             </div>
             {officialError ? (
-                <div className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: theme.node.stroke, color: theme.node.muted }}>
-                    {`加载失败：${officialError}`}
-                </div>
+                <Alert variant="destructive">
+                    <AlertTitle>加载失败</AlertTitle>
+                    <AlertDescription>{officialError}</AlertDescription>
+                </Alert>
             ) : loadingOfficial && official.length === 0 ? (
-                emptyHint("正在获取官方插件…")
+                <div className="flex items-center justify-center gap-2 py-10">
+                    <Spinner />
+                    <span>正在获取官方插件…</span>
+                </div>
             ) : official.length === 0 ? (
                 emptyHint("暂无官方插件")
             ) : (
@@ -200,13 +207,21 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
                             upgradable ? withUpgradeDot(icon) : icon,
                             entry.name,
                             // Show local and remote versions in the title so the update target is explicit.
-                            upgradable && record ? <>{record.version}<ArrowRight className="size-3" aria-label="升级至" />{entry.version}</> : entry.version,
+                            upgradable && record ? (
+                                <>
+                                    {record.version}
+                                    <ArrowRight className="size-3" aria-label="升级至" />
+                                    {entry.version}
+                                </>
+                            ) : (
+                                entry.version
+                            ),
                             entry.description,
                             record ? (
                                 installedControls(record, upgradable)
                             ) : (
                                 <Button onClick={() => handleInstallOfficial(entry)} type={"button"} variant={"default"} size="sm" disabled={Boolean(busyId === entry.id) || false}>
-                                    {busyId === entry.id ? <Spinner data-icon="inline-start" /> : <Download data-icon="inline-start" />}
+                                    {busyId === entry.id ? <Spinner data-icon="inline-start" /> : <Download data-icon="inline-start" aria-hidden />}
                                     {"安装"}
                                 </Button>
                             ),
@@ -225,30 +240,37 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
 
     const thirdPartyTab = (
         <div className="flex flex-col gap-3">
-            <div className="flex gap-2">
-                <InputGroup>
-                    <InputGroupInput
-                        placeholder={"输入插件 JS 文件 URL，例如 https://.../plugin.js"}
-                        value={url}
-                        onChange={(event) => setUrl(event.target.value)}
-                        onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                                event.preventDefault();
-                                handleInstallUrl();
-                            }
-                        }}
-                    />
-                    <InputGroupAddon align="inline-end">
-                        <InputGroupButton aria-label="清空" onClick={() => setUrl("")}>
-                            <X />
-                        </InputGroupButton>
-                    </InputGroupAddon>
-                </InputGroup>
-                <Button onClick={handleInstallUrl} type={"button"} variant={"default"} size="default" disabled={Boolean(installing) || false}>
-                    {installing ? <Spinner data-icon="inline-start" /> : <Puzzle data-icon="inline-start" />}
-                    {"安装"}
-                </Button>
-            </div>
+            <FieldGroup>
+                <Field data-disabled={installing}>
+                    <FieldLabel htmlFor="canvas-plugin-url" className="sr-only">
+                        插件文件 URL
+                    </FieldLabel>
+                    <InputGroup>
+                        <InputGroupInput
+                            id="canvas-plugin-url"
+                            disabled={installing}
+                            placeholder={"输入插件 JS 文件 URL，例如 https://.../plugin.js"}
+                            value={url}
+                            onChange={(event) => setUrl(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter" && !event.nativeEvent.isComposing && !installing) {
+                                    event.preventDefault();
+                                    handleInstallUrl();
+                                }
+                            }}
+                        />
+                        <InputGroupAddon align="inline-end">
+                            <InputGroupButton aria-label="清空" disabled={installing} onClick={() => setUrl("")}>
+                                <X aria-hidden data-icon="inline-start" />
+                            </InputGroupButton>
+                            <InputGroupButton onClick={handleInstallUrl} variant="default" disabled={installing || !url.trim()}>
+                                {installing ? <Spinner data-icon="inline-start" /> : <Puzzle data-icon="inline-start" aria-hidden />}
+                                {"安装"}
+                            </InputGroupButton>
+                        </InputGroupAddon>
+                    </InputGroup>
+                </Field>
+            </FieldGroup>
             <div className="thin-scrollbar max-h-[42vh] flex flex-col gap-2 overflow-auto">
                 {thirdPartyPlugins.length === 0
                     ? emptyHint("还没有安装第三方插件")
@@ -272,10 +294,11 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
                 </DialogHeader>
                 <div>
                     <div className="flex flex-col gap-3">
-                        <div className="flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-5" style={{ borderColor: "#f59e0b55", background: "#f59e0b14", color: theme.node.text }}>
-                            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
-                            <span>{"插件代码会在当前页面内直接执行，可访问本地项目、素材及宿主注入的运行时服务信息。请仅安装你信任来源的插件。"}</span>
-                        </div>
+                        <Alert>
+                            <AlertTriangle aria-hidden />
+                            <AlertTitle>仅安装可信来源的插件</AlertTitle>
+                            <AlertDescription>插件代码会在当前页面内直接执行，可访问本地项目、素材及宿主注入的运行时服务信息。</AlertDescription>
+                        </Alert>
                         <Tabs defaultValue={"official"}>
                             <TabsList>
                                 {tabs.map((item) => (

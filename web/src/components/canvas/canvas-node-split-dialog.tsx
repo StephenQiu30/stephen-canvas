@@ -1,9 +1,11 @@
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Grid2x2, ListRestart, PanelTop, Redo2, Rows3, Trash2, Undo2, ZoomIn, ZoomOut } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 import { useImageEditorViewport } from "@/components/canvas/use-image-editor-viewport";
 import type { ImageSplitParams } from "@/lib/canvas/canvas-image-data";
@@ -171,7 +173,7 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
                                 <div
                                     ref={viewport.viewportRef}
                                     {...viewport.panHandlers}
-                                    className={`relative isolate h-[340px] min-h-[300px] rounded-lg bg-black/5 ${viewport.scrollClassName} ${viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : ""}`}
+                                    className={cn("relative isolate h-[340px] min-h-[300px] rounded-lg bg-black/5", viewport.scrollClassName, viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : "")}
                                 >
                                     <div className="relative" style={viewport.contentStyle}>
                                         <div ref={previewRef} className="absolute isolate overflow-hidden rounded-lg bg-black [backface-visibility:hidden] [contain:layout_paint] [transform:translateZ(0)]" style={viewport.stageStyle}>
@@ -187,7 +189,7 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button aria-label={"撤回切图调整"} onClick={undoSplit} type={"button"} variant={"ghost"} size="icon" disabled={!historySize}>
-                                                    {<Undo2 data-icon="inline-start" />}
+                                                    {<Undo2 data-icon="inline-start" aria-hidden />}
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top">{"撤回切图调整 (Ctrl/Cmd+Z)"}</TooltipContent>
@@ -195,7 +197,7 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button aria-label={"重做切图调整"} onClick={redoSplit} type={"button"} variant={"ghost"} size="icon" disabled={!redoSize}>
-                                                    {<Redo2 data-icon="inline-start" />}
+                                                    {<Redo2 data-icon="inline-start" aria-hidden />}
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top">{"重做切图调整 (Ctrl/Cmd+Shift+Z)"}</TooltipContent>
@@ -203,7 +205,7 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button aria-label={"缩小"} onClick={viewport.zoomOut} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomOut}>
-                                                    {<ZoomOut data-icon="inline-start" />}
+                                                    {<ZoomOut data-icon="inline-start" aria-hidden />}
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top">{"缩小"}</TooltipContent>
@@ -214,7 +216,7 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button aria-label={"放大"} onClick={viewport.zoomIn} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomIn}>
-                                                    {<ZoomIn data-icon="inline-start" />}
+                                                    {<ZoomIn data-icon="inline-start" aria-hidden />}
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top">{"放大"}</TooltipContent>
@@ -223,24 +225,24 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
                                     <span className="font-semibold">{image ? `${image.width} x ${image.height} px` : "读取中"}</span>
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-5 py-2">
+                            <FieldGroup className="gap-5 py-2">
                                 <NumberField label={"行数"} value={rows} onChange={(value) => update("rows", value)} />
                                 <NumberField label={"列数"} value={columns} onChange={(value) => update("columns", value)} />
                                 <div className="grid grid-cols-2 gap-2">
                                     <Button onClick={() => addLine("horizontal")} type={"button"} variant={"secondary"} size="default">
-                                        {<Rows3 data-icon="inline-start" />}
+                                        {<Rows3 data-icon="inline-start" aria-hidden />}
                                         {"横向线"}
                                     </Button>
                                     <Button onClick={() => addLine("vertical")} type={"button"} variant={"secondary"} size="default">
-                                        {<PanelTop data-icon="inline-start" />}
+                                        {<PanelTop data-icon="inline-start" aria-hidden />}
                                         {"纵向线"}
                                     </Button>
                                     <Button onClick={deleteLine} type={"button"} variant={"secondary"} size="default" disabled={!active}>
-                                        {<Trash2 data-icon="inline-start" />}
+                                        {<Trash2 data-icon="inline-start" aria-hidden />}
                                         {"删除线"}
                                     </Button>
                                     <Button onClick={resetLines} type={"button"} variant={"secondary"} size="default">
-                                        {<ListRestart data-icon="inline-start" />}
+                                        {<ListRestart data-icon="inline-start" aria-hidden />}
                                         {"重置线"}
                                     </Button>
                                 </div>
@@ -255,10 +257,10 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
                                     </div>
                                 </div>
                                 <Button onClick={() => onConfirm(confirmParams)} type={"button"} variant={"default"} size="lg" className={"w-full"}>
-                                    {<Grid2x2 data-icon="inline-start" />}
+                                    {<Grid2x2 data-icon="inline-start" aria-hidden />}
                                     {"生成子节点"}
                                 </Button>
-                            </div>
+                            </FieldGroup>
                         </div>
                     </div>
                 </div>
@@ -268,11 +270,12 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
 }
 
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: string | number | null) => void }) {
+    const id = useId();
     return (
-        <label className="block flex flex-col gap-2">
-            <span className="font-medium opacity-75">{label}</span>
-            <Input className="w-full" min={1} max={maxGridSize} type="number" value={value ?? ""} onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))} />
-        </label>
+        <Field>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <Input id={id} min={1} max={maxGridSize} type="number" value={value ?? ""} onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))} />
+        </Field>
     );
 }
 
@@ -281,12 +284,12 @@ function SplitGrid({ horizontalLines, verticalLines, active, onPointerDown }: { 
         <div className="pointer-events-none absolute inset-0">
             {verticalLines.map((line, index) => (
                 <div key={`column-${index}`} className="pointer-events-auto absolute inset-y-0 -ml-2 w-4 cursor-ew-resize" style={{ left: `${line * 100}%` }} onPointerDown={(event) => onPointerDown("vertical", index, event)}>
-                    <div className={`absolute left-1/2 top-0 h-full border-l shadow-[0_0_0_1px_rgba(0,0,0,.35)] ${active?.axis === "vertical" && active.index === index ? "border-amber-300" : "border-white/90"}`} />
+                    <div className={cn("absolute left-1/2 top-0 h-full border-l shadow-[0_0_0_1px_rgba(0,0,0,.35)]", active?.axis === "vertical" && active.index === index ? "border-amber-300" : "border-white/90")} />
                 </div>
             ))}
             {horizontalLines.map((line, index) => (
                 <div key={`row-${index}`} className="pointer-events-auto absolute inset-x-0 -mt-2 h-4 cursor-ns-resize" style={{ top: `${line * 100}%` }} onPointerDown={(event) => onPointerDown("horizontal", index, event)}>
-                    <div className={`absolute left-0 top-1/2 w-full border-t shadow-[0_0_0_1px_rgba(0,0,0,.35)] ${active?.axis === "horizontal" && active.index === index ? "border-amber-300" : "border-white/90"}`} />
+                    <div className={cn("absolute left-0 top-1/2 w-full border-t shadow-[0_0_0_1px_rgba(0,0,0,.35)]", active?.axis === "horizontal" && active.index === index ? "border-amber-300" : "border-white/90")} />
                 </div>
             ))}
         </div>

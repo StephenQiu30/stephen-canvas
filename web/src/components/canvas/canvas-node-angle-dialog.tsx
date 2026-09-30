@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RotateCcw, WandSparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 export type CanvasImageAngleParams = {
     horizontalAngle: number;
@@ -20,6 +21,7 @@ const defaultParams: CanvasImageAngleParams = {
 };
 
 export function CanvasNodeAngleDialog({ dataUrl, open, onClose, onConfirm }: { dataUrl: string; open: boolean; onClose: () => void; onConfirm: (params: CanvasImageAngleParams) => void }) {
+    const id = useId();
     const [params, setParams] = useState(defaultParams);
 
     useEffect(() => {
@@ -54,17 +56,18 @@ export function CanvasNodeAngleDialog({ dataUrl, open, onClose, onConfirm }: { d
                                     </div>
                                 </div>
                                 <Button onClick={() => setParams(defaultParams)} type={"button"} variant={"secondary"} size="default" className={"w-fit"}>
-                                    {<RotateCcw data-icon="inline-start" />}
+                                    {<RotateCcw data-icon="inline-start" aria-hidden />}
                                     {"重置"}
                                 </Button>
                             </div>
-                            <div className="flex flex-col gap-6 py-2">
+                            <FieldGroup className="gap-6 py-2">
                                 <AngleSlider label={"左右角度"} value={params.horizontalAngle} min={-60} max={60} step={1} suffix="deg" onChange={(value) => update("horizontalAngle", value)} />
                                 <AngleSlider label={"俯仰角度"} value={params.pitchAngle} min={-45} max={45} step={1} suffix="deg" onChange={(value) => update("pitchAngle", value)} />
                                 <AngleSlider label={"镜头距离"} value={params.cameraDistance} min={1} max={10} step={0.1} onChange={(value) => update("cameraDistance", value)} />
-                                <div className="grid grid-cols-[88px_1fr_72px] items-center gap-4">
-                                    <span className="font-medium opacity-75">{"广角镜头"}</span>
+                                <Field orientation="horizontal" className="grid grid-cols-[88px_1fr_72px] items-center gap-4">
+                                    <FieldLabel id={`${id}-wide`}>广角镜头</FieldLabel>
                                     <ToggleGroup
+                                        aria-labelledby={`${id}-wide`}
                                         type="single"
                                         variant="outline"
                                         className={"w-fit"}
@@ -85,12 +88,12 @@ export function CanvasNodeAngleDialog({ dataUrl, open, onClose, onConfirm }: { d
                                             );
                                         })}
                                     </ToggleGroup>
-                                </div>
-                            </div>
+                                </Field>
+                            </FieldGroup>
                         </div>
                         <div className="flex justify-end">
                             <Button onClick={() => onConfirm(params)} type={"button"} variant={"default"} size="lg">
-                                {<WandSparkles data-icon="inline-start" />}
+                                {<WandSparkles data-icon="inline-start" aria-hidden />}
                                 {"AI 生成"}
                             </Button>
                         </div>
@@ -102,15 +105,16 @@ export function CanvasNodeAngleDialog({ dataUrl, open, onClose, onConfirm }: { d
 }
 
 function AngleSlider({ label, value, min, max, step, suffix = "", onChange }: { label: string; value: number; min: number; max: number; step: number; suffix?: string; onChange: (value: number) => void }) {
+    const id = useId();
     return (
-        <div className="grid grid-cols-[88px_1fr_72px] items-center gap-4">
-            <span className="font-medium opacity-75">{label}</span>
-            <Slider min={min} max={max} step={step} value={[value]} onValueChange={([value]) => onChange(value)} />
+        <Field orientation="horizontal" className="grid grid-cols-[88px_1fr_72px] items-center gap-4">
+            <FieldLabel id={id}>{label}</FieldLabel>
+            <Slider aria-labelledby={id} min={min} max={max} step={step} value={[value]} onValueChange={([value]) => onChange(value)} />
             <span className="whitespace-nowrap text-right font-semibold">
                 {Number.isInteger(value) ? value : value.toFixed(1)}
                 {suffix}
             </span>
-        </div>
+        </Field>
     );
 }
 

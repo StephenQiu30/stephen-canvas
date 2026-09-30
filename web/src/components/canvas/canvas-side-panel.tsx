@@ -1,5 +1,6 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
@@ -8,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Check, ChevronRight, Download, Eye, FileText, Image as ImageIcon, ListChecks, Music2, Plus, Search, Settings2, Square, Trash2, Type, Video, X } from "lucide-react";
+import { SquareCheck, ChevronRight, Download, Eye, FileText, Image as ImageIcon, ListChecks, Music2, Plus, Search, Settings2, Square, Trash2, Type, Video, X } from "lucide-react";
 import { motion } from "motion/react";
 import { memo, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
 
@@ -45,13 +46,6 @@ const NODE_TYPE_ICON: Record<string, typeof Square> = {
     [CanvasNodeType.Text]: Type,
     [CanvasNodeType.Config]: Settings2,
     [CanvasNodeType.Group]: Square,
-};
-
-const STATUS_COLOR: Record<string, string> = {
-    success: "#22c55e",
-    loading: "#f59e0b",
-    error: "#ef4444",
-    idle: "transparent",
 };
 
 export function CanvasSidePanel({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, onInsertAsset }: Props) {
@@ -95,7 +89,7 @@ export function CanvasSidePanel({ nodes, selectedNodeIds, onFocusNode, onPreview
                 </TabsList>
                 {!isMobile ? (
                     <Button variant="ghost" size="icon-sm" aria-label="收起资产管理" onClick={closePanel}>
-                        <X />
+                        <X data-icon="inline-start" aria-hidden />
                     </Button>
                 ) : null}
             </div>
@@ -239,10 +233,10 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                     variant="ghost"
                     type="button"
                     onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
-                    className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
+                    className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium opacity-70 transition hover:bg-accent hover:opacity-100"
                     style={selectMode ? { color: theme.toolbar.activeText, opacity: 1 } : undefined}
                 >
-                    <ListChecks className="size-3.5" />
+                    <ListChecks data-icon="inline-start" aria-hidden />
                     {selectMode ? "取消" : "选择"}
                 </Button>
                 {selectMode ? null : (
@@ -256,7 +250,7 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                             if (option) setTypeFilter(option.value);
                         }}
                     >
-                        <SelectTrigger className={"w-20"}>
+                        <SelectTrigger aria-label="节点类型" className="w-20">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -276,11 +270,11 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
             </div>
             <div className="px-3 pb-2.5">
                 <InputGroup>
-                    <InputGroupAddon>{<Search className="size-3.5 text-muted-foreground" />}</InputGroupAddon>
-                    <InputGroupInput placeholder={"搜索节点"} value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+                    <InputGroupAddon>{<Search className="text-muted-foreground" aria-hidden />}</InputGroupAddon>
+                    <InputGroupInput aria-label="搜索节点" placeholder={"搜索节点"} value={keyword} onChange={(e) => setKeyword(e.target.value)} />
                     <InputGroupAddon align="inline-end">
                         <InputGroupButton aria-label="清空" onClick={() => setKeyword("")}>
-                            <X />
+                            <X aria-hidden data-icon="inline-start" />
                         </InputGroupButton>
                     </InputGroupAddon>
                 </InputGroup>
@@ -294,11 +288,7 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                             const isChecked = checked.has(node.id);
                             const active = selectMode ? isChecked : selectedNodeIds.has(node.id);
                             return (
-                                <div
-                                    key={node.id}
-                                    className={cn("group relative flex items-center rounded-lg transition", depth && "ml-5", active ? "" : "hover:bg-black/5 dark:hover:bg-white/5")}
-                                    style={active ? { background: theme.toolbar.activeBg } : undefined}
-                                >
+                                <div key={node.id} className={cn("group relative flex items-center rounded-lg transition", depth && "ml-5", active ? "" : "hover:bg-accent")} style={active ? { background: theme.toolbar.activeBg } : undefined}>
                                     {depth ? <span className="pointer-events-none absolute -left-3 top-[calc(-50%-0.4rem)] h-[calc(100%+0.4rem)] w-3 rounded-bl-md border-b border-l opacity-45" style={{ borderColor: theme.node.stroke }} /> : null}
                                     {node.type === CanvasNodeType.Group && hasChildren ? (
                                         <Button
@@ -308,7 +298,7 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                                             className="ml-1 grid size-6 shrink-0 place-items-center opacity-55 transition hover:opacity-100"
                                             aria-label={node.title}
                                         >
-                                            <ChevronRight className={cn("size-3.5 transition-transform", !collapsedGroups.has(node.id) && "rotate-90")} />
+                                            <ChevronRight className={cn("transition-transform", !collapsedGroups.has(node.id) && "rotate-90")} data-icon="inline-start" aria-hidden />
                                         </Button>
                                     ) : null}
                                     <Button
@@ -317,16 +307,23 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                                         onClick={() => (selectMode ? toggleChecked(node.id) : onFocusNode(node.id))}
                                         className={cn("flex min-w-0 flex-1 items-center gap-3 py-2 pr-2 text-left", node.type === CanvasNodeType.Group && hasChildren ? "pl-0" : "pl-2")}
                                         title={selectMode ? undefined : "定位到节点"}
+                                        aria-pressed={selectMode ? isChecked : undefined}
                                     >
-                                        {selectMode ? <CheckMark checked={isChecked} theme={theme} /> : null}
+                                        {selectMode ? isChecked ? <SquareCheck aria-hidden data-icon="inline-start" /> : <Square aria-hidden data-icon="inline-start" /> : null}
                                         <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md">
-                                            {isImage ? <img src={previewUrlFor(node.metadata?.storageKey) || node.metadata?.content} alt={node.title} className="size-full object-cover" /> : <Icon className="size-5 opacity-60" />}
+                                            {isImage ? (
+                                                <img src={previewUrlFor(node.metadata?.storageKey) || node.metadata?.content} alt={node.title} className="size-full object-cover" />
+                                            ) : (
+                                                <Icon className="opacity-60" data-icon="inline-start" aria-hidden />
+                                            )}
                                         </span>
                                         <span className="min-w-0 flex-1 flex flex-col gap-0.5">
                                             <span className="block truncate text-sm font-medium leading-snug">{node.title || getNodeDefinition(node.type)?.title || "未命名节点"}</span>
                                             <span className="block truncate text-xs leading-snug opacity-50">{nodePreviewText(node)}</span>
                                         </span>
-                                        {node.metadata?.status && node.metadata.status !== "idle" ? <span className="size-1.5 shrink-0 rounded-full" style={{ background: STATUS_COLOR[node.metadata.status] || "transparent" }} /> : null}
+                                        {node.metadata?.status && node.metadata.status !== "idle" ? (
+                                            <Badge variant={node.metadata.status === "error" ? "destructive" : "secondary"}>{node.metadata.status === "loading" ? "生成中" : node.metadata.status === "error" ? "失败" : "完成"}</Badge>
+                                        ) : null}
                                     </Button>
                                     {selectMode || !isImage ? null : (
                                         <div className="flex shrink-0 flex-col items-center gap-0.5 pr-1.5">
@@ -334,11 +331,11 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                                                 variant="ghost"
                                                 type="button"
                                                 onClick={() => onPreviewNode(node.id)}
-                                                className="grid size-7 place-items-center rounded-md opacity-55 transition hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/10"
+                                                className="grid size-7 place-items-center rounded-md opacity-55 transition hover:bg-accent hover:opacity-100"
                                                 aria-label={"放大预览"}
                                                 title={"放大预览"}
                                             >
-                                                <Eye className="size-3.5" />
+                                                <Eye data-icon="inline-start" aria-hidden />
                                             </Button>
                                         </div>
                                     )}
@@ -347,12 +344,16 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                         })}
                     </div>
                 ) : (
-                    <div className="pt-16 text-center text-sm opacity-40">{"画布暂无节点"}</div>
+                    <Empty>
+                        <EmptyHeader>
+                            <EmptyDescription>画布暂无节点</EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 )}
             </div>
             {selectMode ? (
                 <div className="flex items-center gap-2 border-t px-3 py-2.5" style={{ borderColor: theme.toolbar.border }}>
-                    <Button variant="ghost" type="button" onClick={toggleAll} className="rounded-md px-2 py-1 text-xs font-medium opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10">
+                    <Button variant="ghost" type="button" onClick={toggleAll} className="rounded-md px-2 py-1 text-xs font-medium opacity-70 transition hover:bg-accent hover:opacity-100">
                         {allChecked ? "取消全选" : "全选"}
                     </Button>
                     <span className="text-xs opacity-45">{`已选 ${checked.size}`}</span>
@@ -364,20 +365,12 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
                         className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/10"
                         style={{ color: theme.node.text }}
                     >
-                        <Download className="size-3.5" />
+                        <Download data-icon="inline-start" aria-hidden />
                         {"导出选中"}
                     </Button>
                 </div>
             ) : null}
         </div>
-    );
-}
-
-function CheckMark({ checked, theme }: { checked: boolean; theme: CanvasTheme }) {
-    return (
-        <span className="grid size-4 shrink-0 place-items-center rounded border transition" style={{ borderColor: checked ? theme.toolbar.activeText : theme.node.stroke, background: checked ? theme.toolbar.activeText : "transparent" }}>
-            {checked ? <Check className="size-3 text-white" /> : null}
-        </span>
     );
 }
 
@@ -451,11 +444,11 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
         <div className="flex h-full flex-col">
             <div className="flex items-center gap-2 px-3 pb-2 pt-1">
                 <InputGroup>
-                    <InputGroupAddon>{<Search className="size-3.5 text-muted-foreground" />}</InputGroupAddon>
-                    <InputGroupInput placeholder={"搜索资产"} value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+                    <InputGroupAddon>{<Search className="text-muted-foreground" aria-hidden />}</InputGroupAddon>
+                    <InputGroupInput aria-label="搜索资产" placeholder={"搜索资产"} value={keyword} onChange={(e) => setKeyword(e.target.value)} />
                     <InputGroupAddon align="inline-end">
                         <InputGroupButton aria-label="清空" onClick={() => setKeyword("")}>
-                            <X />
+                            <X aria-hidden data-icon="inline-start" />
                         </InputGroupButton>
                     </InputGroupAddon>
                 </InputGroup>
@@ -467,7 +460,7 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
                     className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-white/10"
                     style={{ color: theme.node.text }}
                 >
-                    <Plus className="size-3.5" />
+                    <Plus data-icon="inline-start" aria-hidden />
                     {"添加"}
                 </Button>
                 <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => void handleFiles(e.target.files)} />
@@ -495,7 +488,7 @@ const CanvasAssetsTab = memo(function CanvasAssetsTab({ onInsert, theme }: { onI
                                         onClick={() => setCollapsed((prev) => ({ ...prev, [group.kind]: !prev[group.kind] }))}
                                         className="flex w-full items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-xs font-semibold opacity-75 transition hover:opacity-100"
                                     >
-                                        <ChevronRight className={cn("size-3.5 transition-transform", !isCollapsed && "rotate-90")} />
+                                        <ChevronRight className={cn("transition-transform", !isCollapsed && "rotate-90")} data-icon="inline-start" aria-hidden />
                                         <group.icon className="size-3.5" />
                                         <span>{({ text: "文本", image: "图片", video: "视频", audio: "音频" } as Record<string, string>)[String(group.kind)] || String(group.kind)}</span>
                                         <span className="opacity-50">{group.items.length}</span>
@@ -527,25 +520,14 @@ function AssetCard({ asset, theme, onInsert, onRemove }: { asset: Asset; theme: 
     return (
         <div className="group relative aspect-square overflow-hidden rounded-xl border transition duration-200 hover:-translate-y-0.5 hover:shadow-lg" style={{ borderColor: theme.node.stroke, background: theme.node.panel }}>
             <AssetCover asset={asset} />
-            <div className="absolute inset-0 flex items-center justify-center gap-2.5 opacity-0 transition duration-200 group-hover:opacity-100">
-                <Button
-                    variant="ghost"
-                    type="button"
-                    onClick={onInsert}
-                    className="grid size-8 place-items-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur transition hover:bg-white dark:bg-black/60 dark:hover:bg-black/80"
-                    aria-label={"插入画布"}
-                >
-                    <Plus className="size-4" />
+            <div className="absolute inset-0 flex items-center justify-center gap-2.5 opacity-0 transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+                <Button variant="secondary" size="icon" type="button" onClick={onInsert} aria-label={"插入画布"}>
+                    <Plus data-icon="inline-start" aria-hidden />
                 </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            type="button"
-                            className="grid size-8 place-items-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur transition hover:bg-white hover:text-red-500 dark:bg-black/60 dark:hover:bg-black/80 dark:hover:text-red-400"
-                            aria-label={"移除资产"}
-                        >
-                            <Trash2 className="size-4" />
+                        <Button variant="destructive" size="icon" type="button" aria-label={"移除资产"}>
+                            <Trash2 data-icon="inline-start" aria-hidden />
                         </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>

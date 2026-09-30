@@ -41,15 +41,15 @@ export function CanvasNodeContextMenu({
                 {canCaptureVideoFrame ? (
                     <>
                         <DropdownMenuItem onSelect={() => onCaptureVideoFrame("first")}>
-                            <BetweenHorizontalStart className="size-4" />
+                            <BetweenHorizontalStart aria-hidden />
                             截取首帧
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => onCaptureVideoFrame("last")}>
-                            <GalleryHorizontalEnd className="size-4" />
+                            <GalleryHorizontalEnd aria-hidden />
                             截取尾帧
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => onCaptureVideoFrame("current")}>
-                            <GalleryHorizontal className="size-4" />
+                            <GalleryHorizontal aria-hidden />
                             截取当前帧
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -57,24 +57,24 @@ export function CanvasNodeContextMenu({
                 ) : null}
                 {menu.type === "node" && canGroup ? (
                     <DropdownMenuItem onSelect={onGroup}>
-                        <Group className="size-4" />
+                        <Group aria-hidden />
                         打组
                     </DropdownMenuItem>
                 ) : null}
                 {menu.type === "node" && canUngroup ? (
                     <DropdownMenuItem onSelect={onUngroup}>
-                        <Ungroup className="size-4" />
+                        <Ungroup aria-hidden />
                         解散组
                     </DropdownMenuItem>
                 ) : null}
                 {menu.type === "node" ? (
                     <DropdownMenuItem onSelect={onDuplicate}>
-                        <Plus className="size-4" />
+                        <Plus aria-hidden />
                         复制
                     </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-                    <Trash2 className="size-4" />
+                    <Trash2 aria-hidden />
                     删除
                 </DropdownMenuItem>
             </DropdownMenuContent>

@@ -86,18 +86,18 @@ export default function CanvasPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" disabled={!hydrated} onClick={() => inputRef.current?.click()}>
-                            <FileUp data-icon="inline-start" />
+                            <FileUp data-icon="inline-start" aria-hidden />
                             导入项目
                         </Button>
                         <Button disabled={!hydrated} onClick={createAndEnter}>
-                            <Plus data-icon="inline-start" />
+                            <Plus data-icon="inline-start" aria-hidden />
                             新建项目
                         </Button>
                         {projects.length > 0 && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" aria-label="项目批量操作">
-                                        <Ellipsis />
+                                        <Ellipsis data-icon="inline-start" aria-hidden />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
@@ -112,7 +112,7 @@ export default function CanvasPage() {
                                                         )
                                                     }
                                                 >
-                                                    <Download />
+                                                    <Download aria-hidden />
                                                     导出选中项目
                                                 </DropdownMenuItem>
                                             </DropdownMenuGroup>
@@ -122,12 +122,12 @@ export default function CanvasPage() {
                                     <DropdownMenuGroup>
                                         {selectedIds.length > 0 && (
                                             <DropdownMenuItem variant="destructive" onSelect={() => setDeleteIds(selectedIds)}>
-                                                <Trash2 />
+                                                <Trash2 aria-hidden />
                                                 删除选中项目
                                             </DropdownMenuItem>
                                         )}
                                         <DropdownMenuItem variant="destructive" onSelect={() => setDeleteIds(projects.map((project) => project.id))}>
-                                            <Trash2 />
+                                            <Trash2 aria-hidden />
                                             删除全部项目
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
@@ -140,7 +140,7 @@ export default function CanvasPage() {
                     <InputGroup className="w-full @min-[520px]:w-72">
                         <InputGroupInput type="search" placeholder="搜索项目名称" aria-label="搜索项目" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
                         <InputGroupAddon>
-                            <Search />
+                            <Search aria-hidden />
                         </InputGroupAddon>
                     </InputGroup>
                     <div className="flex items-center gap-3">
@@ -166,7 +166,7 @@ export default function CanvasPage() {
                     <Empty className="min-h-72 border">
                         <EmptyHeader>
                             <EmptyMedia variant="icon">
-                                <FolderOpen />
+                                <FolderOpen aria-hidden />
                             </EmptyMedia>
                             <EmptyTitle>{projects.length ? "没有匹配的项目" : "还没有项目"}</EmptyTitle>
                             <EmptyDescription>{projects.length ? "试试其他名称，或清空搜索查看所有项目。" : "新建一张画布，保存你的节点、连线与创作想法。"}</EmptyDescription>
@@ -178,7 +178,7 @@ export default function CanvasPage() {
                                 </Button>
                             ) : (
                                 <Button onClick={createAndEnter}>
-                                    <Plus data-icon="inline-start" />
+                                    <Plus data-icon="inline-start" aria-hidden />
                                     新建项目
                                 </Button>
                             )}

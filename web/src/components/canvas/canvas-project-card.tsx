@@ -35,10 +35,10 @@ export function CanvasProjectCard({ project, compact = false }: { project: Canva
     const actions = editing ? (
         <div className="relative z-10 flex items-center gap-1">
             <Button variant="ghost" size="icon-sm" onClick={saveTitle} aria-label="保存名称">
-                <Check />
+                <Check data-icon="inline-start" aria-hidden />
             </Button>
             <Button variant="ghost" size="icon-sm" onClick={stopEditing} aria-label="取消重命名">
-                <X />
+                <X data-icon="inline-start" aria-hidden />
             </Button>
         </div>
     ) : (
@@ -50,24 +50,24 @@ export function CanvasProjectCard({ project, compact = false }: { project: Canva
                     className={cn("relative z-10 opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100 [@media(hover:none)]:opacity-100", !compact && "bg-background/90 hover:bg-background")}
                     aria-label={`${project.title} 的更多操作`}
                 >
-                    <Ellipsis />
+                    <Ellipsis data-icon="inline-start" aria-hidden />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
                     <DropdownMenuItem onSelect={() => startEditing(project.id, project.title)}>
-                        <Pencil />
+                        <Pencil aria-hidden />
                         重命名
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => void exportCanvasProjects([project], project.title || "Stephen Canvas")}>
-                        <Download />
+                        <Download aria-hidden />
                         导出项目
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     <DropdownMenuItem variant="destructive" onSelect={() => setDeleteIds([project.id])}>
-                        <Trash2 />
+                        <Trash2 aria-hidden />
                         删除项目
                     </DropdownMenuItem>
                 </DropdownMenuGroup>

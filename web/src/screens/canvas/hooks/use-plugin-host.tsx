@@ -128,7 +128,7 @@ export function usePluginHost(params: PluginHostParams) {
         (node: CanvasNodeData): CanvasNodeToolbarItem[] => {
             const definition = getNodeDefinition(node.type);
             const ctx = buildNodeContext(pluginHost, node, theme, viewportRef.current.k);
-            const custom = (definition?.toolbar?.(ctx) || []).map((item) => ({ ...item, icon: isValidElement(item.icon) ? item.icon : <Puzzle className="size-4" aria-hidden /> }));
+            const custom = (definition?.toolbar?.(ctx) || []).map((item) => ({ ...item, icon: isValidElement(item.icon) ? item.icon : <Puzzle aria-hidden data-icon="inline-start" /> }));
             // Show the interaction/move toggle only for nodes with content that are not forced into an interactive state.
             if (!definition?.interactionToggle || !node.metadata?.content || definition.forceInteractive?.(node)) return custom;
             const interactive = Boolean(node.metadata?.interactive);
@@ -136,7 +136,7 @@ export function usePluginHost(params: PluginHostParams) {
                 id: "node-interaction-toggle",
                 title: interactive ? "当前：交互中。点击切回「移动」——拖动可移动节点" : "当前：可移动。点击切到「交互」——可操作节点内容（如转动全景）",
                 label: interactive ? "移动" : "交互",
-                icon: interactive ? <Hand className="size-4" aria-hidden /> : <MousePointer2 className="size-4" aria-hidden />,
+                icon: interactive ? <Hand aria-hidden data-icon="inline-start" /> : <MousePointer2 aria-hidden data-icon="inline-start" />,
                 active: interactive,
                 onClick: () => pluginHost.updateMetadata(node.id, { interactive: !interactive }),
             };

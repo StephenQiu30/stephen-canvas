@@ -1,10 +1,13 @@
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Brush, Eraser, ImagePlus, Redo2, RotateCcw, Undo2, WandSparkles, ZoomIn, ZoomOut } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 
 import { useImageEditorViewport } from "@/components/canvas/use-image-editor-viewport";
@@ -26,6 +29,7 @@ const maskOverlayColor = "#2563eb";
 const maskOverlayAlpha = 0.4;
 
 export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: { dataUrl: string; open: boolean; onClose: () => void; onConfirm: (payload: CanvasImageMaskEditPayload) => void }) {
+    const id = useId();
     const maskCanvasRef = useRef<HTMLCanvasElement>(null);
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement>(null);
@@ -231,7 +235,7 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
                         <div
                             ref={viewport.viewportRef}
                             {...viewport.panHandlers}
-                            className={`relative h-[min(68vh,720px)] min-h-[360px] rounded-xl border border-black/10 bg-transparent dark:border-white/10 ${viewport.scrollClassName} ${viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : ""}`}
+                            className={cn("relative h-[min(68vh,720px)] min-h-[360px] rounded-xl border border-border bg-transparent", viewport.scrollClassName, viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : "")}
                         >
                             <div className="relative" style={viewport.contentStyle}>
                                 <div ref={viewport.stageRef} className="absolute isolate overflow-hidden rounded-lg bg-transparent select-none [backface-visibility:hidden] [contain:layout_paint] [transform:translateZ(0)]" style={viewport.stageStyle}>
@@ -265,7 +269,7 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
                         {brushPreview
                             ? createPortal(
                                   <div
-                                      className={`pointer-events-none fixed z-[1100] rounded-full border-2 ${brushPreview.adjusting ? "border-[#fbbf24] bg-black/10" : "border-white/90 bg-black/5"} shadow-[0_0_0_1px_rgba(0,0,0,.8)]`}
+                                      className={cn("pointer-events-none fixed z-[1100] rounded-full border-2", brushPreview.adjusting ? "border-[#fbbf24] bg-black/10" : "border-white/90 bg-black/5", "shadow-[0_0_0_1px_rgba(0,0,0,.8)]")}
                                       style={{ left: brushPreview.x, top: brushPreview.y, width: Math.max(4, brushPreview.size * viewport.imageScale), aspectRatio: 1, transform: "translate(-50%, -50%)" }}
                                   >
                                       {brushPreview.adjusting ? <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded bg-black/75 px-1.5 py-0.5 text-xs font-semibold text-white">{brushSize}px</span> : null}
@@ -274,39 +278,44 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
                               )
                             : null}
 
-                        <div className="flex min-h-[360px] flex-col gap-5">
+                        <FieldGroup className="min-h-[360px] gap-5">
                             <div>
                                 <h2 className="text-xl font-semibold">{"局部遮罩编辑"}</h2>
                                 <div className="mt-2 text-sm opacity-60">{image ? `${image.width} x ${image.height}px` : "读取中"}</div>
                                 <div className="mt-2 text-xs leading-5 opacity-55">{"滚轮缩放 · 中键或空格+左键拖动画面 · Alt+左/右键横拖调笔刷 · Ctrl/Cmd+Z 撤回 · Ctrl/Cmd+Shift+Z 重做"}</div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                    onClick={() => setMode("paint")}
-                                    type={"button"}
-                                    variant={({ primary: "default", text: "ghost", link: "link", default: "secondary", dashed: "outline" } as const)[mode === "paint" ? "primary" : "default"]}
-                                    size="default"
+                            <Field>
+                                <FieldLabel id={`${id}-mode`} className="sr-only">
+                                    遮罩工具
+                                </FieldLabel>
+                                <ToggleGroup
+                                    type="single"
+                                    variant="outline"
+                                    spacing={2}
+                                    value={mode}
+                                    onValueChange={(value) => {
+                                        if (value) setMode(value as DrawMode);
+                                    }}
+                                    aria-labelledby={`${id}-mode`}
+                                    className="grid grid-cols-2"
                                 >
-                                    {<Brush data-icon="inline-start" />}
-                                    {"画笔"}
-                                </Button>
-                                <Button
-                                    onClick={() => setMode("erase")}
-                                    type={"button"}
-                                    variant={({ primary: "default", text: "ghost", link: "link", default: "secondary", dashed: "outline" } as const)[mode === "erase" ? "primary" : "default"]}
-                                    size="default"
-                                >
-                                    {<Eraser data-icon="inline-start" />}
-                                    {"擦除"}
-                                </Button>
-                            </div>
+                                    <ToggleGroupItem value="paint">
+                                        <Brush data-icon="inline-start" aria-hidden />
+                                        画笔
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="erase">
+                                        <Eraser data-icon="inline-start" aria-hidden />
+                                        擦除
+                                    </ToggleGroupItem>
+                                </ToggleGroup>
+                            </Field>
 
-                            <div className="flex items-center justify-between rounded-lg border border-black/10 px-2 py-1 dark:border-white/10">
+                            <div className="flex items-center justify-between rounded-lg border border-border px-2 py-1">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button aria-label={"撤回局部涂抹"} onClick={undoMask} type={"button"} variant={"ghost"} size="icon" disabled={!historySize}>
-                                            {<Undo2 data-icon="inline-start" />}
+                                            {<Undo2 data-icon="inline-start" aria-hidden />}
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent side="top">{"撤回局部涂抹 (Ctrl/Cmd+Z)"}</TooltipContent>
@@ -314,7 +323,7 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button aria-label={"重做局部涂抹"} onClick={redoMask} type={"button"} variant={"ghost"} size="icon" disabled={!redoSize}>
-                                            {<Redo2 data-icon="inline-start" />}
+                                            {<Redo2 data-icon="inline-start" aria-hidden />}
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent side="top">{"重做局部涂抹 (Ctrl/Cmd+Shift+Z)"}</TooltipContent>
@@ -323,7 +332,7 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button aria-label={"缩小"} onClick={viewport.zoomOut} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomOut}>
-                                                {<ZoomOut data-icon="inline-start" />}
+                                                {<ZoomOut data-icon="inline-start" aria-hidden />}
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent side="top">{"缩小"}</TooltipContent>
@@ -334,7 +343,7 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button aria-label={"放大"} onClick={viewport.zoomIn} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomIn}>
-                                                {<ZoomIn data-icon="inline-start" />}
+                                                {<ZoomIn data-icon="inline-start" aria-hidden />}
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent side="top">{"放大"}</TooltipContent>
@@ -342,17 +351,19 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="font-medium opacity-75">{"笔刷大小"}</span>
+                            <Field>
+                                <div className="flex items-center justify-between">
+                                    <FieldLabel id={`${id}-brush`}>笔刷大小</FieldLabel>
                                     <span className="font-semibold">{brushSize}px</span>
                                 </div>
-                                <Slider min={8} max={160} step={2} value={[brushSize]} onValueChange={([value]) => setBrushSize(value)} />
-                            </div>
+                                <Slider aria-labelledby={`${id}-brush`} min={8} max={160} step={2} value={[brushSize]} onValueChange={([value]) => setBrushSize(value)} />
+                            </Field>
 
-                            <div className="flex flex-col gap-2">
-                                <div className="text-sm font-medium opacity-75">{"修改要求"}</div>
+                            <Field data-invalid={Boolean(error && !prompt.trim())}>
+                                <FieldLabel htmlFor={`${id}-prompt`}>修改要求</FieldLabel>
                                 <Textarea
+                                    id={`${id}-prompt`}
+                                    aria-describedby={error ? `${id}-error` : undefined}
                                     rows={6}
                                     value={prompt}
                                     aria-invalid={Boolean(error && !prompt.trim())}
@@ -362,26 +373,26 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
                                         setError("");
                                     }}
                                 />
-                                {error ? <div className="text-xs font-medium text-[#ef4444]">{error}</div> : null}
-                            </div>
+                                {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
+                            </Field>
 
                             <div className="mt-auto flex items-center justify-between gap-2">
                                 <Button onClick={resetMask} type={"button"} variant={"secondary"} size="default">
-                                    {<RotateCcw data-icon="inline-start" />}
+                                    {<RotateCcw data-icon="inline-start" aria-hidden />}
                                     {"重置"}
                                 </Button>
                                 <div className="flex items-center gap-2">
                                     <Button onClick={() => submit(false)} type={"button"} variant={"secondary"} size="default">
-                                        {<ImagePlus data-icon="inline-start" />}
+                                        {<ImagePlus data-icon="inline-start" aria-hidden />}
                                         {"导出到画布"}
                                     </Button>
                                     <Button onClick={() => submit(true)} type={"button"} variant={"default"} size="default">
-                                        {<WandSparkles data-icon="inline-start" />}
+                                        {<WandSparkles data-icon="inline-start" aria-hidden />}
                                         {"立刻生成"}
                                     </Button>
                                 </div>
                             </div>
-                        </div>
+                        </FieldGroup>
                     </div>
                 </div>
             </DialogContent>

@@ -1,11 +1,12 @@
-import { FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldSet, FieldLegend } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ArrowLeftRight } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
-import { type CanvasTheme } from "@/lib/canvas-theme";
+import { canvasThemes } from "@/lib/canvas-theme";
+import { useThemeStore } from "@/stores/use-theme-store";
 import { computeMediaSize, inferMediaRatio, inferMediaScale, mediaRatioOptions, mediaScaleOptions, readMediaDimensions } from "@/lib/media-size";
 import type { AiConfig } from "@/stores/use-config-store";
 
@@ -29,14 +30,15 @@ export const imageScaleOptions = mediaScaleOptions.map((value) => ({ value, labe
 type ImageSettingsPanelProps = {
     config: AiConfig;
     onConfigChange: (key: "quality" | "size" | "count" | "background", value: string) => void;
-    theme: CanvasTheme;
     showTitle?: boolean;
     className?: string;
     maxCount?: number;
     quickCount?: number;
 };
 
-export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = true, className = "w-[320px] flex flex-col gap-4 rounded-2xl px-1 py-0.5", maxCount = 15, quickCount = 10 }: ImageSettingsPanelProps) {
+export function ImageSettingsPanel({ config, onConfigChange, showTitle = true, className = "w-[320px] flex flex-col gap-4 rounded-2xl px-1 py-0.5", maxCount = 15, quickCount = 10 }: ImageSettingsPanelProps) {
+    const theme = canvasThemes[useThemeStore((state) => state.theme)];
+    const id = useId();
     const [snapDimensionToStep, setSnapDimensionToStep] = useState(true);
     const quality = config.quality || "auto";
     const count = Math.max(1, Math.min(maxCount, Math.floor(Math.abs(Number(config.count)) || 1)));
@@ -66,8 +68,8 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
             }}
         >
             {showTitle ? <div className="text-lg font-semibold">{"图像设置"}</div> : null}
-            <div className="flex flex-col gap-2.5">
-                <FieldLabel>{"质量"}</FieldLabel>
+            <Field>
+                <FieldLabel id={`${id}-quality`}>{"质量"}</FieldLabel>
                 <ToggleGroup
                     type="single"
                     variant="outline"
@@ -77,7 +79,7 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         if (value) onConfigChange("quality", value);
                     }}
                     className="grid grid-cols-4 gap-2.5 w-full"
-                    aria-label="图像质量"
+                    aria-labelledby={`${id}-quality`}
                 >
                     {qualityOptions.map((item) => (
                         <ToggleGroupItem key={item.value} value={String(item.value)} className="min-w-0">
@@ -85,27 +87,25 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         </ToggleGroupItem>
                     ))}
                 </ToggleGroup>
-            </div>
-            <div className="flex flex-col gap-2.5">
-                <div className="flex items-center justify-between gap-3">
-                    <FieldLabel>{"尺寸"}</FieldLabel>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium" style={{ color: theme.node.muted }}>
-                            {"16 倍数对齐"}
-                        </span>
+            </Field>
+            <FieldSet>
+                <FieldLegend variant="label">{"尺寸"}</FieldLegend>
+                <div className="flex justify-end">
+                    <Field orientation="horizontal" className="w-auto">
+                        <FieldLabel htmlFor={`${id}-align`}>{"16 倍数对齐"}</FieldLabel>
                         <span title={"输入完成后自动向上补成 16 的倍数"} onMouseDown={(event) => event.stopPropagation()}>
-                            <Switch aria-label="16 倍数对齐" checked={snapDimensionToStep} onCheckedChange={setSnapDimensionToStep} />
+                            <Switch id={`${id}-align`} checked={snapDimensionToStep} onCheckedChange={setSnapDimensionToStep} />
                         </span>
-                    </div>
+                    </Field>
                 </div>
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
-                    <DimensionInput prefix="W" value={dimensions.width} disabled={selectedRatio === "auto"} theme={theme} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("width", value)} />
+                <FieldGroup className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
+                    <DimensionInput prefix="W" value={dimensions.width} disabled={selectedRatio === "auto"} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("width", value)} />
                     <ArrowLeftRight className="size-4 opacity-45" aria-hidden />
-                    <DimensionInput prefix="H" value={dimensions.height} disabled={selectedRatio === "auto"} theme={theme} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("height", value)} />
-                </div>
-            </div>
-            <div className="flex flex-col gap-2.5">
-                <FieldLabel>{"分辨率"}</FieldLabel>
+                    <DimensionInput prefix="H" value={dimensions.height} disabled={selectedRatio === "auto"} alignToStep={snapDimensionToStep} onChange={(value) => updateDimension("height", value)} />
+                </FieldGroup>
+            </FieldSet>
+            <Field>
+                <FieldLabel id={`${id}-scale`}>{"分辨率"}</FieldLabel>
                 <ToggleGroup
                     type="single"
                     variant="outline"
@@ -115,7 +115,7 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         if (value) selectScale(value);
                     }}
                     className="grid grid-cols-4 gap-2.5 w-full"
-                    aria-label="图像分辨率"
+                    aria-labelledby={`${id}-scale`}
                 >
                     {mediaScaleOptions.map((value) => (
                         <ToggleGroupItem key={value} value={String(value)} className="min-w-0">
@@ -123,9 +123,9 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         </ToggleGroupItem>
                     ))}
                 </ToggleGroup>
-            </div>
-            <div className="flex flex-col gap-2.5">
-                <FieldLabel>{"宽高比"}</FieldLabel>
+            </Field>
+            <Field>
+                <FieldLabel id={`${id}-ratio`}>{"宽高比"}</FieldLabel>
                 <ToggleGroup
                     type="single"
                     variant="outline"
@@ -135,7 +135,7 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         if (value) selectRatio(value);
                     }}
                     className="grid grid-cols-4 gap-2.5 w-full"
-                    aria-label="图像宽高比"
+                    aria-labelledby={`${id}-ratio`}
                 >
                     {mediaRatioOptions.map((item) => (
                         <ToggleGroupItem key={item.value} value={String(item.value)} className="h-18 min-w-0 flex-col gap-1.5">
@@ -144,20 +144,18 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         </ToggleGroupItem>
                     ))}
                 </ToggleGroup>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col gap-0.5">
-                    <FieldLabel>{"透明背景"}</FieldLabel>
-                    <div className="text-xs" style={{ color: theme.node.muted, opacity: 0.75 }}>
-                        {"开启后生成无背景的透明图像（仅部分模型可用）"}
-                    </div>
-                </div>
+            </Field>
+            <Field orientation="horizontal">
+                <FieldContent>
+                    <FieldLabel htmlFor={`${id}-background`}>{"透明背景"}</FieldLabel>
+                    <FieldDescription id={`${id}-background-description`}>{"开启后生成无背景的透明图像（仅部分模型可用）"}</FieldDescription>
+                </FieldContent>
                 <span onMouseDown={(event) => event.stopPropagation()}>
-                    <Switch aria-label="透明背景" checked={transparentBackground} onCheckedChange={(checked) => onConfigChange("background", checked ? "transparent" : "")} />
+                    <Switch id={`${id}-background`} aria-describedby={`${id}-background-description`} checked={transparentBackground} onCheckedChange={(checked) => onConfigChange("background", checked ? "transparent" : "")} />
                 </span>
-            </div>
-            <div className="flex flex-col gap-2.5">
-                <FieldLabel>{"生成张数"}</FieldLabel>
+            </Field>
+            <Field>
+                <FieldLabel id={`${id}-count`}>{"生成张数"}</FieldLabel>
                 <ToggleGroup
                     type="single"
                     variant="outline"
@@ -167,16 +165,16 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         if (value) onConfigChange("count", value);
                     }}
                     className="grid grid-cols-4 gap-2.5 w-full"
-                    aria-label="生成张数"
+                    aria-labelledby={`${id}-count`}
                 >
                     {Array.from({ length: quickCount }, (_, index) => index + 1).map((value) => (
                         <ToggleGroupItem key={value} value={String(value)} className="min-w-0">
                             {`${value} 张`}
                         </ToggleGroupItem>
                     ))}
-                    <CountInput value={count} max={maxCount} theme={theme} onChange={(value) => onConfigChange("count", String(value || 1))} />
                 </ToggleGroup>
-            </div>
+                <CountInput value={count} max={maxCount} onChange={(value) => onConfigChange("count", String(value || 1))} />
+            </Field>
         </FieldGroup>
     );
 }
@@ -193,7 +191,7 @@ export function imageSizeLabel(size: string) {
     return `${scale} · ${ratio}`;
 }
 
-function DimensionInput({ prefix, value, disabled, theme, alignToStep, onChange }: { prefix: string; value: number; disabled: boolean; theme: CanvasTheme; alignToStep: boolean; onChange: (value: number | null) => void }) {
+function DimensionInput({ prefix, value, disabled, alignToStep, onChange }: { prefix: string; value: number; disabled: boolean; alignToStep: boolean; onChange: (value: number | null) => void }) {
     const commit = (input: HTMLInputElement) => {
         const next = alignDimension(Math.max(1, Math.floor(Number(input.value) || value || 1024)), alignToStep);
         input.value = String(next);
@@ -201,26 +199,28 @@ function DimensionInput({ prefix, value, disabled, theme, alignToStep, onChange 
     };
 
     return (
-        <InputGroup>
-            <InputGroupAddon>{prefix}</InputGroupAddon>
-            <InputGroupInput
-                aria-label={prefix === "W" ? "图像宽度" : "图像高度"}
-                type="number"
-                min={1}
-                disabled={disabled}
-                defaultValue={value || ""}
-                key={`${prefix}-${value}`}
-                onBlur={(event) => commit(event.currentTarget)}
-                onKeyDown={(event) => {
-                    if (event.key === "Enter") event.currentTarget.blur();
-                }}
-                onMouseDown={(event) => event.stopPropagation()}
-            />
-        </InputGroup>
+        <Field data-disabled={disabled}>
+            <InputGroup>
+                <InputGroupAddon>{prefix}</InputGroupAddon>
+                <InputGroupInput
+                    aria-label={prefix === "W" ? "图像宽度" : "图像高度"}
+                    type="number"
+                    min={1}
+                    disabled={disabled}
+                    defaultValue={value || ""}
+                    key={`${prefix}-${value}`}
+                    onBlur={(event) => commit(event.currentTarget)}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
+                    }}
+                    onMouseDown={(event) => event.stopPropagation()}
+                />
+            </InputGroup>
+        </Field>
     );
 }
 
-function CountInput({ value, max, theme, onChange }: { value: number; max: number; theme: CanvasTheme; onChange: (value: number | null) => void }) {
+function CountInput({ value, max, onChange }: { value: number; max: number; onChange: (value: number | null) => void }) {
     return (
         <InputGroup>
             <InputGroupInput aria-label="自定义生成张数" type="number" min={1} max={max} value={value || ""} onChange={(event) => onChange(Number(event.target.value) || null)} onMouseDown={(event) => event.stopPropagation()} />

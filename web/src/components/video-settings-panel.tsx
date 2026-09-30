@@ -1,10 +1,12 @@
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel, FieldSet, FieldLegend } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ArrowLeftRight } from "lucide-react";
+import { useId } from "react";
 
-import { type CanvasTheme } from "@/lib/canvas-theme";
+import { canvasThemes } from "@/lib/canvas-theme";
+import { useThemeStore } from "@/stores/use-theme-store";
 import { clampVideoSeconds, computeVideoSize, inferVideoRatio, parseVideoResolution, readVideoDimensions, VIDEO_SECONDS_MAX, VIDEO_SECONDS_MIN, videoRatioOptions } from "@/lib/media-size";
 import { type AiConfig } from "@/stores/use-config-store";
 
@@ -30,12 +32,13 @@ export const videoSecondsRange = { min: VIDEO_SECONDS_MIN, max: VIDEO_SECONDS_MA
 type VideoSettingsPanelProps = {
     config: AiConfig;
     onConfigChange: (key: "vquality" | "size" | "videoSeconds" | "videoGenerateAudio" | "videoWatermark" | "videoMode", value: string) => void;
-    theme: CanvasTheme;
     showTitle?: boolean;
     className?: string;
 };
 
-export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = true, className = "w-[320px] flex flex-col gap-4 rounded-2xl px-1 py-0.5" }: VideoSettingsPanelProps) {
+export function VideoSettingsPanel({ config, onConfigChange, showTitle = true, className = "w-[320px] flex flex-col gap-4 rounded-2xl px-1 py-0.5" }: VideoSettingsPanelProps) {
+    const theme = canvasThemes[useThemeStore((state) => state.theme)];
+    const id = useId();
     const seconds = Number(clampVideoSeconds(config.videoSeconds || "6"));
     const videoMode = normalizeVideoModeValue(config.videoMode);
     const resolution = parseVideoResolution(config.vquality);
@@ -54,7 +57,7 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
         <FieldGroup className={className} style={{ color: theme.node.text }} onMouseDown={(event) => event.stopPropagation()}>
             {showTitle ? <div className="text-lg font-semibold">{"视频设置"}</div> : null}
             <Field>
-                <FieldLabel>清晰度</FieldLabel>
+                <FieldLabel id={`${id}-resolution`}>清晰度</FieldLabel>
                 <ToggleGroup
                     type="single"
                     variant="outline"
@@ -64,26 +67,26 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         if (value) selectResolution(value);
                     }}
                     className="grid grid-cols-4 gap-2.5 w-full"
-                    aria-label="视频清晰度"
+                    aria-labelledby={`${id}-resolution`}
                 >
                     {resolutionOptions.map((item) => (
                         <ToggleGroupItem key={item.value} value={String(item.value)} className="min-w-0">
                             {item.label}
                         </ToggleGroupItem>
                     ))}
-                    <ResolutionInput value={resolution} theme={theme} onChange={selectResolution} />
                 </ToggleGroup>
+                <ResolutionInput value={resolution} onChange={selectResolution} />
             </Field>
-            <Field>
-                <FieldLabel>尺寸</FieldLabel>
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
-                    <DimensionInput prefix="W" value={dimensions.width} disabled={selectedRatio === "auto"} theme={theme} onChange={(value) => updateDimension("width", value, dimensions, onConfigChange)} />
+            <FieldSet>
+                <FieldLegend variant="label">尺寸</FieldLegend>
+                <FieldGroup className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
+                    <DimensionInput prefix="W" value={dimensions.width} disabled={selectedRatio === "auto"} onChange={(value) => updateDimension("width", value, dimensions, onConfigChange)} />
                     <ArrowLeftRight className="size-4 opacity-45" aria-hidden />
-                    <DimensionInput prefix="H" value={dimensions.height} disabled={selectedRatio === "auto"} theme={theme} onChange={(value) => updateDimension("height", value, dimensions, onConfigChange)} />
-                </div>
-            </Field>
+                    <DimensionInput prefix="H" value={dimensions.height} disabled={selectedRatio === "auto"} onChange={(value) => updateDimension("height", value, dimensions, onConfigChange)} />
+                </FieldGroup>
+            </FieldSet>
             <Field>
-                <FieldLabel>比例</FieldLabel>
+                <FieldLabel id={`${id}-ratio`}>比例</FieldLabel>
                 <ToggleGroup
                     type="single"
                     variant="outline"
@@ -93,7 +96,7 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         if (value) applySize(resolution, value);
                     }}
                     className="grid grid-cols-4 gap-2.5 w-full"
-                    aria-label="视频比例"
+                    aria-labelledby={`${id}-ratio`}
                 >
                     {videoRatioOptions.map((item) => (
                         <ToggleGroupItem key={item.value} value={String(item.value)} className="h-18 min-w-0 flex-col gap-1.5">
@@ -104,25 +107,17 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
                 </ToggleGroup>
             </Field>
             <Field>
-                <FieldLabel>秒数</FieldLabel>
+                <FieldLabel id={`${id}-seconds`}>秒数</FieldLabel>
                 <div className="flex items-center gap-3" onMouseDown={(event) => event.stopPropagation()}>
-                    <Slider
-                        aria-label="视频时长"
-                        className="min-w-0 flex-1"
-                        min={VIDEO_SECONDS_MIN}
-                        max={VIDEO_SECONDS_MAX}
-                        step={1}
-                        value={[seconds]}
-                        onValueChange={([value]) => ((value) => onConfigChange("videoSeconds", String(Array.isArray(value) ? value[0] : value)))(value)}
-                    />
-                    <SecondsInput value={seconds} theme={theme} onCommit={(value) => onConfigChange("videoSeconds", String(value))} />
+                    <Slider aria-labelledby={`${id}-seconds`} className="min-w-0 flex-1" min={VIDEO_SECONDS_MIN} max={VIDEO_SECONDS_MAX} step={1} value={[seconds]} onValueChange={([value]) => onConfigChange("videoSeconds", String(value))} />
+                    <SecondsInput value={seconds} onCommit={(value) => onConfigChange("videoSeconds", String(value))} />
                     <span className="shrink-0 text-sm" style={{ color: theme.node.muted }}>
                         s
                     </span>
                 </div>
             </Field>
             <Field>
-                <FieldLabel>模式</FieldLabel>
+                <FieldLabel id={`${id}-mode`}>模式</FieldLabel>
                 <ToggleGroup
                     type="single"
                     variant="outline"
@@ -132,7 +127,7 @@ export function VideoSettingsPanel({ config, onConfigChange, theme, showTitle = 
                         if (value) onConfigChange("videoMode", value);
                     }}
                     className="grid grid-cols-2 gap-2.5 w-full"
-                    aria-label="视频模式"
+                    aria-labelledby={`${id}-mode`}
                 >
                     {videoModeOptions.map((item) => (
                         <ToggleGroupItem key={item.value} value={String(item.value)} className="min-w-0">
@@ -183,7 +178,7 @@ function updateDimension(key: "width" | "height", value: number | null, dimensio
     onConfigChange("size", `${key === "width" ? next : dimensions.width}x${key === "height" ? next : dimensions.height}`);
 }
 
-function ResolutionInput({ value, theme, onChange }: { value: string; theme: CanvasTheme; onChange: (value: string) => void }) {
+function ResolutionInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
     return (
         <InputGroup>
             <InputGroupInput aria-label="自定义清晰度" type="number" min={1} value={value} onChange={(event) => onChange(event.target.value)} onMouseDown={(event) => event.stopPropagation()} />
@@ -192,7 +187,7 @@ function ResolutionInput({ value, theme, onChange }: { value: string; theme: Can
     );
 }
 
-function SecondsInput({ value, theme, onCommit }: { value: number; theme: CanvasTheme; onCommit: (value: number) => void }) {
+function SecondsInput({ value, onCommit }: { value: number; onCommit: (value: number) => void }) {
     const commit = (input: HTMLInputElement) => {
         const next = Number(clampVideoSeconds(input.value));
         input.value = String(next);
@@ -218,20 +213,22 @@ function SecondsInput({ value, theme, onCommit }: { value: number; theme: Canvas
     );
 }
 
-function DimensionInput({ prefix, value, disabled, theme, onChange }: { prefix: string; value: number; disabled: boolean; theme: CanvasTheme; onChange: (value: number | null) => void }) {
+function DimensionInput({ prefix, value, disabled, onChange }: { prefix: string; value: number; disabled: boolean; onChange: (value: number | null) => void }) {
     return (
-        <InputGroup>
-            <InputGroupAddon>{prefix}</InputGroupAddon>
-            <InputGroupInput
-                aria-label={prefix === "W" ? "视频宽度" : "视频高度"}
-                type="number"
-                min={1}
-                disabled={disabled}
-                value={value || ""}
-                onChange={(event) => onChange(Number(event.target.value) || null)}
-                onMouseDown={(event) => event.stopPropagation()}
-            />
-        </InputGroup>
+        <Field data-disabled={disabled}>
+            <InputGroup>
+                <InputGroupAddon>{prefix}</InputGroupAddon>
+                <InputGroupInput
+                    aria-label={prefix === "W" ? "视频宽度" : "视频高度"}
+                    type="number"
+                    min={1}
+                    disabled={disabled}
+                    value={value || ""}
+                    onChange={(event) => onChange(Number(event.target.value) || null)}
+                    onMouseDown={(event) => event.stopPropagation()}
+                />
+            </InputGroup>
+        </Field>
     );
 }
 

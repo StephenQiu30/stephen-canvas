@@ -89,7 +89,7 @@ export function NodeCreateMenu({ position, onCreate, onClose }: { position: Posi
                         {"选择节点"}
                     </span>
                     <Button variant="ghost" type="button" className="grid size-7 place-items-center rounded-lg opacity-55 transition hover:opacity-100" onClick={onClose} aria-label={"关闭"}>
-                        <X className="size-4" />
+                        <X data-icon="inline-start" aria-hidden />
                     </Button>
                 </div>
                 <div className="grid gap-1">

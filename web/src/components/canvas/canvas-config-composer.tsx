@@ -125,8 +125,8 @@ export function CanvasConfigComposer({ nodeId, nodes, value, inputs, connectedNo
                     <div className="shrink-0 text-xs font-semibold">{"组装提示词"}</div>
                     <div className="truncate text-[11px] opacity-55">{"@ 引用已连接资产，发送前按当前连接重新编号"}</div>
                 </div>
-                <Button onClick={onClose} type={"button"} variant={"ghost"} size="icon-sm" className={"!h-7 !w-7 !min-w-7 !p-0"}>
-                    {<X data-icon="inline-start" />}
+                <Button onClick={onClose} type={"button"} variant={"ghost"} size="icon-sm" aria-label="关闭创作面板">
+                    {<X data-icon="inline-start" aria-hidden />}
                 </Button>
             </div>
             <CanvasNodeReferenceBar nodeId={nodeId} nodes={nodes} connectedNodes={connectedNodes} onDisconnect={onDisconnectReference} onStartSelection={onStartReferenceSelection} />

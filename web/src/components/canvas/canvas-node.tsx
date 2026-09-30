@@ -1,4 +1,6 @@
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { ChevronRight, Copy, Download, Group, Image as ImageIcon, Music2, Puzzle, RefreshCw, Star, Trash2, Video } from "lucide-react";
 import type { ReactNode } from "react";
@@ -298,7 +300,11 @@ export const CanvasNode = React.memo(function CanvasNode({
     return (
         <div
             data-node-id={data.id}
-            className={`node-element group/node absolute flex select-none flex-col transition-shadow duration-200 ${isGroup ? "z-[5]" : isSelected ? "z-50" : "z-10"} ${referenceSelectionState === "available" ? "cursor-pointer" : referenceSelectionState ? "cursor-not-allowed" : ""}`}
+            className={cn(
+                "node-element group/node absolute flex select-none flex-col transition-shadow duration-200",
+                isGroup ? "z-[5]" : isSelected ? "z-50" : "z-10",
+                referenceSelectionState === "available" ? "cursor-pointer" : referenceSelectionState ? "cursor-not-allowed" : "",
+            )}
             style={{
                 transform: `translate(${data.position.x}px, ${data.position.y}px)`,
                 width: data.width,
@@ -406,7 +412,7 @@ export const CanvasNode = React.memo(function CanvasNode({
                 }}
             >
                 <div
-                    className={`relative flex h-full w-full items-center justify-center rounded-[inherit] ${isBatchRoot ? "overflow-visible" : "overflow-hidden"}`}
+                    className={cn("relative flex h-full w-full items-center justify-center rounded-[inherit]", isBatchRoot ? "overflow-visible" : "overflow-hidden")}
                     style={
                         {
                             background: isGroup ? "transparent" : hasImageContent || hasVideoContent || transparentBg ? "transparent" : theme.node.fill,
@@ -523,28 +529,27 @@ function GroupNodeContent({ node, theme, groupChildCount }: NodeContentRendererP
 function LoadingContent({ theme }: Pick<NodeContentRendererProps, "theme">) {
     return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-3" style={{ color: theme.node.activeStroke }}>
-            <div className="size-10 animate-spin rounded-full border-2" style={{ borderColor: theme.node.stroke, borderTopColor: theme.node.activeStroke }} />
+            <Spinner className="size-10" />
             <span className="text-[10px] tracking-[0.2em]">{"生成中"}</span>
         </div>
     );
 }
 
-function ErrorContent({ node, theme, onRetry }: Pick<NodeContentRendererProps, "node" | "theme" | "onRetry">) {
+function ErrorContent({ node, onRetry }: Pick<NodeContentRendererProps, "node" | "theme" | "onRetry">) {
     return (
         <div className="flex max-w-[260px] flex-col items-center gap-3 px-5 text-center">
-            <div className="text-xs leading-5 text-red-300">{node.metadata?.errorDetails || "生成失败"}</div>
+            <div className="text-xs leading-5 text-destructive">{node.metadata?.errorDetails || "生成失败"}</div>
             <Button
                 variant="ghost"
                 type="button"
-                className="inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition hover:scale-[1.02]"
-                style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.node.text }}
+                size="sm"
                 onClick={(event) => {
                     event.stopPropagation();
                     onRetry?.(node);
                 }}
                 onMouseDown={(event) => event.stopPropagation()}
             >
-                <RefreshCw className="size-3.5" />
+                <RefreshCw data-icon="inline-start" aria-hidden />
                 {"重试"}
             </Button>
         </div>
@@ -579,7 +584,7 @@ function TextContent({ node, theme, isEditingContent, textareaRef, mentionRefere
                 {isEditingContent ? (
                     <CanvasResourceMentionTextarea
                         ref={textareaRef}
-                        className={`thin-scrollbar block h-full w-full resize-none overflow-y-auto whitespace-pre-wrap break-words border-none bg-transparent m-0 font-mono outline-none select-text appearance-none ${paddingClass}`}
+                        className={cn("thin-scrollbar block h-full w-full resize-none overflow-y-auto whitespace-pre-wrap break-words border-none bg-transparent m-0 font-mono outline-none select-text appearance-none", paddingClass)}
                         style={textStyle}
                         value={content}
                         references={mentionReferences}
@@ -594,7 +599,7 @@ function TextContent({ node, theme, isEditingContent, textareaRef, mentionRefere
                         onWheel={(event) => event.stopPropagation()}
                     />
                 ) : content ? (
-                    <div className={`thin-scrollbar block h-full w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent font-mono ${paddingClass}`} style={textStyle} onWheel={(event) => event.stopPropagation()}>
+                    <div className={cn("thin-scrollbar block h-full w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent font-mono", paddingClass)} style={textStyle} onWheel={(event) => event.stopPropagation()}>
                         {content}
                     </div>
                 ) : primaryText ? (
@@ -620,7 +625,7 @@ function TextContent({ node, theme, isEditingContent, textareaRef, mentionRefere
                     onPointerDown={(event) => event.stopPropagation()}
                 >
                     <span className="leading-none">{`${batchCount} 条`}</span>
-                    <ChevronRight className={`size-3.5 opacity-80 transition-transform ${batchExpanded ? "rotate-90" : ""}`} />
+                    <ChevronRight className={cn("opacity-80 transition-transform", batchExpanded ? "rotate-90" : "")} data-icon="inline-start" aria-hidden />
                 </Button>
             ) : null}
         </BatchFrame>
@@ -669,7 +674,7 @@ function ExpandedTextCard({ node, text, index, onSetPrimary }: { node: CanvasNod
                         style={{ color: theme.node.text }}
                         onClick={(event) => (event.stopPropagation(), onSetPrimary())}
                     >
-                        <Star className="size-3.5" style={{ color: selectionBlue }} />
+                        <Star style={{ color: selectionBlue }} data-icon="inline-start" aria-hidden />
                         {"设为主文本"}
                     </Button>
                 </>
@@ -686,13 +691,7 @@ function TextSlotStatus({ text }: { text: CanvasNodeText }) {
     const loading = text.status === "loading";
     return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: theme.node.fill, color: failed ? theme.node.text : theme.node.activeStroke }}>
-            {failed ? (
-                <span className="text-xs leading-5">{text.errorDetails || "生成失败"}</span>
-            ) : loading ? (
-                <div className="size-10 animate-spin rounded-full border-2" style={{ borderColor: theme.node.stroke, borderTopColor: theme.node.activeStroke }} />
-            ) : (
-                <span className="text-xs">{"没有返回内容"}</span>
-            )}
+            {failed ? <span className="text-xs leading-5">{text.errorDetails || "生成失败"}</span> : loading ? <Spinner className="size-10" /> : <span className="text-xs">{"没有返回内容"}</span>}
             {loading ? <span className="text-[10px] tracking-[0.2em]">{"生成中"}</span> : null}
         </div>
     );
@@ -830,7 +829,7 @@ function ImageContent({
                         alt={node.title}
                         draggable={false}
                         onDragStart={(event) => event.preventDefault()}
-                        className={`pointer-events-none block h-full w-full select-none ${node.metadata?.freeResize ? "object-fill" : "object-contain"}`}
+                        className={cn("pointer-events-none block h-full w-full select-none", node.metadata?.freeResize ? "object-fill" : "object-contain")}
                     />
                 ) : (
                     <ImageSlotStatus image={primaryImage} />
@@ -846,7 +845,7 @@ function ImageContent({
                     title={"下载"}
                     onClick={(event) => (event.stopPropagation(), onDownloadBatchImage?.(primaryImage.id))}
                 >
-                    <Download className="size-3" />
+                    <Download data-icon="inline-start" aria-hidden />
                     {"下载"}
                 </Button>
             ) : null}
@@ -865,7 +864,7 @@ function ImageContent({
                     onPointerDown={(event) => event.stopPropagation()}
                 >
                     <span className="leading-none">{`${batchCount} 张`}</span>
-                    <ChevronRight className={`size-3.5 opacity-80 transition-transform ${batchExpanded ? "rotate-90" : ""}`} />
+                    <ChevronRight className={cn("opacity-80 transition-transform", batchExpanded ? "rotate-90" : "")} data-icon="inline-start" aria-hidden />
                 </Button>
             ) : null}
         </BatchFrame>
@@ -920,7 +919,7 @@ function ExpandedImageCard({
 
     return (
         <div
-            className={`absolute z-20 overflow-hidden rounded-3xl ${image.content ? "" : "border shadow-[0_18px_50px_rgba(28,25,23,.18)]"}`}
+            className={cn("absolute z-20 overflow-hidden rounded-3xl", image.content ? "" : "border shadow-[0_18px_50px_rgba(28,25,23,.18)]")}
             style={
                 {
                     left: x,
@@ -954,7 +953,7 @@ function ExpandedImageCard({
                         title={"下载"}
                         onClick={(event) => (event.stopPropagation(), onDownload())}
                     >
-                        <Download className="size-3 shrink-0" />
+                        <Download className="shrink-0" data-icon="inline-start" aria-hidden />
                         <span className="truncate">{"下载"}</span>
                     </Button>
                     <Button
@@ -965,7 +964,7 @@ function ExpandedImageCard({
                         title={"创建副本"}
                         onClick={(event) => (event.stopPropagation(), onDuplicate())}
                     >
-                        <Copy className="size-3 shrink-0" />
+                        <Copy className="shrink-0" data-icon="inline-start" aria-hidden />
                         <span className="truncate">{"创建副本"}</span>
                     </Button>
                     <Button
@@ -976,7 +975,7 @@ function ExpandedImageCard({
                         title={"设为主图"}
                         onClick={(event) => (event.stopPropagation(), onSetPrimary())}
                     >
-                        <Star className="size-3 shrink-0" style={{ color: selectionBlue }} />
+                        <Star className="shrink-0" style={{ color: selectionBlue }} data-icon="inline-start" aria-hidden />
                         <span className="truncate">{"设为主图"}</span>
                     </Button>
                 </div>
@@ -989,7 +988,7 @@ function ExpandedImageCard({
 function BatchImageFailureActions({ placement, onRetry, onDelete }: { placement: "left" | "right"; onRetry: () => void; onDelete: () => void }) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     return (
-        <div className={`absolute top-3 z-30 flex items-center gap-1.5 ${placement === "left" ? "left-3" : "right-3"}`}>
+        <div className={cn("absolute top-3 z-30 flex items-center gap-1.5", placement === "left" ? "left-3" : "right-3")}>
             <Button
                 variant="ghost"
                 type="button"
@@ -997,7 +996,7 @@ function BatchImageFailureActions({ placement, onRetry, onDelete }: { placement:
                 style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.node.text }}
                 onClick={(event) => (event.stopPropagation(), onRetry())}
             >
-                <RefreshCw className="size-3.5" />
+                <RefreshCw data-icon="inline-start" aria-hidden />
                 {"重试"}
             </Button>
             <Button
@@ -1009,7 +1008,7 @@ function BatchImageFailureActions({ placement, onRetry, onDelete }: { placement:
                 aria-label={"删除"}
                 title={"删除"}
             >
-                <Trash2 className="size-3.5" />
+                <Trash2 data-icon="inline-start" aria-hidden />
             </Button>
         </div>
     );
@@ -1020,7 +1019,7 @@ function ImageSlotStatus({ image }: { image?: CanvasNodeImage }) {
     const failed = image?.status === "error";
     return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: theme.node.fill, color: failed ? theme.node.text : theme.node.activeStroke }}>
-            {failed ? <span className="text-xs leading-5">{image.errorDetails || "生成失败"}</span> : <div className="size-10 animate-spin rounded-full border-2" style={{ borderColor: theme.node.stroke, borderTopColor: theme.node.activeStroke }} />}
+            {failed ? <span className="text-xs leading-5">{image.errorDetails || "生成失败"}</span> : <Spinner className="size-10" />}
             {!failed ? <span className="text-[10px] tracking-[0.2em]">{"生成中"}</span> : null}
         </div>
     );
@@ -1075,7 +1074,7 @@ function ResizeHandle({ corner, onMouseDown }: { corner: ResizeCorner; onMouseDo
         "bottom-right": "-bottom-[14px] -right-[14px] cursor-nwse-resize",
     }[corner];
 
-    return <div data-canvas-no-pan className={`absolute z-50 size-7 ${positionClass}`} onMouseDown={(event) => onMouseDown(event, corner)} />;
+    return <div data-canvas-no-pan className={cn("absolute z-50 size-7", positionClass)} onMouseDown={(event) => onMouseDown(event, corner)} />;
 }
 
 function ConnectionHandleDot({ side, visible, onMouseDown }: { side: "left" | "right"; visible: boolean; onMouseDown: (event: React.MouseEvent) => void }) {
@@ -1084,9 +1083,11 @@ function ConnectionHandleDot({ side, visible, onMouseDown }: { side: "left" | "r
     return (
         <div
             data-canvas-no-pan
-            className={`absolute top-1/2 z-30 flex size-12 -translate-y-1/2 cursor-crosshair items-center justify-center transition-opacity duration-150 ${
-                side === "left" ? "-left-6" : "-right-6"
-            } ${visible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
+            className={cn(
+                "absolute top-1/2 z-30 flex size-12 -translate-y-1/2 cursor-crosshair items-center justify-center transition-opacity duration-150",
+                side === "left" ? "-left-6" : "-right-6",
+                visible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+            )}
             onMouseDown={onMouseDown}
         >
             <div className="size-3 rounded-full border-2 transition-all hover:scale-125" style={{ background: theme.node.panel, borderColor: theme.node.muted }} />

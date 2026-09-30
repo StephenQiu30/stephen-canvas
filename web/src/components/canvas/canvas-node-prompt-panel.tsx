@@ -1,7 +1,8 @@
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowUp, LoaderCircle, Maximize2, Square } from "lucide-react";
+import { ArrowUp, Maximize2, Square } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { ModelPicker } from "@/components/model-picker";
@@ -118,8 +119,8 @@ export function CanvasNodePromptPanel({
                 <div className="flex min-w-0 items-center gap-2">
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button style={{ color: theme.node.text }} onClick={openExpandedEditor} aria-label={"放大编辑"} type={"button"} variant={"ghost"} size="icon" className={"!h-8 !w-8 !min-w-8 shrink-0 !rounded-full !bg-transparent !p-0"}>
-                                {<Maximize2 data-icon="inline-start" />}
+                            <Button style={{ color: theme.node.text }} onClick={openExpandedEditor} aria-label={"放大编辑"} type={"button"} variant={"ghost"} size="icon" className="shrink-0">
+                                {<Maximize2 data-icon="inline-start" aria-hidden />}
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="top">{"放大编辑"}</TooltipContent>
@@ -129,8 +130,9 @@ export function CanvasNodePromptPanel({
                             <ModelPicker config={config} value={config.model} onChange={(model) => onConfigChange(node.id, { model })} capability="image" className="max-w-[190px]" />
                             <CanvasImageSettingsPopover
                                 config={config}
-                                placement="topLeft"
-                                buttonClassName="!h-10 !max-w-[170px] !justify-start !rounded-full !px-3"
+                                side="top"
+                                align="start"
+                                buttonClassName="max-w-[170px] justify-start"
                                 onConfigChange={(key, value) => onConfigChange(node.id, key === "count" ? { count: Number(value) || 1 } : { [key]: value })}
                                 onOpenChange={onImageSettingsOpenChange}
                             />
@@ -138,12 +140,12 @@ export function CanvasNodePromptPanel({
                     ) : mode === "video" ? (
                         <>
                             <ModelPicker config={config} value={config.model} onChange={(model) => onConfigChange(node.id, { model })} capability="video" className="max-w-[190px]" />
-                            <CanvasVideoSettingsPopover config={config} buttonClassName="!h-10 !max-w-[220px] !justify-start !rounded-full !px-3" onConfigChange={(key, value) => onConfigChange(node.id, videoConfigPatch(key, value))} />
+                            <CanvasVideoSettingsPopover config={config} buttonClassName="max-w-[220px] justify-start" onConfigChange={(key, value) => onConfigChange(node.id, videoConfigPatch(key, value))} />
                         </>
                     ) : mode === "audio" ? (
                         <>
                             <ModelPicker config={config} value={config.model} onChange={(model) => onConfigChange(node.id, { model })} capability="audio" className="max-w-[190px]" />
-                            <CanvasAudioSettingsPopover config={config} buttonClassName="!h-10 !max-w-[170px] !justify-start !rounded-full !px-3" onConfigChange={(key, value) => onConfigChange(node.id, audioConfigPatch(key, value))} />
+                            <CanvasAudioSettingsPopover config={config} buttonClassName="max-w-[170px] justify-start" onConfigChange={(key, value) => onConfigChange(node.id, audioConfigPatch(key, value))} />
                         </>
                     ) : (
                         <>
@@ -162,19 +164,19 @@ export function CanvasNodePromptPanel({
                     aria-label={isRunning ? "停止生成" : "生成"}
                     type={"button"}
                     variant={isRunning ? "destructive" : "default"}
-                    size="default"
+                    size="lg"
                     disabled={!isRunning && !prompt.trim()}
-                    className={"!h-10 !min-w-16 shrink-0 !rounded-full !px-3"}
+                    className="shrink-0"
                 >
                     <span className="flex items-center gap-1.5">
                         {isRunning ? (
                             <>
-                                <LoaderCircle className="size-4 animate-spin" />
-                                <Square className="size-3.5 fill-current" />
+                                <Spinner data-icon="inline-start" />
+                                <Square className="fill-current" aria-hidden data-icon="inline-start" />
                                 <span className="text-xs font-medium">{"停止"}</span>
                             </>
                         ) : (
-                            <ArrowUp className="size-4" />
+                            <ArrowUp data-icon="inline-start" aria-hidden />
                         )}
                     </span>
                 </Button>

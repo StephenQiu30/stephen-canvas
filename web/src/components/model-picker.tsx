@@ -14,15 +14,13 @@ type ModelPickerProps = {
     className?: string;
     fullWidth?: boolean;
     placeholder?: string;
+    id?: string;
 };
 
-export function ModelPicker({ config, value, onChange, capability, className, fullWidth = false, placeholder }: ModelPickerProps) {
+export function ModelPicker({ config, value, onChange, capability, className, fullWidth = false, placeholder, id }: ModelPickerProps) {
     const pickerId = useId();
     const [open, setOpen] = useState(false);
-    const options = useMemo(
-        () => Array.from(new Set([...(!capability ? [value] : []), ...selectableModelsByCapability(config, capability)].filter((model): model is string => Boolean(model)))),
-        [capability, config, value],
-    );
+    const options = useMemo(() => Array.from(new Set([...(!capability ? [value] : []), ...selectableModelsByCapability(config, capability)].filter((model): model is string => Boolean(model)))), [capability, config, value]);
     const current = value || "";
     const pickerPlaceholder = placeholder || "选择模型";
 
@@ -45,12 +43,9 @@ export function ModelPicker({ config, value, onChange, capability, className, fu
             onValueChange={onChange}
         >
             <SelectTrigger
-                className={cn(
-                    "canvas-composer-model-picker h-8 w-fit max-w-full gap-2 rounded-full border border-input bg-transparent px-3 text-sm font-normal shadow-sm transition-colors",
-                    fullWidth ? "w-full min-w-0 justify-start" : "min-w-[9rem] justify-start",
-                    "data-[state=open]:border-ring data-[state=open]:ring-2 data-[state=open]:ring-ring/20",
-                    className,
-                )}
+                id={id || pickerId}
+                aria-label="模型"
+                className={cn("canvas-composer-model-picker max-w-full", fullWidth ? "w-full min-w-0 justify-start" : "min-w-[9rem] justify-start", className)}
                 onMouseDown={(event) => event.stopPropagation()}
                 onPointerDown={(event) => event.stopPropagation()}
                 title={current ? modelOptionLabel(config, current) : pickerPlaceholder}
@@ -58,16 +53,7 @@ export function ModelPicker({ config, value, onChange, capability, className, fu
                 <ModelIcon model={current} />
                 <span className="canvas-model-picker-text min-w-0 flex-1 truncate text-left">{current ? modelOptionLabel(config, current) : pickerPlaceholder}</span>
             </SelectTrigger>
-            <SelectContent
-                data-canvas-no-zoom
-                className="w-80 max-w-[calc(100vw-24px)] rounded-xl border border-border/70 bg-popover p-1 shadow-xl"
-                position="popper"
-                align="start"
-                side="bottom"
-                sideOffset={6}
-                onPointerDown={(event) => event.stopPropagation()}
-                onMouseDown={(event) => event.stopPropagation()}
-            >
+            <SelectContent data-canvas-no-zoom className="w-80 max-w-[calc(100vw-24px)]" position="popper" align="start" side="bottom" sideOffset={6} onPointerDown={(event) => event.stopPropagation()} onMouseDown={(event) => event.stopPropagation()}>
                 <SelectGroup>
                     {options.length ? (
                         options.map((model) => (
@@ -102,7 +88,7 @@ function ModelLabel({ config, model }: { config: AiConfig; model: string }) {
 
 function ModelIcon({ model }: { model: string }) {
     const icon = resolveModelIcon(modelOptionName(model));
-    return icon ? <img src={icon} alt="" className="size-4 shrink-0 dark:invert" /> : <Cpu className="size-4 shrink-0 opacity-70" />;
+    return icon ? <img src={icon} alt="" className="size-4 shrink-0 dark:invert" /> : <Cpu aria-hidden />;
 }
 
 function resolveModelIcon(model: string) {

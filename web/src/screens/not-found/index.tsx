@@ -14,7 +14,7 @@ export default function NotFound() {
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
                     <Button asChild>
                         <Link href="/">
-                            <Home className="size-4" />
+                            <Home data-icon="inline-start" aria-hidden />
                             {"返回首页"}
                         </Link>
                     </Button>

@@ -248,23 +248,23 @@ export default function AssetsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                             <Button variant="outline" disabled={!hydrated} onClick={() => assetInputRef.current?.click()}>
-                                <FileUp data-icon="inline-start" />
+                                <FileUp data-icon="inline-start" aria-hidden />
                                 导入素材
                             </Button>
                             <Button disabled={!hydrated} onClick={openCreate}>
-                                <Plus data-icon="inline-start" />
+                                <Plus data-icon="inline-start" aria-hidden />
                                 新增素材
                             </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" disabled={!validAssets.length} aria-label="素材批量操作">
-                                        <Ellipsis />
+                                        <Ellipsis data-icon="inline-start" aria-hidden />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuGroup>
                                         <DropdownMenuItem onSelect={() => void exportAllAssets()}>
-                                            <Download />
+                                            <Download aria-hidden />
                                             导出全部素材
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
@@ -285,7 +285,7 @@ export default function AssetsPage() {
                                 }}
                             />
                             <InputGroupAddon>
-                                <Search />
+                                <Search aria-hidden />
                             </InputGroupAddon>
                         </InputGroup>
                         <ToggleGroup
@@ -316,7 +316,7 @@ export default function AssetsPage() {
                                               <DropdownMenu>
                                                   <DropdownMenuTrigger asChild>
                                                       <Button variant="ghost" size="icon-sm" aria-label={`${asset.title} 的更多操作`}>
-                                                          <Ellipsis />
+                                                          <Ellipsis data-icon="inline-start" aria-hidden />
                                                       </Button>
                                                   </DropdownMenuTrigger>
                                                   <DropdownMenuContent align="end">
@@ -324,18 +324,18 @@ export default function AssetsPage() {
                                                           <DropdownMenuItem onSelect={() => setPreviewAsset(asset)}>查看详情</DropdownMenuItem>
                                                           {asset.kind !== "video" && (
                                                               <DropdownMenuItem onSelect={() => openEdit(asset)}>
-                                                                  <PencilLine />
+                                                                  <PencilLine aria-hidden />
                                                                   编辑素材
                                                               </DropdownMenuItem>
                                                           )}
                                                           {asset.kind === "text" ? (
                                                               <DropdownMenuItem onSelect={() => copyAssetText(asset)}>
-                                                                  <Copy />
+                                                                  <Copy aria-hidden />
                                                                   复制文本
                                                               </DropdownMenuItem>
                                                           ) : (
                                                               <DropdownMenuItem onSelect={() => void downloadImage(asset)}>
-                                                                  <Download />
+                                                                  <Download aria-hidden />
                                                                   下载素材
                                                               </DropdownMenuItem>
                                                           )}
@@ -343,7 +343,7 @@ export default function AssetsPage() {
                                                       <DropdownMenuSeparator />
                                                       <DropdownMenuGroup>
                                                           <DropdownMenuItem variant="destructive" onSelect={() => setDeletingAsset(asset)}>
-                                                              <Trash2 />
+                                                              <Trash2 aria-hidden />
                                                               删除素材
                                                           </DropdownMenuItem>
                                                       </DropdownMenuGroup>
@@ -356,7 +356,7 @@ export default function AssetsPage() {
                             <Empty className="min-h-72 border">
                                 <EmptyHeader>
                                     <EmptyMedia variant="icon">
-                                        <Images />
+                                        <Images aria-hidden />
                                     </EmptyMedia>
                                     <EmptyTitle>{validAssets.length ? "没有匹配的素材" : "收藏你的第一份素材"}</EmptyTitle>
                                     <EmptyDescription>{validAssets.length ? "调整类型或搜索内容，看看其他创作素材。" : "添加文本、导入素材包，或把生成结果保存到这里。"}</EmptyDescription>
@@ -374,7 +374,7 @@ export default function AssetsPage() {
                                         </Button>
                                     ) : (
                                         <Button onClick={openCreate}>
-                                            <Plus data-icon="inline-start" />
+                                            <Plus data-icon="inline-start" aria-hidden />
                                             新增素材
                                         </Button>
                                     )}
@@ -510,7 +510,7 @@ export default function AssetsPage() {
                                                 <InputGroupInput {...field} value={field.value ?? ""} id="asset-coverUrl" aria-invalid={fieldState.invalid} placeholder="可粘贴图片 URL，也可以上传本地封面" />
                                                 <InputGroupAddon align="inline-end">
                                                     <InputGroupButton onClick={() => coverInputRef.current?.click()}>
-                                                        <Upload data-icon="inline-start" />
+                                                        <Upload data-icon="inline-start" aria-hidden />
                                                         上传
                                                     </InputGroupButton>
                                                 </InputGroupAddon>
@@ -594,7 +594,7 @@ export default function AssetsPage() {
                                         </Field>
                                     )}
                                 />
-                                <div className="grid gap-4 sm:grid-cols-2">
+                                <FieldGroup className="grid gap-4 sm:grid-cols-2">
                                     <Controller
                                         name="source"
                                         control={form.control}
@@ -617,7 +617,7 @@ export default function AssetsPage() {
                                             </Field>
                                         )}
                                     />
-                                </div>
+                                </FieldGroup>
                                 {formKind === "text" ? (
                                     <Controller
                                         name="content"
@@ -636,7 +636,7 @@ export default function AssetsPage() {
                                         <FieldLabel>{"图片内容"}</FieldLabel>
                                         <div className="rounded-lg border border-dashed border-border p-4 ">
                                             <Button onClick={() => imageInputRef.current?.click()} type={"button"} variant={"secondary"} size="default">
-                                                {<Upload data-icon="inline-start" />}
+                                                {<Upload data-icon="inline-start" aria-hidden />}
                                                 {"选择图片文件"}
                                             </Button>
                                             {imageDraft ? (
@@ -796,13 +796,13 @@ function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | nu
                             <div className={"flex gap-2 items-center"}>
                                 {asset.kind === "text" ? (
                                     <Button onClick={() => onCopy(asset)} type={"button"} variant={"default"} size="default">
-                                        {<Copy data-icon="inline-start" />}
+                                        {<Copy data-icon="inline-start" aria-hidden />}
                                         {"复制文本"}
                                     </Button>
                                 ) : null}
                                 {asset.kind === "image" || asset.kind === "video" ? (
                                     <Button onClick={() => onDownload(asset)} type={"button"} variant={"default"} size="default">
-                                        {<Download data-icon="inline-start" />}
+                                        {<Download data-icon="inline-start" aria-hidden />}
                                         {asset.kind === "video" ? "下载视频" : "下载图片"}
                                     </Button>
                                 ) : null}

@@ -58,7 +58,7 @@ export function AppSidebar() {
                                 router.push("/canvas?mode=new");
                             }}
                         >
-                            <Plus data-icon="inline-start" />
+                            <Plus data-icon="inline-start" aria-hidden />
                             <span className="group-data-[collapsible=icon]:hidden">新建项目</span>
                         </Button>
                     </TooltipTrigger>

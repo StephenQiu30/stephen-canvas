@@ -102,7 +102,7 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
         <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3">
                 <InputGroup className={"w-56"}>
-                    <InputGroupAddon>{<Search className="size-3.5 text-muted-foreground" />}</InputGroupAddon>
+                    <InputGroupAddon>{<Search className="text-muted-foreground" aria-hidden />}</InputGroupAddon>
                     <InputGroupInput
                         placeholder={"搜索资产"}
                         value={keyword}
@@ -119,7 +119,7 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
                                 setKeyword("");
                             }}
                         >
-                            <X />
+                            <X aria-hidden data-icon="inline-start" />
                         </InputGroupButton>
                     </InputGroupAddon>
                 </InputGroup>

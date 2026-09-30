@@ -57,7 +57,7 @@ export default function HomePage() {
                         <Button asChild variant="ghost" size="sm">
                             <Link href="/canvas">
                                 查看全部
-                                <ChevronRight data-icon="inline-end" />
+                                <ChevronRight data-icon="inline-end" aria-hidden />
                             </Link>
                         </Button>
                     </div>
@@ -69,7 +69,7 @@ export default function HomePage() {
                         <Empty className="min-h-40 border py-6">
                             <EmptyHeader>
                                 <EmptyMedia variant="icon">
-                                    <FolderOpen />
+                                    <FolderOpen aria-hidden />
                                 </EmptyMedia>
                                 <EmptyTitle>还没有项目</EmptyTitle>
                                 <EmptyDescription>从第一张画布开始，把想法变成作品。</EmptyDescription>
@@ -77,7 +77,7 @@ export default function HomePage() {
                             <EmptyContent>
                                 <Button asChild variant="outline">
                                     <Link href="/canvas?mode=new">
-                                        <Plus data-icon="inline-start" />
+                                        <Plus data-icon="inline-start" aria-hidden />
                                         创建项目
                                     </Link>
                                 </Button>
@@ -93,7 +93,7 @@ export default function HomePage() {
                         <Button asChild variant="ghost" size="sm">
                             <Link href="/assets">
                                 查看全部
-                                <ChevronRight data-icon="inline-end" />
+                                <ChevronRight data-icon="inline-end" aria-hidden />
                             </Link>
                         </Button>
                     </div>
@@ -105,7 +105,7 @@ export default function HomePage() {
                         <Empty className="min-h-40 border py-6">
                             <EmptyHeader>
                                 <EmptyMedia variant="icon">
-                                    <Images />
+                                    <Images aria-hidden />
                                 </EmptyMedia>
                                 <EmptyTitle>收藏你的创作素材</EmptyTitle>
                                 <EmptyDescription>导入图片、视频和文本，或将生成结果保存到素材库。</EmptyDescription>
@@ -114,7 +114,7 @@ export default function HomePage() {
                                 <Button asChild variant="outline">
                                     <Link href="/assets">
                                         打开素材库
-                                        <ChevronRight data-icon="inline-end" />
+                                        <ChevronRight data-icon="inline-end" aria-hidden />
                                     </Link>
                                 </Button>
                             </EmptyContent>

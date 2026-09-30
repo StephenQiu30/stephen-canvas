@@ -1,7 +1,9 @@
-import { FieldGroup } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useId } from "react";
 
-import { type CanvasTheme } from "@/lib/canvas-theme";
+import { canvasThemes } from "@/lib/canvas-theme";
+import { useThemeStore } from "@/stores/use-theme-store";
 import type { AiConfig, ReasoningEffort } from "@/stores/use-config-store";
 
 const reasoningEffortOptions: ReasoningEffort[] = ["auto", "low", "medium", "high", "xhigh"];
@@ -9,18 +11,17 @@ const reasoningEffortOptions: ReasoningEffort[] = ["auto", "low", "medium", "hig
 type TextSettingsPanelProps = {
     config: AiConfig;
     onConfigChange: (key: "reasoningEffort", value: ReasoningEffort) => void;
-    theme: CanvasTheme;
     className?: string;
 };
 
-export function TextSettingsPanel({ config, onConfigChange, theme, className = "flex flex-col gap-4" }: TextSettingsPanelProps) {
+export function TextSettingsPanel({ config, onConfigChange, className = "flex flex-col gap-4" }: TextSettingsPanelProps) {
+    const theme = canvasThemes[useThemeStore((state) => state.theme)];
+    const labelId = useId();
     return (
         <FieldGroup className={className} style={{ color: theme.node.text }} onMouseDown={(event) => event.stopPropagation()}>
             <div className="text-lg font-semibold">{"文本设置"}</div>
-            <div className="flex flex-col gap-2.5">
-                <div className="text-sm font-medium" style={{ color: theme.node.muted }}>
-                    {"推理强度"}
-                </div>
+            <Field>
+                <FieldLabel id={labelId}>{"推理强度"}</FieldLabel>
                 <ToggleGroup
                     type="single"
                     variant="outline"
@@ -30,7 +31,7 @@ export function TextSettingsPanel({ config, onConfigChange, theme, className = "
                         if (value) onConfigChange("reasoningEffort", value as ReasoningEffort);
                     }}
                     className="grid grid-cols-5 gap-2 w-full"
-                    aria-label="推理强度"
+                    aria-labelledby={labelId}
                 >
                     {reasoningEffortOptions.map((value) => (
                         <ToggleGroupItem key={value} value={String(value)} className="min-w-0">
@@ -38,7 +39,7 @@ export function TextSettingsPanel({ config, onConfigChange, theme, className = "
                         </ToggleGroupItem>
                     ))}
                 </ToggleGroup>
-            </div>
+            </Field>
         </FieldGroup>
     );
 }

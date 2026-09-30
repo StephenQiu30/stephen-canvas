@@ -49,7 +49,7 @@ export function CanvasZoomControls({
                 <Tooltip key={label}>
                     <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon-sm" onClick={onClick} aria-label={label} aria-pressed={pressed} className="aria-pressed:bg-accent">
-                            <Icon />
+                            <Icon data-icon="inline-start" aria-hidden />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">{label}</TooltipContent>
@@ -90,7 +90,7 @@ export function CanvasZoomControls({
                         </InputGroup>
                         <div className="flex items-center gap-2">
                             <Button variant="ghost" size="icon-sm" aria-label="缩小" onClick={() => onScaleChange(scale / 1.1)}>
-                                <Minus />
+                                <Minus data-icon="inline-start" aria-hidden />
                             </Button>
                             <Slider
                                 min={CANVAS_MIN_SCALE * 100}
@@ -104,7 +104,7 @@ export function CanvasZoomControls({
                                 }}
                             />
                             <Button variant="ghost" size="icon-sm" aria-label="放大" onClick={() => onScaleChange(scale * 1.1)}>
-                                <Plus />
+                                <Plus data-icon="inline-start" aria-hidden />
                             </Button>
                         </div>
                     </Field>

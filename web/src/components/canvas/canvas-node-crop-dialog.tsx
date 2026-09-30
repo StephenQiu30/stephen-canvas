@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -85,7 +86,7 @@ export function CanvasNodeCropDialog({ dataUrl, open, onClose, onConfirm }: { da
                         <div
                             ref={viewport.viewportRef}
                             {...viewport.panHandlers}
-                            className={`relative h-[min(62vh,620px)] min-h-[340px] rounded-lg bg-black/5 ${viewport.scrollClassName} ${viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : ""}`}
+                            className={cn("relative h-[min(62vh,620px)] min-h-[340px] rounded-lg bg-black/5", viewport.scrollClassName, viewport.isPanning ? "cursor-grabbing" : viewport.spacePressed ? "cursor-grab" : "")}
                         >
                             <div className="relative" style={viewport.contentStyle}>
                                 <div ref={boxRef} className="absolute isolate overflow-hidden rounded-lg bg-black select-none [backface-visibility:hidden] [contain:layout_paint] [transform:translateZ(0)]" style={viewport.stageStyle}>
@@ -118,7 +119,7 @@ export function CanvasNodeCropDialog({ dataUrl, open, onClose, onConfirm }: { da
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button aria-label={"缩小"} onClick={viewport.zoomOut} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomOut}>
-                                        {<ZoomOut data-icon="inline-start" />}
+                                        {<ZoomOut data-icon="inline-start" aria-hidden />}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">{"缩小"}</TooltipContent>
@@ -129,7 +130,7 @@ export function CanvasNodeCropDialog({ dataUrl, open, onClose, onConfirm }: { da
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button aria-label={"放大"} onClick={viewport.zoomIn} type={"button"} variant={"ghost"} size="icon" disabled={!viewport.canZoomIn}>
-                                        {<ZoomIn data-icon="inline-start" />}
+                                        {<ZoomIn data-icon="inline-start" aria-hidden />}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">{"放大"}</TooltipContent>
@@ -177,11 +178,11 @@ export function CanvasNodeCropDialog({ dataUrl, open, onClose, onConfirm }: { da
                                 {"重置"}
                             </Button>
                             <Button onClick={onClose} type={"button"} variant={"secondary"} size="default">
-                                {<X data-icon="inline-start" />}
+                                {<X data-icon="inline-start" aria-hidden />}
                                 {"取消"}
                             </Button>
                             <Button onClick={() => onConfirm(crop)} type={"button"} variant={"default"} size="default">
-                                {<Check data-icon="inline-start" />}
+                                {<Check data-icon="inline-start" aria-hidden />}
                                 {"确认裁剪"}
                             </Button>
                         </div>

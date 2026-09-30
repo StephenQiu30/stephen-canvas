@@ -1,6 +1,6 @@
 # AGENTS.md
 
-本文档用于约束本项目中的 AI / 自动化开发行为。开发时优先遵循本文件，其次遵循用户当前消息。
+本文档用于约束本项目中的 AI / 自动化开发行为。用户当前明确要求优先；其余开发行为遵循本文件和 `DESIGN.md`。
 
 ## 基本原则
 
@@ -21,7 +21,11 @@
 
 ## 前端规范
 
-- 前端使用 Next.js App Router、React、TypeScript、shadcn/ui、Radix UI、Tailwind CSS、Zustand、ESLint 和 Prettier。
+- 前端核心技术栈固定为 Next.js App Router + shadcn/ui + Radix UI + Tailwind CSS + ESLint + Prettier；使用 React、TypeScript，跨页面状态沿用 Zustand。
+- 工程规范参考 Vercel 插件的 `vercel:nextjs`、`vercel:shadcn`、`vercel:geist` 指南和 `shadcn` skill；视觉与交互参考 [Vercel Geist](https://vercel.com/geist/introduction)、[Web Interface Guidelines](https://vercel.com/design/guidelines)，组件 API 以当前 shadcn 官方文档和项目源码为准。
+- shadcn 配置以 `web/components.json` 为真源：`radix-nova`、Radix base、neutral、CSS variables、Lucide 和 `@/` 别名；不因指南中的通用推荐切换已有 preset、主题或组件基础库。
+- Radix primitives 使用统一的 `radix-ui` 包。官方 Radix registry 组件声明的必要依赖按官方实现保留，例如 Combobox 的 `@base-ui/react`；这类依赖仅用于对应官方组件，不作为业务页面另起一套控件的入口。
+- 修改 Next.js 行为前先读当前安装版本的 `web/node_modules/next/dist/docs/`。路由与布局默认保留 Server Component；交互、hooks 和浏览器 API 放在最小必要的 Client 边界，跨边界 props 必须符合 React 的可序列化要求，不把整个应用统一改成 Client Component。
 - 外部服务请求统一放在 `web/src/services/api/`，由浏览器前端直连，不假设存在项目后端。
 - 全局或跨页面状态优先放在 `web/src/stores/`。
 - 已经放在全局 store 或全局 hook 中的状态/动作，组件需要时直接使用对应 store/hook，不要为了“纯组件”层层透传 props；避免一个组件传递过多参数。
@@ -37,11 +41,19 @@
 - 全局主题色统一使用 `web/src/app/globals.css` 中的 CSS 变量和 Tailwind 语义类；页面私有组件不要自行维护整套明暗主题分支。
 - 全站视觉规范遵循仓库根目录 `DESIGN.md`；新增或调整页面时优先复用项目内 shadcn/ui 组件及官方 Radix primitives，并使用全局语义 token。
 - 交互控件优先直接从 `@/components/ui/<组件名>` 引入 shadcn 官方组件，遵循 Radix 组合 API；不要新增旧式适配层调用或手写按钮、弹层替代已有组件。布局与导航保留语义化 HTML，组件名称应准确表达用途。
+- 操作 shadcn 前在 `web/` 使用项目包运行器执行 `shadcn@latest info --json`，核对配置与已安装组件；新增前搜索 registry，使用或修改组件前执行 `docs <组件名>` 并读取返回的官方文档。组件更新先用 `--dry-run` / `--diff` 对照本地改动，不直接覆盖已有源码。
+- 表单组合使用 `FieldGroup`、`Field`、`FieldLabel` 和 `FieldError`；输入附加操作使用 `InputGroup` 系列；少量选项使用 `ToggleGroup`。错误同时设置字段的 `data-invalid` 和控件的 `aria-invalid`，禁用同时设置 `data-disabled` 和 `disabled`。
+- 保留完整组合关系：SelectItem 放在 SelectGroup 内，DropdownMenuItem 放在 DropdownMenuGroup 内，TabsTrigger 放在 TabsList 内；Card 按内容语义使用 Header、Title、Description、Content 和 Footer。Radix 自定义触发器使用 `asChild`，不混用其他基础库的触发器 API。
+- 空态、加载、提示、状态和分隔分别使用 Empty、Skeleton / Spinner、Alert、Badge、Separator；Toast 沿用 Sonner。加载按钮组合 Spinner 与 `disabled`，保留操作文案，不添加 `isLoading` / `isPending` 等自造 props。
+- Dialog、Sheet 等弹层必须有 Title；焦点管理、Escape、Portal、定位和层级由官方组件处理。导航使用 Next.js Link 或语义化链接，图标按钮提供中文可访问名称，所有操作支持键盘和可见焦点。
 - 组件优先使用函数组件和现有 hooks，不新增大型状态管理方案。
-- UI 图标优先使用 `lucide-react`。
+- UI 图标使用配置指定的 `lucide-react` 或真实品牌 SVG，不使用文字、Unicode 符号或 emoji 充当图标。普通组件接收图标组件或元素；插件清单、SDK 运行时的图标标识只在宿主边界解析成真实 SVG，不直接展示字符串。
+- Button 图标标记 `data-icon="inline-start"` / `data-icon="inline-end"`；Button、菜单、Sidebar 等官方组件内的图标尺寸交给组件管理，不在调用处重复添加尺寸类。装饰图标使用 `aria-hidden`，仅图标按钮的名称放在按钮上。
 - 页面文案保持中文。
 - 不要在组件里堆太多无关逻辑；复杂逻辑优先抽成同目录工具函数或小组件。
 - 样式优先由组件自己管理；组件私有样式优先使用 Tailwind className 或少量内联 style，不要为单个组件新增大量全局 CSS。
+- 官方组件优先使用内置 `variant` / `size`，调用处 `className` 主要负责布局；共享外观调整集中在组件变体或主题 token。间距使用 flex / grid 与 `gap-*`，等宽高使用 `size-*`，截断使用 `truncate`，条件类使用项目的 `cn()`；不在页面叠加原始颜色或手动 `dark:` 配色覆盖。
+- ESLint 使用 `web/eslint.config.mjs` 的 Next.js Core Web Vitals 与 TypeScript flat config，负责代码质量；Prettier 使用 `web/.prettierrc.json` 负责格式，不另写相冲突的格式规则，也不为通过检查批量关闭规则。检查与格式化遵循本文件的执行约定，不在每次修改后自动运行全仓检查或构建。
 - 全局 CSS 只放基础变量、全局重置、跨页面通用样式和少量第三方组件必要覆盖；不要在 `globals.css` 堆页面私有样式。
 - 代码尽量短小直接，少拆不必要组件，少做多层 props 传递，避免为了抽象堆出更多代码。
 - 前端业务数据需要浏览器本地持久化时，默认使用 `localforage`；`localStorage` 只用于极小的简单配置，不要用来保存业务列表、生成记录、图片、base64 或大 JSON。
@@ -54,7 +66,7 @@
 - 新增画布按钮、弹窗、浮层时，尽量复用已有工具栏、节点面板、Modal 的视觉风格。
 - 画布顶部工具栏和状态信息优先采用极简扁平风格：无边框、无阴影、无胶囊背景，融入整体背景，弱化按钮感，仅保留轻微 hover 反馈，保持简洁现代、低视觉重量。
 - 左侧画布面板等列表里的节点/元素缩略图容器，非图片类型（文本、配置、视频、音频等）不要使用 `theme.node.fill`（`#e7e5df`/`#292524`）这类灰色背景，图标直接无背景展示，尽量不要给多余底色，保持干净。
-- 画布内的操作按钮（如面板里的「添加」「导出」「选择」等）默认用扁平无底色样式：透明背景、仅 `hover:bg-black/5 dark:hover:bg-white/10` 轻微反馈，靠图标+文字表达，不要用 `theme.toolbar.activeBg`（`#e7e5df`/`#3a3631`）或 `theme.node.fill` 之类的灰色作为按钮填充底色。灰色 `activeBg` 只允许用于「选中态」等需要表达状态的高亮，不要当普通装饰底色。
+- 画布内的操作按钮（如面板里的「添加」「导出」「选择」等）默认用扁平无底色样式：透明背景、仅通过语义 token 或当前 `canvasThemes` 提供轻微 hover 反馈，靠图标+文字表达，不要用 `theme.toolbar.activeBg`（`#e7e5df`/`#3a3631`）或 `theme.node.fill` 之类的灰色作为按钮填充底色。灰色 `activeBg` 只允许用于「选中态」等需要表达状态的高亮，不要当普通装饰底色。
 - 图片节点尺寸逻辑要尊重原始比例，除非功能明确要求自由变形。
 - 批量生成、多图展示、助手面板等画布交互要尽量简洁，不要占用过多画布空间。
 

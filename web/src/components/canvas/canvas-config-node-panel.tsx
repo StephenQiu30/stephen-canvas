@@ -1,6 +1,7 @@
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Image as ImageIcon, LoaderCircle, MessageSquare, Music2, Play, Settings2, Square, Video } from "lucide-react";
+import { Image as ImageIcon, MessageSquare, Music2, Play, Settings2, Square, Video } from "lucide-react";
 import type { CSSProperties } from "react";
 
 import { ModelPicker } from "@/components/model-picker";
@@ -103,7 +104,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                 <InputChip label={"参考视频"} value={`${inputSummary.videoCount} 个`} style={chipStyle} />
                 <InputChip label={"参考音频"} value={`${inputSummary.audioCount} 个`} style={chipStyle} />
                 <Button variant="ghost" type="button" className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border px-2 text-[11px]" style={chipStyle} onMouseDown={(event) => event.stopPropagation()} onClick={onComposerToggle}>
-                    <Settings2 className="size-3.5" />
+                    <Settings2 data-icon="inline-start" aria-hidden />
                     {"组装提示词"}
                 </Button>
             </div>
@@ -111,33 +112,18 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
             <div className="mb-2 grid min-w-0 cursor-default grid-cols-[minmax(0,1fr)_148px] items-center gap-2" onMouseDown={(event) => event.stopPropagation()}>
                 <ModelPicker className="canvas-compact-control h-10" config={config} value={config.model} onChange={(model) => onConfigChange(node.id, { model })} capability={mode} fullWidth />
                 {mode === "video" ? (
-                    <CanvasVideoSettingsPopover
-                        config={config}
-                        placement="topRight"
-                        buttonClassName="canvas-compact-control !h-10 !w-full !justify-start !rounded-lg !px-2"
-                        onConfigChange={(key, value) => onConfigChange(node.id, videoConfigPatch(key, value))}
-                    />
+                    <CanvasVideoSettingsPopover config={config} side="top" align="end" buttonClassName="w-full justify-start" onConfigChange={(key, value) => onConfigChange(node.id, videoConfigPatch(key, value))} />
                 ) : mode === "image" ? (
-                    <CanvasImageSettingsPopover
-                        config={config}
-                        placement="topRight"
-                        autoAdjustOverflow={false}
-                        buttonClassName="canvas-compact-control !h-10 !w-full !justify-start !rounded-lg !px-2"
-                        onConfigChange={(key, value) => onConfigChange(node.id, key === "count" ? { count: Number(value) || 1 } : { [key]: value })}
-                    />
+                    <CanvasImageSettingsPopover config={config} side="top" align="end" buttonClassName="w-full justify-start" onConfigChange={(key, value) => onConfigChange(node.id, key === "count" ? { count: Number(value) || 1 } : { [key]: value })} />
                 ) : mode === "audio" ? (
-                    <CanvasAudioSettingsPopover
-                        config={config}
-                        placement="topRight"
-                        buttonClassName="canvas-compact-control !h-10 !w-full !justify-start !rounded-lg !px-2"
-                        onConfigChange={(key, value) => onConfigChange(node.id, audioConfigPatch(key, value))}
-                    />
+                    <CanvasAudioSettingsPopover config={config} side="top" align="end" buttonClassName="w-full justify-start" onConfigChange={(key, value) => onConfigChange(node.id, audioConfigPatch(key, value))} />
                 ) : (
                     <CanvasTextSettingsPopover
                         config={config}
                         count={node.metadata?.textCount || 1}
-                        placement="topRight"
-                        buttonClassName="canvas-compact-control !h-10 !w-full !justify-start !rounded-lg !px-2"
+                        side="top"
+                        align="end"
+                        buttonClassName="w-full justify-start"
                         onConfigChange={(_, value) => onConfigChange(node.id, { reasoningEffort: value })}
                         onCountChange={(textCount) => onConfigChange(node.id, { textCount })}
                     />
@@ -149,20 +135,20 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                 onClick={() => (isRunning ? onStop(node.id) : onGenerate(node.id))}
                 type={"button"}
                 variant={isRunning ? "destructive" : "default"}
-                size="default"
+                size="lg"
                 disabled={!isRunning && !canGenerate}
-                className={"mt-auto !h-9 !w-full !cursor-pointer !rounded-lg"}
+                className="mt-auto w-full"
             >
                 <span className="inline-flex items-center gap-1.5">
                     {isRunning ? (
                         <>
-                            <LoaderCircle className="size-4 animate-spin" />
-                            <Square className="size-3.5 fill-current" />
+                            <Spinner data-icon="inline-start" />
+                            <Square className="fill-current" aria-hidden data-icon="inline-start" />
                             <span>{"停止"}</span>
                         </>
                     ) : (
                         <>
-                            <Play className="size-4" />
+                            <Play data-icon="inline-start" aria-hidden />
                             <span>{"开始生成"}</span>
                         </>
                     )}

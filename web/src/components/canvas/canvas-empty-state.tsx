@@ -21,7 +21,7 @@ export function CanvasEmptyState({ onCreate }: { onCreate: (type: CanvasNodeType
                 <div data-canvas-no-zoom className="pointer-events-auto grid w-full grid-cols-2 gap-2 @min-[760px]/canvas:grid-cols-5">
                     {creationTools.map(({ type, label, icon: Icon }) => (
                         <Button key={type} variant="secondary" className="h-14 justify-start gap-3 rounded-2xl px-4" onClick={() => onCreate(type)}>
-                            <Icon className="size-5" />
+                            <Icon data-icon="inline-start" aria-hidden />
                             {label}
                         </Button>
                     ))}

@@ -70,8 +70,8 @@ export function CanvasTopBar({
                 <div className="pointer-events-auto flex min-w-0 items-center gap-2">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" type="button" className="grid size-7 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10" style={{ color: theme.node.text }} aria-label={"打开画布菜单"}>
-                                <Menu className="size-4" />
+                            <Button variant="ghost" type="button" className="grid size-7 place-items-center rounded-full transition hover:bg-accent" style={{ color: theme.node.text }} aria-label={"打开画布菜单"}>
+                                <Menu data-icon="inline-start" aria-hidden />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="bottom" align="start">
@@ -81,7 +81,7 @@ export function CanvasTopBar({
                                         onHome();
                                     }}
                                 >
-                                    {<Home className="size-4" />}
+                                    {<Home aria-hidden />}
                                     {"主页"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -89,7 +89,7 @@ export function CanvasTopBar({
                                         onProjects();
                                     }}
                                 >
-                                    {<Images className="size-4" />}
+                                    {<Images aria-hidden />}
                                     {"我的画布"}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -98,7 +98,7 @@ export function CanvasTopBar({
                                         onCreateProject();
                                     }}
                                 >
-                                    {<Plus className="size-4" />}
+                                    {<Plus aria-hidden />}
                                     {"新建画布"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -107,7 +107,7 @@ export function CanvasTopBar({
                                         onDeleteProject();
                                     }}
                                 >
-                                    {<Trash2 className="size-4" />}
+                                    {<Trash2 aria-hidden />}
                                     {"删除当前画布"}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -116,7 +116,7 @@ export function CanvasTopBar({
                                         onImportImage();
                                     }}
                                 >
-                                    {<Upload className="size-4" />}
+                                    {<Upload aria-hidden />}
                                     {"导入资产"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -124,7 +124,7 @@ export function CanvasTopBar({
                                         onExportProject();
                                     }}
                                 >
-                                    {<Download className="size-4" />}
+                                    {<Download aria-hidden />}
                                     {"导出当前画布"}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -134,7 +134,7 @@ export function CanvasTopBar({
                                         onUndo();
                                     }}
                                 >
-                                    {<Undo2 className="size-4" />}
+                                    {<Undo2 aria-hidden />}
                                     {<MenuLabel text={"撤销"} shortcut="⌘ Z" />}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -143,7 +143,7 @@ export function CanvasTopBar({
                                         onRedo();
                                     }}
                                 >
-                                    {<Redo2 className="size-4" />}
+                                    {<Redo2 aria-hidden />}
                                     {<MenuLabel text={"重做"} shortcut="⌘ ⇧ Z / ⌘ Y" />}
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>

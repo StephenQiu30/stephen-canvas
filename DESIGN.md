@@ -6,6 +6,45 @@
 
 首页是可操作的工作台，不再使用大标题营销首屏。展示真实最近项目和素材；没有数据时展示可操作的空态。不要复制参考站点的会员、积分、社区、模型宣传或未实现的业务入口。
 
+## 技术栈与规范依据
+
+前端统一使用 Next.js + shadcn/ui + Radix UI + Tailwind CSS + ESLint + Prettier，配合 React 和 TypeScript；现有 Zustand、本地持久化与宿主服务接入沿用项目约定。
+
+| 能力 | 项目基线 | 配置与入口 |
+| --- | --- | --- |
+| 路由与渲染 | Next.js App Router，按需建立 Client 边界 | `web/src/app/`、`web/next.config.ts` |
+| 通用组件 | shadcn/ui 源码，`radix-nova` 风格 | `web/components.json`、`web/src/components/ui/` |
+| 交互基础 | Radix UI，统一 `radix-ui` 包 | 官方组件内组合 primitives |
+| 样式与主题 | Tailwind CSS v4，neutral 与 CSS variables | `web/src/app/globals.css` 的 `@theme inline`；画布使用 `canvasThemes` |
+| 代码质量 | ESLint flat config，Next.js Core Web Vitals + TypeScript | `web/eslint.config.mjs` |
+| 格式 | Prettier，4 空格、双引号、分号、尾逗号、LF，行宽 255 | `web/.prettierrc.json`、`web/.prettierignore` |
+
+依据 [Vercel Geist](https://vercel.com/geist/introduction) 确定字体、层级与中性视觉，依据 [Web Interface Guidelines](https://vercel.com/design/guidelines) 确定交互与可访问性；组件配置与组合遵循 [shadcn 官方文档](https://ui.shadcn.com/docs) 和 `shadcn` skill，渲染边界遵循 [Next.js 官方文档](https://nextjs.org/docs/app/getting-started/server-and-client-components)。Vercel 插件用于查询和应用这些规范，控件实现继续使用项目内 shadcn 源码。
+
+项目选择 Radix base。官方 Radix registry 的 [Combobox](https://ui.shadcn.com/docs/components/radix/combobox) 依赖 `@base-ui/react`，按官方源码保留这一必要依赖；业务页面统一通过 `components/ui/combobox` 使用它，不据此切换其他控件的基础库。组件 API 按实际 primitive 区分：Radix 触发器使用 `asChild`，Combobox 内部使用其官方 API。
+
+## 开发与组件规则
+
+- 路由入口负责路由组合，业务页面放在 `screens/`，共享布局放在 `layouts/`；只有交互、hooks、浏览器本地数据等需要的入口声明 `use client`。模块顶层不读取浏览器 API，不将运行时服务配置作为服务端渲染数据。
+- 先复用已安装的官方组件，按语义组合子组件；`variant` / `size` 表达外观，调用处样式主要负责布局。共享外观扩展放在组件变体或全局主题中。
+- 表单使用 FieldGroup / Field / FieldLabel / FieldError；输入附加内容使用 InputGroup；选项组使用 ToggleGroup；相关字段组使用 FieldSet / FieldLegend。
+- SelectItem、DropdownMenuItem、TabsTrigger 保留各自的 Group / List；Card 按内容语义组合 Header / Title / Description / Content / Footer，不添加无实际内容的区块。
+- 空态用 Empty，加载用 Skeleton / Spinner，提示用 Alert，状态用 Badge，分隔用 Separator，Toast 用 Sonner；不为这些通用能力另写一套样式结构。
+- 组件颜色使用语义 token，间距使用 `gap-*`，等宽高使用 `size-*`，截断使用 `truncate`，条件类使用 `cn()`；页面不硬编码基础颜色，不用手动 `dark:` 分支维护另一套配色。
+- 图标使用 Lucide 组件或真实品牌 SVG；普通组件传递图标组件或元素。Button 内图标标记 `data-icon`，尺寸由官方组件管理；独立图标按所在区域管理尺寸。插件清单与 SDK 的标识在宿主边界解析为 SVG。
+- 弹层保留 Title、焦点返回、Escape 和键盘交互，定位与层级由官方组件管理。导航使用 Link / 链接，按钮提供可访问名称，装饰图标设置 `aria-hidden`，状态同时用文字表达。
+- 加载时保留按钮文案并禁用重复提交；字段错误提供可访问提示；删除等危险操作使用 AlertDialog 或可撤销流程。遵循减少动画偏好，避免动画改变布局。
+
+## 工具使用
+
+在 `web/` 执行 shadcn CLI，包运行器跟随项目配置与可用环境：`bunx --bun shadcn@latest`、`npx shadcn@latest` 或 `pnpm dlx shadcn@latest`。本项目未声明 `packageManager`，不要仅为查询 CLI 改动依赖或锁文件。
+
+1. `info --json` 核对 framework、base、style、iconLibrary、别名及已安装组件。
+2. 新增组件前执行 `search` 确认来源；使用或修改前执行 `docs <组件名>` 并读取返回的官方文档。
+3. 组件更新先执行 `add <组件名> --dry-run` / `--diff`，保留现有业务改动；安装后阅读实际源码，不通过批量覆盖重新初始化项目。
+
+`web/package.json` 中的 `lint`、`format`、`format:check` 分别由 ESLint 和 Prettier 执行。格式以已有配置为准；全仓格式化、语法检查和构建按 `AGENTS.md` 与用户当前要求执行，不因制定规范自动运行。
+
 ## 全局布局
 
 - 桌面使用官方 Sidebar 的 256px 导航，可收起为 48px 图标栏；顶部品牌和新建项目，页面按「工作空间」「创作工具」分组，底部仅放本地存储说明，不展示版本信息。

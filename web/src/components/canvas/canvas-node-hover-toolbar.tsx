@@ -1,4 +1,5 @@
 import { useAppFeedback } from "@/components/ui/app-feedback-provider";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -142,23 +143,23 @@ export function CanvasNodeHoverToolbar({
     }
 
     const baseToolbarTools: ToolbarTool[] = [
-        { id: "info", title: "查看节点信息", label: "信息", icon: <Info className="size-4" />, onClick: () => onInfo(node) },
-        ...(node.type === CanvasNodeType.Group && onUngroup ? [{ id: "ungroup", title: "取消节点分组", label: "解散组", icon: <Ungroup className="size-4" />, onClick: () => onUngroup(node) }] : []),
-        { id: "delete", title: "移除节点", label: "删除", icon: <Trash2 className="size-4" />, onClick: () => onDelete(node), danger: true },
+        { id: "info", title: "查看节点信息", label: "信息", icon: <Info data-icon="inline-start" aria-hidden />, onClick: () => onInfo(node) },
+        ...(node.type === CanvasNodeType.Group && onUngroup ? [{ id: "ungroup", title: "取消节点分组", label: "解散组", icon: <Ungroup data-icon="inline-start" aria-hidden />, onClick: () => onUngroup(node) }] : []),
+        { id: "delete", title: "移除节点", label: "删除", icon: <Trash2 data-icon="inline-start" aria-hidden />, onClick: () => onDelete(node), danger: true },
     ];
     const nodeToolbarTools: ToolbarTool[] = [
-        ...(canQueryVideoTask ? [{ id: "queryVideoTask", title: "使用任务 ID 查询视频生成状态", label: "获取任务状态", icon: <RefreshCw className="size-4" />, onClick: () => onRetry(node) }] : []),
-        ...(canRetry ? [{ id: "retry", title: "重新生成", label: "重试", icon: <RefreshCw className="size-4" />, onClick: () => onRetry(node) }] : []),
-        ...(hasImage || hasVideo || isText ? [{ id: "saveAsset", title: "加入我的资产", label: "存资产", icon: <FolderPlus className="size-4" />, onClick: () => onSaveAsset(node) }] : []),
-        ...(hasImage || hasVideo || hasAudio ? [{ id: "download", title: hasAudio ? "下载音频" : hasVideo ? "下载视频" : "下载图片", label: "下载", icon: <Download className="size-4" />, onClick: () => onDownload(node) }] : []),
-        ...(isVideo ? [{ id: "edit", title: "编辑", label: "编辑", icon: <MessageSquare className="size-4" />, onClick: () => onToggleDialog(node) }] : []),
-        ...(isText ? [{ id: "generateImage", title: "用文本生图", label: "生图", icon: <ImageIcon className="size-4" />, onClick: () => onGenerateImage(node) }] : []),
-        ...(isConfig ? [{ id: "config", title: "生成配置", label: "生成配置", icon: <Settings2 className="size-4" />, onClick: () => onToggleDialog(node) }] : []),
-        ...(isText ? [{ id: "decreaseFont", title: "减小字号", label: "缩小", icon: <Minus className="size-4" />, onClick: () => onDecreaseFont(node) }] : []),
-        ...(isText ? [{ id: "increaseFont", title: "增大字号", label: "放大", icon: <Plus className="size-4" />, onClick: () => onIncreaseFont(node) }] : []),
-        ...(isImage && !hasImage ? [{ id: "uploadImage", title: "上传图片", label: "上传图片", icon: <Upload className="size-4" />, onClick: () => onUpload(node) }] : []),
-        ...(isVideo ? [{ id: "uploadVideo", title: hasVideo ? "替换视频" : "上传视频", label: hasVideo ? "替换视频" : "上传视频", icon: <Video className="size-4" />, onClick: () => onUpload(node) }] : []),
-        ...(isAudio ? [{ id: "uploadAudio", title: hasAudio ? "替换音频" : "上传音频", label: hasAudio ? "替换音频" : "上传音频", icon: <Music2 className="size-4" />, onClick: () => onUpload(node) }] : []),
+        ...(canQueryVideoTask ? [{ id: "queryVideoTask", title: "使用任务 ID 查询视频生成状态", label: "获取任务状态", icon: <RefreshCw data-icon="inline-start" aria-hidden />, onClick: () => onRetry(node) }] : []),
+        ...(canRetry ? [{ id: "retry", title: "重新生成", label: "重试", icon: <RefreshCw data-icon="inline-start" aria-hidden />, onClick: () => onRetry(node) }] : []),
+        ...(hasImage || hasVideo || isText ? [{ id: "saveAsset", title: "加入我的资产", label: "存资产", icon: <FolderPlus data-icon="inline-start" aria-hidden />, onClick: () => onSaveAsset(node) }] : []),
+        ...(hasImage || hasVideo || hasAudio ? [{ id: "download", title: hasAudio ? "下载音频" : hasVideo ? "下载视频" : "下载图片", label: "下载", icon: <Download data-icon="inline-start" aria-hidden />, onClick: () => onDownload(node) }] : []),
+        ...(isVideo ? [{ id: "edit", title: "编辑", label: "编辑", icon: <MessageSquare data-icon="inline-start" aria-hidden />, onClick: () => onToggleDialog(node) }] : []),
+        ...(isText ? [{ id: "generateImage", title: "用文本生图", label: "生图", icon: <ImageIcon data-icon="inline-start" aria-hidden />, onClick: () => onGenerateImage(node) }] : []),
+        ...(isConfig ? [{ id: "config", title: "生成配置", label: "生成配置", icon: <Settings2 data-icon="inline-start" aria-hidden />, onClick: () => onToggleDialog(node) }] : []),
+        ...(isText ? [{ id: "decreaseFont", title: "减小字号", label: "缩小", icon: <Minus data-icon="inline-start" aria-hidden />, onClick: () => onDecreaseFont(node) }] : []),
+        ...(isText ? [{ id: "increaseFont", title: "增大字号", label: "放大", icon: <Plus data-icon="inline-start" aria-hidden />, onClick: () => onIncreaseFont(node) }] : []),
+        ...(isImage && !hasImage ? [{ id: "uploadImage", title: "上传图片", label: "上传图片", icon: <Upload data-icon="inline-start" aria-hidden />, onClick: () => onUpload(node) }] : []),
+        ...(isVideo ? [{ id: "uploadVideo", title: hasVideo ? "替换视频" : "上传视频", label: hasVideo ? "替换视频" : "上传视频", icon: <Video data-icon="inline-start" aria-hidden />, onClick: () => onUpload(node) }] : []),
+        ...(isAudio ? [{ id: "uploadAudio", title: hasAudio ? "替换音频" : "上传音频", label: hasAudio ? "替换音频" : "上传音频", icon: <Music2 data-icon="inline-start" aria-hidden />, onClick: () => onUpload(node) }] : []),
         ...(hasImage ? imageTools.map((tool) => ({ id: tool.id, title: tool.title, label: tool.label, icon: tool.icon, active: tool.active, onClick: tool.onClick })) : []),
     ];
     const toolbarTools = hasImage ? [...baseToolbarTools, ...nodeToolbarTools].filter((tool) => quickImageToolIdSet.has(tool.id as ImageQuickToolId)) : [...baseToolbarTools, ...nodeToolbarTools, ...extraTools];
@@ -201,7 +202,7 @@ export function CanvasNodeHoverToolbar({
                 {toolbarTools.map((tool) => (
                     <ToolbarAction key={tool.id} {...tool} showLabel={isImage ? showImageToolLabels : true} />
                 ))}
-                {hasImage ? <ToolbarAction id="more" title={"配置快捷工具"} label={"更多"} icon={<Ellipsis className="size-4" />} active={imageToolSettingsOpen} onClick={openImageToolSettings} showLabel={showImageToolLabels} /> : null}
+                {hasImage ? <ToolbarAction id="more" title={"配置快捷工具"} label={"更多"} icon={<Ellipsis data-icon="inline-start" aria-hidden />} active={imageToolSettingsOpen} onClick={openImageToolSettings} showLabel={showImageToolLabels} /> : null}
             </div>
             {hasImage ? (
                 <ImageToolSettingsModal
@@ -307,9 +308,9 @@ export function CanvasNodeInfoModal({ node, open, onClose }: { node: CanvasNodeD
                                     {node.metadata?.videoTaskId ? <InfoRow label={"任务 ID"} value={node.metadata.videoTaskId} /> : null}
                                     {imageBytes ? <InfoRow label={"图片大小"} value={formatBytes(imageBytes)} /> : null}
                                     {node.metadata?.errorDetails ? (
-                                        <div className="rounded-lg border p-3 text-red-400" style={{ borderColor: theme.node.stroke }}>
-                                            {node.metadata.errorDetails}
-                                        </div>
+                                        <Alert variant="destructive">
+                                            <AlertDescription>{node.metadata.errorDetails}</AlertDescription>
+                                        </Alert>
                                     ) : null}
                                 </div>
                             ) : (
@@ -332,10 +333,7 @@ function ToolbarAction({ title, label, icon, onClick, showLabel, active = false,
         <Tooltip>
             <TooltipTrigger asChild>
                 <Button variant="ghost" type="button" className="group relative flex h-12 items-center whitespace-nowrap px-1.5" style={{ color: danger ? "var(--destructive)" : theme.node.text }} onClick={onClick} aria-label={title}>
-                    <span
-                        className={`flex h-9 items-center ${hasText ? "gap-2 px-2.5" : "justify-center px-2"} rounded-lg transition group-hover:bg-black/5 dark:group-hover:bg-white/10`}
-                        style={active ? { background: theme.toolbar.activeBg } : undefined}
-                    >
+                    <span className={cn("flex h-9 items-center", hasText ? "gap-2 px-2.5" : "justify-center px-2", "rounded-lg transition group-hover:bg-accent")} style={active ? { background: theme.toolbar.activeBg } : undefined}>
                         {icon}
                         {hasText ? <span>{label}</span> : null}
                     </span>

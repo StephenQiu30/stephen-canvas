@@ -45,7 +45,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: true,
         label: () => "复制提示词",
         title: () => "复制生成该图片的提示词",
-        icon: () => <Copy className="size-4" />,
+        icon: () => <Copy data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onCopyPrompt(node),
     },
     {
@@ -53,7 +53,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: true,
         label: () => "反推提示词",
         title: () => "创建反推提示词的文本和配置节点",
-        icon: () => <FileText className="size-4" />,
+        icon: () => <FileText data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onReversePrompt(node),
     },
     {
@@ -61,7 +61,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: true,
         label: () => "替换图片",
         title: () => "替换图片",
-        icon: () => <Upload className="size-4" />,
+        icon: () => <Upload data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onUpload(node),
     },
     {
@@ -69,7 +69,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: false,
         label: (node) => (node.metadata?.freeResize ? "自由比例" : "锁比例"),
         title: (node) => (node.metadata?.freeResize ? "切换为等比缩放" : "切换为自由比例"),
-        icon: (node) => (node.metadata?.freeResize ? <LockOpen className="size-4" /> : <Lock className="size-4" />),
+        icon: (node) => (node.metadata?.freeResize ? <LockOpen data-icon="inline-start" aria-hidden /> : <Lock data-icon="inline-start" aria-hidden />),
         active: (node) => Boolean(node.metadata?.freeResize),
         run: (node, handlers) => handlers.onToggleFreeResize(node),
     },
@@ -78,7 +78,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: true,
         label: () => "局部编辑",
         title: () => "添加蒙版遮罩后局部修改",
-        icon: () => <Brush className="size-4" />,
+        icon: () => <Brush data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onMaskEdit(node),
     },
     {
@@ -86,7 +86,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: true,
         label: () => "裁剪",
         title: () => "裁剪并生成新节点",
-        icon: () => <Scissors className="size-4" />,
+        icon: () => <Scissors data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onCrop(node),
     },
     {
@@ -94,7 +94,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: true,
         label: () => "切图",
         title: () => "按行列切分图片",
-        icon: () => <Grid2x2 className="size-4" />,
+        icon: () => <Grid2x2 data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onSplit(node),
     },
     {
@@ -102,7 +102,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: true,
         label: () => "放大",
         title: () => "放大图片分辨率",
-        icon: () => <ZoomIn className="size-4" />,
+        icon: () => <ZoomIn data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onUpscale(node),
     },
     {
@@ -110,7 +110,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: false,
         label: () => "超分",
         title: () => "AI 超分",
-        icon: () => <Sparkles className="size-4" />,
+        icon: () => <Sparkles data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onSuperResolve(node),
     },
     {
@@ -118,7 +118,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: false,
         label: () => "多角度",
         title: () => "生成角度",
-        icon: () => <Camera className="size-4" />,
+        icon: () => <Camera data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onAngle(node),
     },
     {
@@ -126,7 +126,7 @@ export const imageToolDefinitions: ImageToolDefinition[] = [
         defaultVisible: true,
         label: () => "查看大图",
         title: () => "查看图片详情",
-        icon: () => <Maximize2 className="size-4" />,
+        icon: () => <Maximize2 data-icon="inline-start" aria-hidden />,
         run: (node, handlers) => handlers.onViewImage(node),
     },
 ];

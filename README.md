@@ -20,6 +20,8 @@
 
 Stephen Canvas 是一款面向图片创作的开源工作台。它把画布编排、AI 图片生成、参考图编辑、对话助手和素材沉淀放在同一个界面里，适合用来探索视觉方案并连续迭代图片结果。
 
+前端使用 Next.js App Router + shadcn/ui + Radix UI + Tailwind CSS + ESLint + Prettier，配合 React 和 TypeScript。开发与设计规范见 [AGENTS.md](AGENTS.md) 和 [DESIGN.md](DESIGN.md)。
+
 > [!CAUTION]
 > 项目目前处于开发阶段，不保证历史数据兼容。各种本地存储格式都可能直接调整。
 

@@ -31,13 +31,20 @@ export function CanvasSizePicker({ value, className, onChange }: CanvasSizePicke
                 <PopoverTrigger asChild>
                     <Button aria-label={"比例"} type={"button"} variant={"ghost"} size="default" className={cn("canvas-compact-control canvas-control-select h-full w-full justify-between", className)}>
                         <span className="truncate">{value || "比例"}</span>
-                        <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                        <ChevronDown className="shrink-0 opacity-60" data-icon="inline-start" aria-hidden />
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="center" className={"w-48 p-2"}>
                     {
                         <div className="flex flex-col gap-1">
-                            <Input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && search.trim() && selectSize(search)} placeholder={"比例"} />
+                            <Input
+                                aria-label="搜索或输入比例"
+                                autoFocus
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                                onKeyDown={(event) => event.key === "Enter" && !event.nativeEvent.isComposing && search.trim() && selectSize(search)}
+                                placeholder={"比例"}
+                            />
                             <div className="max-h-56 overflow-y-auto">
                                 {options
                                     .filter((option) => !search || option.value.toLowerCase().includes(search.trim().toLowerCase()))
